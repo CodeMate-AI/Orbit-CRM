@@ -1,0 +1,561 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & Workspace ───
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  locale        String    @default("en-IN")
+  timezone      String    @default("Asia/Kolkata")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workspaces    WorkspaceMember[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  views         View[]
+  attachments   Attachment[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+}
+
+model Workspace {
+  id                  String    @id @default(cuid())
+  name                String
+  logo                String?
+  domain              String?   @unique
+  createdAt           DateTime  @default(now())
+
+  members             WorkspaceMember[]
+  people              Person[]
+  companies           Company[]
+  opportunities       Opportunity[]
+  pipelines           Pipeline[]
+  pipelineStages      PipelineStage[]
+  tasks               Task[]
+  notes               Note[]
+  views               View[]
+  workflows           Workflow[]
+  dashboards          Dashboard[]
+  tags                Tag[]
+  customFields        CustomFieldDefinition[]
+  attachments         Attachment[]
+  customFieldValues   CustomFieldValue[]
+  tagAssignments      TagAssignment[]
+  opportunityContacts OpportunityContact[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid())
+  role        MemberRole @default(MEMBER)
+  userId      String
+  workspaceId String
+  joinedAt    DateTime   @default(now())
+
+  user        User       @relation(fields: [userId], references: [id])
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId])
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ─── CRM Core Entities ───
+// NOTE: PostgreSQL GIN/tsvector weighted search indexes on name and email fields cannot be declared natively in Prisma schema and must be added via a raw SQL migration file (e.g. migration.sql).
+model Person {
+  id                String             @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  jobTitle          String?
+  city              String?
+  avatarUrl         String?
+  linkedInUrl       String?
+  version           Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  workspaceId       String
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id])
+  companyId         String?
+  company           Company?           @relation(fields: [companyId], references: [id])
+
+  activities        Activity[]
+  tasks             Task[]
+  notes             Note[]
+  opportunities     OpportunityContact[]
+  attachments       Attachment[]
+  customFieldValues CustomFieldValue[]
+  tags              TagAssignment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([companyId])
+}
+
+model Company {
+  id                String             @id @default(cuid())
+  name              String
+  domain            String?
+  address           String?
+  city              String?
+  industry          String?
+  employeeCount     Int?
+  annualRevenue     Decimal?           @db.Decimal(15, 2)
+  linkedInUrl       String?
+  logoUrl           String?
+  version           Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  workspaceId       String
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id])
+
+  people            Person[]
+  opportunities     Opportunity[]
+  activities        Activity[]
+  tasks             Task[]
+  notes             Note[]
+  attachments       Attachment[]
+  customFieldValues CustomFieldValue[]
+  tags              TagAssignment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+}
+
+model Opportunity {
+  id                String             @id @default(cuid())
+  name              String
+  amount            Decimal?           @db.Decimal(12, 2)
+  currency          String             @default("INR")
+  closeDate         DateTime?
+  probability       Int?
+  stageId           String
+  stage             PipelineStage      @relation(fields: [stageId], references: [id])
+  source            String?
+  version           Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  workspaceId       String
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id])
+  companyId         String?
+  company           Company?           @relation(fields: [companyId], references: [id])
+
+  contacts          OpportunityContact[]
+  activities        Activity[]
+  tasks             Task[]
+  notes             Note[]
+  attachments       Attachment[]
+  customFieldValues CustomFieldValue[]
+  tags              TagAssignment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([stageId])
+  @@index([companyId])
+}
+
+model OpportunityContact {
+  id            String      @id @default(cuid())
+  role          String?
+  workspaceId   String
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id])
+  opportunityId String
+  personId      String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+  person        Person      @relation(fields: [personId], references: [id])
+
+  @@unique([opportunityId, personId])
+}
+
+model Pipeline {
+  id          String          @id @default(cuid())
+  name        String
+  stages      PipelineStage[]
+  isDefault   Boolean         @default(false)
+
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id])
+}
+
+model PipelineStage {
+  id            String        @id @default(cuid())
+  name          String
+  color         String        @default("#6366f1")
+  position      Int           @default(0)
+  probability   Int           @default(100)
+  version       Int           @default(1)
+
+  workspaceId   String
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  pipelineId    String
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id])
+  opportunities Opportunity[]
+}
+
+// ─── Activities ───
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  status        TaskStatus   @default(TODO)
+  priority      Priority     @default(MEDIUM)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  version       Int          @default(1)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  assigneeId    String?
+  assignee      User?        @relation(fields: [assigneeId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Note {
+  id            String       @id @default(cuid())
+  title         String?
+  body          Json
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  authorId      String?
+  author        User?        @relation(fields: [authorId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+model Activity {
+  id            String       @id @default(cuid())
+  type          ActivityType
+  title         String
+  body          String?
+  metadata      Json?
+  occurredAt    DateTime     @default(now())
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  authorId      String?
+  author        User?        @relation(fields: [authorId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([occurredAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+enum ActivityType {
+  NOTE
+  EMAIL
+  CALL
+  MEETING
+  TASK_COMPLETED
+  DEAL_STAGE_CHANGED
+  RECORD_CREATED
+  RECORD_UPDATED
+}
+
+// ─── Attachments ───
+model Attachment {
+  id            String       @id @default(cuid())
+  name          String
+  mimeType      String
+  sizeBytes     Int
+  url           String
+  createdAt     DateTime     @default(now())
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  uploadedById  String?
+  uploadedBy    User?        @relation(fields: [uploadedById], references: [id])
+  checksum      String?
+  storageKey    String
+  isPublic      Boolean      @default(false)
+
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+// ─── Custom Fields ───
+model CustomFieldDefinition {
+  id          String             @id @default(cuid())
+  name        String
+  label       String
+  type        FieldType
+  entityType  EntityType
+  options     Json?
+  isRequired  Boolean            @default(false)
+  position    Int                @default(0)
+
+  workspaceId String
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
+  values      CustomFieldValue[]
+
+  @@unique([workspaceId, entityType, name])
+}
+
+model CustomFieldValue {
+  id            String                 @id @default(cuid())
+  value         Json
+
+  workspaceId   String
+  workspace     Workspace              @relation(fields: [workspaceId], references: [id])
+  fieldId       String
+  field         CustomFieldDefinition  @relation(fields: [fieldId], references: [id])
+  personId      String?
+  person        Person?                @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?               @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity?           @relation(fields: [opportunityId], references: [id])
+
+  @@unique([fieldId, personId])
+  @@unique([fieldId, companyId])
+  @@unique([fieldId, opportunityId])
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  CURRENCY
+  DATE
+  BOOLEAN
+  EMAIL
+  PHONE
+  URL
+  SELECT
+  MULTI_SELECT
+  RATING
+}
+
+enum EntityType {
+  PERSON
+  COMPANY
+  OPPORTUNITY
+}
+
+// ─── Tags ───
+model Tag {
+  id          String          @id @default(cuid())
+  name        String
+  color       String          @default("#6366f1")
+
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id])
+  assignments TagAssignment[]
+
+  @@unique([workspaceId, name])
+}
+
+model TagAssignment {
+  id            String       @id @default(cuid())
+  tagId         String
+  tag           Tag          @relation(fields: [tagId], references: [id])
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@unique([tagId, personId])
+  @@unique([tagId, companyId])
+  @@unique([tagId, opportunityId])
+}
+
+// ─── Views ───
+model View {
+  id          String       @id @default(cuid())
+  name        String
+  entityType  EntityType
+  type        ViewType     @default(TABLE)
+  filters     Json?
+  sorts       Json?
+  fieldConfig Json?
+  groupBy     String?
+  isDefault   Boolean      @default(false)
+  isShared    Boolean      @default(false)
+  position    Int          @default(0)
+
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id])
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+}
+
+enum ViewType {
+  TABLE
+  KANBAN
+}
+
+// ─── Workflows ───
+model Workflow {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean       @default(false)
+  trigger     Json
+  steps       Json
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id])
+  runs        WorkflowRun[]
+}
+
+model WorkflowRun {
+  id          String            @id @default(cuid())
+  status      WorkflowRunStatus @default(RUNNING)
+  triggerData Json?
+  stepResults Json?
+  startedAt   DateTime          @default(now())
+  completedAt DateTime?
+  error       String?
+
+  workflowId  String
+  workflow    Workflow          @relation(fields: [workflowId], references: [id])
+}
+
+enum WorkflowRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ─── Dashboards ───
+model Dashboard {
+  id          String       @id @default(cuid())
+  name        String
+  widgets     Json
+  isDefault   Boolean      @default(false)
+
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id])
+}
+
+// ─── Platform Logs & Notifications ───
+model AuditLog {
+  id          String       @id @default(cuid())
+  entityType  String
+  entityId    String
+  action      AuditAction
+  before      Json?
+  after       Json?
+  occurredAt  DateTime     @default(now())
+
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id])
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  link        String?
+  createdAt   DateTime         @default(now())
+
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  MEMBER_INVITED
+  WORKFLOW_COMPLETED
+  ALERT
+}

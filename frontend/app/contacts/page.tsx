@@ -78,7 +78,7 @@ export default function ContactsPage() {
           ))}
         </section>
 
-        <section className="rounded-xl border border-border-subtle bg-bg-secondary p-6">
+        <section className="rounded-xl border border-border-subtle bg-bg-secondary p-6 overflow-hidden">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3 rounded-full border border-border-default px-4 py-2 text-sm text-text-secondary">
               <Search className="h-4 w-4" />
@@ -87,8 +87,8 @@ export default function ContactsPage() {
             <div className="text-sm text-text-secondary">Showing {contacts.length} sample contacts</div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border-subtle">
-            <table className="min-w-full divide-y divide-border-subtle text-left">
+          <div className="overflow-x-auto rounded-xl border border-border-subtle">
+            <table className="min-w-[800px] divide-y divide-border-subtle text-left md:min-w-full">
               <thead className="bg-surface-default text-sm text-text-secondary">
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>

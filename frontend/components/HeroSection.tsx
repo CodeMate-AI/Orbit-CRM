@@ -167,11 +167,11 @@ export default function HeroSection() {
               </div>
 
               {/* Board */}
-              <div className="flex flex-1 gap-3 overflow-hidden p-4">
+              <div className="flex flex-1 gap-3 overflow-x-auto p-4 md:overflow-hidden">
                 {pipelineColumns.map((col) => (
                   <div
                     key={col.header}
-                    className="flex min-w-0 flex-1 flex-col gap-2 rounded border border-border-default bg-bg-primary p-3"
+                    className="flex min-w-[160px] flex-1 flex-col gap-2 rounded border border-border-default bg-bg-primary p-3 md:min-w-0"
                   >
                     <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.1em] text-text-tertiary">
                       {col.header}

@@ -63,9 +63,9 @@ export default function DealsPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="flex gap-4 overflow-x-auto pb-4 md:grid md:grid-cols-4 md:overflow-visible">
           {columns.map((column) => (
-            <div key={column.title} className="rounded-2xl border border-border-subtle bg-bg-secondary p-4">
+            <div key={column.title} className="min-w-[280px] rounded-2xl border border-border-subtle bg-bg-secondary p-4 md:min-w-0">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold">{column.title}</h2>

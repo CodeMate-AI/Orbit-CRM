@@ -18,7 +18,7 @@ const navLinks = [
 
 function OrbitLogo() {
   return (
-    <Link href="/" className="flex items-center gap-2.5">
+    <Link id="nav-logo" href="/" className="flex items-center gap-2.5">
       <svg
         width="28"
         height="28"
@@ -69,6 +69,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-8 md:flex">
             {navLinks.map((link) => (
               <a
+                id={`nav-link-${link.label.toLowerCase()}`}
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
@@ -80,10 +81,19 @@ export default function Navbar() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary">
+            <Button
+              id="nav-signin-btn"
+              variant="ghost"
+              size="sm"
+              className="text-text-secondary hover:text-text-primary"
+            >
               Sign in
             </Button>
-            <Button size="sm" className="bg-orbit-primary text-white hover:bg-orbit-primary-hover">
+            <Button
+              id="nav-signup-btn"
+              size="sm"
+              className="bg-orbit-primary text-white hover:bg-orbit-primary-hover"
+            >
               Start free trial
             </Button>
           </div>

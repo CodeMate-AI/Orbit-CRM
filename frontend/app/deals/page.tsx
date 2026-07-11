@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarClock, CircleDollarSign, Plus } from "lucide-react";
 
@@ -26,6 +27,12 @@ const columns = [
   },
 ];
 
+export const metadata: Metadata = {
+  title: "Opportunities Board | Orbit CRM",
+  description:
+    "Review pipeline health, spot stuck deals, and keep revenue momentum visible across the team.",
+};
+
 export default function DealsPage() {
   return (
     <main className="min-h-screen bg-bg-primary px-6 py-12 text-text-primary md:px-10">
@@ -40,12 +47,16 @@ export default function DealsPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
+              id="deals-back-btn"
               href="/"
               className="inline-flex items-center gap-2 rounded-full border border-border-default px-4 py-2 text-sm text-text-primary transition hover:bg-surface-hover"
             >
               Back to landing
             </Link>
-            <button className="inline-flex items-center gap-2 rounded-full bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover">
+            <button
+              id="deals-add-btn"
+              className="inline-flex items-center gap-2 rounded-full bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
+            >
               <Plus className="h-4 w-4" />
               New deal
             </button>

@@ -92,10 +92,14 @@ export default function HeroSection() {
             Orbit replaces spreadsheets and overpriced enterprise tools with an AI-native CRM designed for modern startups and small teams. Set up in minutes. Priced for growth.
           </p>
           <div className="mt-2 flex flex-wrap gap-4">
-            <Button className="bg-orbit-primary font-sans text-sm font-medium tracking-[0.01em] text-[#0b0b0b] hover:bg-orbit-primary-hover">
+            <Button
+              id="hero-signup-btn"
+              className="bg-orbit-primary font-sans text-sm font-medium tracking-[0.01em] text-[#0b0b0b] hover:bg-orbit-primary-hover"
+            >
               Start free trial
             </Button>
             <Button
+              id="hero-demo-btn"
               variant="outline"
               className="border-border-default bg-transparent font-sans text-sm font-medium tracking-[0.01em] text-text-primary hover:bg-surface-hover hover:text-text-primary"
             >

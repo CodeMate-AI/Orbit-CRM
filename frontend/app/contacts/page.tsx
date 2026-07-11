@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Mail, Phone, Plus, Search, Users } from "lucide-react";
 
@@ -25,6 +26,12 @@ const contacts = [
   },
 ];
 
+export const metadata: Metadata = {
+  title: "Contacts | Orbit CRM",
+  description:
+    "Manage relationships, track touchpoints, and move leads from first hello to closed won.",
+};
+
 export default function ContactsPage() {
   return (
     <main className="min-h-screen bg-bg-primary px-6 py-12 text-text-primary md:px-10">
@@ -39,12 +46,16 @@ export default function ContactsPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
+              id="contacts-back-btn"
               href="/"
               className="inline-flex items-center gap-2 rounded-full border border-border-default px-4 py-2 text-sm text-text-primary transition hover:bg-surface-hover"
             >
               Back to landing
             </Link>
-            <button className="inline-flex items-center gap-2 rounded-full bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover">
+            <button
+              id="contacts-add-btn"
+              className="inline-flex items-center gap-2 rounded-full bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
+            >
               <Plus className="h-4 w-4" />
               Add contact
             </button>

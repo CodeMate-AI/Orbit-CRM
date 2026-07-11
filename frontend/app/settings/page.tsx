@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, ShieldCheck, UserRound } from "lucide-react";
 
@@ -19,6 +20,12 @@ const cards = [
   },
 ];
 
+export const metadata: Metadata = {
+  title: "Workspace Settings | Orbit CRM",
+  description:
+    "Centralize profile settings, SMTP delivery, and security preferences for the whole CRM workspace.",
+};
+
 export default function SettingsPage() {
   return (
     <main className="min-h-screen bg-bg-primary px-6 py-12 text-text-primary md:px-10">
@@ -32,6 +39,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <Link
+            id="settings-back-btn"
             href="/"
             className="inline-flex items-center gap-2 rounded-full border border-border-default px-4 py-2 text-sm text-text-primary transition hover:bg-surface-hover"
           >

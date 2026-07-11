@@ -24,6 +24,31 @@ export const metadata: Metadata = {
   title: "Orbit CRM — AI-Native Customer Relationship Management",
   description:
     "The AI-native customer relationship management platform built for modern startups and small teams.",
+  keywords: [
+    "AI CRM",
+    "customer relationship management",
+    "sales pipeline software",
+    "startup CRM",
+    "small business CRM",
+    "Orbit CRM",
+  ],
+  authors: [{ name: "Orbit CRM" }],
+  metadataBase: new URL("https://orbitcrm.com"),
+  openGraph: {
+    title: "Orbit CRM — AI-Native Customer Relationship Management",
+    description:
+      "The AI-native customer relationship management platform built for modern startups and small teams.",
+    url: "https://orbitcrm.com",
+    siteName: "Orbit CRM",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Orbit CRM — AI-Native Customer Relationship Management",
+    description:
+      "The AI-native customer relationship management platform built for modern startups and small teams.",
+  },
 };
 
 export default function RootLayout({

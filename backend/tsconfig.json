@@ -9,11 +9,10 @@
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
+    "rootDir": "./src",
+    "incremental": false,
     "skipLibCheck": true,
     "strict": true,
-    "moduleResolution": "node",
     "esModuleInterop": true,
     "types": ["node"]
   },

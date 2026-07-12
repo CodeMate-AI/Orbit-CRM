@@ -274,7 +274,7 @@ function FeatureVisual({ type }: { type: string }) {
 
 export default function FeaturesSection() {
   return (
-    <section id="product" className="px-4 py-[140px] sm:px-6 lg:px-8">
+    <section id="product" className="px-4 py-16 lg:py-[140px] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

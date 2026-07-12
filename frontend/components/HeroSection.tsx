@@ -45,8 +45,8 @@ const pipelineColumns = [
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden px-4 pb-[140px] pt-[96px] sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-[1fr_1.15fr] lg:gap-16">
+    <section className="relative overflow-hidden px-4 pb-16 lg:pb-[140px] pt-[96px] sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-16">
         {/* Left column */}
         <div className="flex flex-col gap-7">
           <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
@@ -75,8 +75,8 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Right column — dashboard mockup */}
-        <div className="relative">
+        {/* Right column — dashboard mockup (hidden on mobile and iPad) */}
+        <div className="relative hidden lg:block">
           {/* Radial purple glow */}
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
@@ -89,7 +89,7 @@ export default function HeroSection() {
 
           {/* Floating mockup shell */}
           <div
-            className="animate-float relative z-10 flex overflow-hidden rounded-md border border-border-default bg-bg-secondary shadow-[0_32px_72px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.03)]"
+            className="animate-float relative z-10 flex w-full max-w-full overflow-hidden rounded-md border border-border-default bg-bg-secondary shadow-[0_32px_72px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.03)]"
             style={{ height: "440px" }}
           >
             {/* Sidebar */}
@@ -126,7 +126,7 @@ export default function HeroSection() {
               </div>
 
               {/* Board */}
-              <div className="flex flex-1 gap-3 overflow-x-auto p-4 md:overflow-hidden">
+              <div className="flex flex-1 gap-3 overflow-x-auto p-4 lg:overflow-hidden">
                 {pipelineColumns.map((col) => (
                   <div
                     key={col.header}

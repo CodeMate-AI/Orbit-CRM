@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import SocialProof from "@/components/SocialProof";
 import FeaturesSection from "@/components/FeaturesSection";
 import PersonasSection from "@/components/PersonasSection";
 import AISection from "@/components/AISection";
@@ -15,7 +14,6 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-        <SocialProof />
         <FeaturesSection />
         <PersonasSection />
         <AISection />

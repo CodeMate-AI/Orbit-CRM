@@ -82,7 +82,7 @@ function SignUpForm() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative z-10 w-full max-w-md rounded-xl border border-border-default bg-bg-secondary p-8 shadow-lg"
+      className="relative z-10 w-full max-w-md rounded-xl border border-border-default bg-bg-secondary p-6 shadow-lg sm:p-8"
     >
       <div className="flex flex-col gap-2 text-center">
         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-border-default bg-surface-default">
@@ -199,7 +199,7 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center bg-bg-primary px-4 py-12 text-text-primary">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg-primary px-4 py-12 text-text-primary">
       {/* Background Radial Glow */}
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"

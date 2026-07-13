@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarClock, CircleDollarSign, Plus, Loader2, LayoutGrid, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarClock, CircleDollarSign, Plus, Loader2, LayoutGrid, Trash2, ChevronDown } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { toast } from "sonner";
 import {
@@ -144,6 +144,8 @@ function DealsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [movingDealId, setMovingDealId] = useState<string | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -154,6 +156,19 @@ function DealsContent() {
       .catch((err) => setError(err.message || "Failed to load deals."))
       .finally(() => setLoading(false));
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (!boardRef.current || stages.length === 0) return;
+
+    const board = boardRef.current;
+    const resetScroll = () => {
+      board.scrollLeft = 0;
+    };
+
+    resetScroll();
+    const frameId = window.requestAnimationFrame(resetScroll);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [stages.length]);
 
   const totalDeals = stages.reduce((acc, s) => acc + s.deals.length, 0);
   const pipelineValue = stages
@@ -180,6 +195,48 @@ function DealsContent() {
       );
     } catch (err: any) {
       toast.error(err.message || "Failed to delete deal.");
+    }
+  };
+
+  const handleMoveStage = async (id: string, currentStageId: string, newStageId: string) => {
+    if (currentStageId === newStageId) return;
+
+    const currentStage = stages.find((stage) => stage.id === currentStageId);
+    const targetStage = stages.find((stage) => stage.id === newStageId);
+    const deal = currentStage?.deals.find((item) => item.id === id);
+
+    if (!currentStage || !targetStage || !deal) {
+      toast.error("Unable to move deal.");
+      return;
+    }
+
+    setMovingDealId(id);
+
+    const previousStages = stages;
+    const optimisticDeal = { ...deal, stageId: newStageId };
+
+    setStages((prev) =>
+      prev.map((stage) => {
+        if (stage.id === currentStageId) {
+          return { ...stage, deals: stage.deals.filter((item) => item.id !== id) };
+        }
+
+        if (stage.id === newStageId) {
+          return { ...stage, deals: [optimisticDeal, ...stage.deals] };
+        }
+
+        return stage;
+      }),
+    );
+
+    try {
+      await opportunitiesApi.update(id, { stageId: newStageId });
+      toast.success(`Moved to ${targetStage.name}`);
+    } catch (err: any) {
+      setStages(previousStages);
+      toast.error(err.message || "Failed to update stage.");
+    } finally {
+      setMovingDealId(null);
     }
   };
 
@@ -247,7 +304,7 @@ function DealsContent() {
 
       {/* Kanban board */}
       {!loading && !error && stages.length > 0 && (
-        <section className="flex gap-4 overflow-x-auto pb-4">
+        <section ref={boardRef} className="flex gap-4 overflow-x-auto pb-4">
           {stages.map((column) => (
             <div
               key={column.id}
@@ -279,17 +336,43 @@ function DealsContent() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-medium text-sm text-text-primary leading-snug">{deal.name}</h3>
-                        <button
-                          type="button"
-                          className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-error transition-opacity duration-200 focus:opacity-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteDeal(deal.id, deal.stageId);
-                          }}
-                          aria-label={`Delete ${deal.name}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                          <label className="relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded border border-border-subtle bg-surface-default text-text-tertiary hover:text-orbit-primary focus-within:text-orbit-primary">
+                            <select
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                              value={deal.stageId}
+                              disabled={movingDealId === deal.id}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                void handleMoveStage(deal.id, deal.stageId, e.target.value);
+                              }}
+                              aria-label={`Move ${deal.name} to another stage`}
+                            >
+                              {stages.map((stage) => (
+                                <option key={stage.id} value={stage.id}>
+                                  {stage.name}
+                                </option>
+                              ))}
+                            </select>
+                            {movingDealId === deal.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin m-1.5" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5 m-1.5" />
+                            )}
+                          </label>
+                          <button
+                            type="button"
+                            className="text-text-tertiary hover:text-error transition-colors duration-200 focus:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDeal(deal.id, deal.stageId);
+                            }}
+                            aria-label={`Delete ${deal.name}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                       {deal.company && (
                         <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>

@@ -312,10 +312,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                 <Search className="h-3.5 w-3.5" />
                 ⌘K
               </div>
-              <button className="icon-btn">
-                <Bell className="h-[18px] w-[18px]" />
-                <span className="notif-dot"></span>
-              </button>
             </div>
           </header>
 

@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { CreateOpportunityDto } from "./dto/create-opportunity.dto";
+import { UpdateOpportunityDto } from "./dto/update-opportunity.dto";
 
 const prisma = new PrismaClient();
 
@@ -96,6 +97,36 @@ export class OpportunitiesService {
       closeDate: opp.closeDate,
       stageId: opp.stageId,
       stageName: opp.stage.name,
+    };
+  }
+
+  async update(userId: string, oppId: string, dto: UpdateOpportunityDto) {
+    const opp = await prisma.opportunity.findUnique({ where: { id: oppId } });
+    if (!opp) throw new NotFoundException("Opportunity not found.");
+    await this.assertMembership(userId, opp.workspaceId);
+
+    const updated = await prisma.opportunity.update({
+      where: { id: oppId },
+      data: {
+        name: dto.name ?? opp.name,
+        amount: dto.amount !== undefined ? dto.amount : opp.amount,
+        currency: dto.currency ?? opp.currency,
+        closeDate:
+          dto.closeDate !== undefined ? (dto.closeDate ? new Date(dto.closeDate) : null) : opp.closeDate,
+        stageId: dto.stageId ?? opp.stageId,
+        companyId: dto.companyId !== undefined ? dto.companyId : opp.companyId,
+      },
+      include: { stage: true },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      amount: updated.amount ? Number(updated.amount) : null,
+      currency: updated.currency,
+      closeDate: updated.closeDate,
+      stageId: updated.stageId,
+      stageName: updated.stage.name,
     };
   }
 

@@ -66,6 +66,12 @@ export const opportunitiesApi = {
       body: JSON.stringify({ ...data, workspaceId }),
     }),
 
+  update: (id: string, data: Partial<CreateOpportunityInput>): Promise<DealRow & { stageName: string }> =>
+    request(`/opportunities/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   delete: (id: string): Promise<{ success: boolean }> =>
     request(`/opportunities/${id}`, { method: "DELETE" }),
 };

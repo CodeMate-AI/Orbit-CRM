@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { PrismaClient, MemberRole, JoinRequestStatus } from "@prisma/client";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { InviteMemberDto } from "./dto/invite-member.dto";
+import { EmailService } from "../settings/email.service";
 import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
@@ -24,6 +25,8 @@ const PUBLIC_DOMAINS = new Set([
 
 @Injectable()
 export class WorkspacesService {
+  constructor(private readonly emailService: EmailService) {}
+
   private extractDomain(email: string): string | null {
     if (!email) return null;
     const parts = email.split("@");
@@ -180,18 +183,56 @@ export class WorkspacesService {
       throw new ForbiddenException("Only workspace owners or admins can invite members.");
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiration
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
 
-    return await prisma.invitation.create({
+    if (!workspace) {
+      throw new NotFoundException("Workspace not found.");
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const normalizedEmail = dto.email.toLowerCase().trim();
+
+    const invitation = await prisma.invitation.create({
       data: {
-        email: dto.email.toLowerCase().trim(),
+        email: normalizedEmail,
         role: dto.role || MemberRole.MEMBER,
         token,
         expiresAt,
         workspaceId,
       },
     });
+
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || "http://localhost:3000";
+    const inviteUrl = `${appUrl.replace(/\/$/, "")}/invite/accept?token=${token}`;
+
+    await this.emailService.sendEmail(
+      workspaceId,
+      normalizedEmail,
+      `You have been invited to join ${workspace.name} on Orbit CRM`,
+      `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+          <h2>You have been invited to Orbit CRM</h2>
+          <p>You were invited to join <strong>${workspace.name}</strong>.</p>
+          <p>
+            <a href="${inviteUrl}" style="display: inline-block; background: #8174f8; color: #ffffff; padding: 12px 18px; border-radius: 8px; text-decoration: none;">
+              Accept invitation
+            </a>
+          </p>
+          <p>If the button does not work, copy and paste this link into your browser:</p>
+          <p>${inviteUrl}</p>
+          <p>This invitation expires in 7 days.</p>
+        </div>
+      `,
+    );
+
+    return invitation;
   }
 
   async getInvitation(token: string) {

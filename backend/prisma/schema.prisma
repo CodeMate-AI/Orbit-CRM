@@ -66,6 +66,21 @@ model Workspace {
   domainRequestJoin   Boolean          @default(true)
   invitations         Invitation[]
   joinRequests        JoinRequest[]
+  smtpConfig          SmtpConfig?
+}
+
+model SmtpConfig {
+  id          String    @id @default(cuid())
+  host        String
+  port        Int
+  username    String
+  password    String
+  senderName  String
+  senderEmail String
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model WorkspaceMember {

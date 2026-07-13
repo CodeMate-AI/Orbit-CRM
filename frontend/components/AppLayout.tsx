@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -24,6 +24,22 @@ import {
   X,
 } from "lucide-react";
 
+// ── Workspace context ──────────────────────────────────────────────────────
+interface WorkspaceContextValue {
+  workspaceId: string | null;
+  workspaceName: string;
+}
+
+export const WorkspaceContext = createContext<WorkspaceContextValue>({
+  workspaceId: null,
+  workspaceName: "",
+});
+
+export function useWorkspace() {
+  return useContext(WorkspaceContext);
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 interface AppLayoutProps {
   children: React.ReactNode;
   pageTitle: string;
@@ -34,7 +50,8 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const pathname = usePathname();
 
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [workspaceName, setWorkspaceName] = useState("Acme Inc");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("This week");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -51,7 +68,8 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
         const workspaces = await workspacesApi.listMine();
         if (workspaces && workspaces.length > 0) {
-          setWorkspaceName(workspaces[0].name);
+          setWorkspaceName(workspaces[0].workspace.name);
+          setWorkspaceId(workspaces[0].workspace.id);
         }
       } catch (err) {
         console.error("Error loading session:", err);
@@ -112,9 +130,9 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const userInitials = currentUser ? getInitials(currentUser.name) : "AS";
-  const userName = currentUser ? currentUser.name : "Aarav Sharma";
-  const userEmail = currentUser ? currentUser.email : "aarav@company.com";
+  const userInitials = currentUser ? getInitials(currentUser.name) : "—";
+  const userName = currentUser ? currentUser.name : "";
+  const userEmail = currentUser ? currentUser.email : "";
 
   const navigationItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutGrid, active: pathname === "/dashboard" },
@@ -153,7 +171,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
         </div>
 
         <div className="workspace-switcher">
-          <div className="workspace-name">{workspaceName}</div>
+          <div className="workspace-name">{workspaceName || "Loading…"}</div>
           <ChevronDown className="h-3.5 w-3.5 text-text-tertiary" />
         </div>
 
@@ -206,77 +224,79 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   );
 
   return (
-    <div className="app-frame min-h-screen">
-      <aside className="sidebar desktop-sidebar">{renderSidebarContent()}</aside>
+    <WorkspaceContext.Provider value={{ workspaceId, workspaceName }}>
+      <div className="app-frame min-h-screen">
+        <aside className="sidebar desktop-sidebar">{renderSidebarContent()}</aside>
 
-      <div
-        className={`sidebar-backdrop ${isMobileMenuOpen ? "open" : ""}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-        aria-hidden={!isMobileMenuOpen}
-      />
+        <div
+          className={`sidebar-backdrop ${isMobileMenuOpen ? "open" : ""}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden={!isMobileMenuOpen}
+        />
 
-      <aside
-        className={`sidebar sidebar-drawer ${isMobileMenuOpen ? "open" : ""}`}
-        aria-hidden={!isMobileMenuOpen}
-      >
-        {renderSidebarContent(true)}
-      </aside>
+        <aside
+          className={`sidebar sidebar-drawer ${isMobileMenuOpen ? "open" : ""}`}
+          aria-hidden={!isMobileMenuOpen}
+        >
+          {renderSidebarContent(true)}
+        </aside>
 
-      <div className="main">
-        <header className="mobile-header-bar">
-          <div className="mobile-header-brand">
-            <div className="brand-mark">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                <path d="M2 12h20" />
-              </svg>
+        <div className="main">
+          <header className="mobile-header-bar">
+            <div className="mobile-header-brand">
+              <div className="brand-mark">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  <path d="M2 12h20" />
+                </svg>
+              </div>
+              <div className="mobile-header-copy">
+                <span className="brand-text">Orbit</span>
+                <span className="mobile-header-workspace">{workspaceName}</span>
+              </div>
             </div>
-            <div className="mobile-header-copy">
-              <span className="brand-text">Orbit</span>
-              <span className="mobile-header-workspace">{workspaceName}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="mobile-menu-trigger"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={isMobileMenuOpen}
-            aria-controls="mobile-navigation-drawer"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </header>
-
-        <header className="top-bar">
-          <h1 className="page-title">{pageTitle}</h1>
-          <div className="top-bar-actions">
-            <div className="segmented-control">
-              {["This week", "Month", "Quarter", "Year"].map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`segment ${activeFilter === filter ? "active" : ""}`}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
-            <div className="search-trigger">
-              <Search className="h-3.5 w-3.5" />
-              ⌘K
-            </div>
-            <button className="icon-btn">
-              <Bell className="h-[18px] w-[18px]" />
-              <span className="notif-dot"></span>
+            <button
+              type="button"
+              className="mobile-menu-trigger"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
+            >
+              <Menu className="h-5 w-5" />
             </button>
-            <div className="top-avatar">{userInitials}</div>
-          </div>
-        </header>
+          </header>
 
-        {children}
+          <header className="top-bar">
+            <h1 className="page-title">{pageTitle}</h1>
+            <div className="top-bar-actions">
+              <div className="segmented-control">
+                {["This week", "Month", "Quarter", "Year"].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setActiveFilter(filter)}
+                    className={`segment ${activeFilter === filter ? "active" : ""}`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+              <div className="search-trigger">
+                <Search className="h-3.5 w-3.5" />
+                ⌘K
+              </div>
+              <button className="icon-btn">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="notif-dot"></span>
+              </button>
+              <div className="top-avatar">{userInitials}</div>
+            </div>
+          </header>
+
+          {children}
+        </div>
       </div>
-    </div>
+    </WorkspaceContext.Provider>
   );
 }

@@ -75,9 +75,36 @@ export class WorkspacesService {
         },
       });
 
+      // Seed a default Sales Pipeline with standard stages
+      const DEFAULT_STAGES = [
+        { name: "Lead",        color: "#8174f8", position: 0, probability: 10  },
+        { name: "Qualified",   color: "#53b1fd", position: 1, probability: 25  },
+        { name: "Proposal",    color: "#fec84b", position: 2, probability: 50  },
+        { name: "Negotiation", color: "#f97066", position: 3, probability: 75  },
+        { name: "Won",         color: "#32d583", position: 4, probability: 100 },
+        { name: "Lost",        color: "#667085", position: 5, probability: 0   },
+      ];
+
+      const pipeline = await tx.pipeline.create({
+        data: {
+          name: "Sales Pipeline",
+          isDefault: true,
+          workspaceId: workspace.id,
+        },
+      });
+
+      await tx.pipelineStage.createMany({
+        data: DEFAULT_STAGES.map((s) => ({
+          ...s,
+          pipelineId: pipeline.id,
+          workspaceId: workspace.id,
+        })),
+      });
+
       return workspace;
     });
   }
+
 
   async discoverWorkspace(userEmail: string) {
     const domain = this.extractDomain(userEmail);

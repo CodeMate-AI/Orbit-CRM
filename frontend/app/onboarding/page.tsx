@@ -44,7 +44,7 @@ export default function OnboardingPage() {
         // Check if user already has workspaces
         const myWorkspaces = await workspacesApi.listMine();
         if (myWorkspaces && myWorkspaces.length > 0) {
-          router.push("/contacts");
+          router.push("/dashboard");
           return;
         }
 
@@ -77,7 +77,7 @@ export default function OnboardingPage() {
     try {
       await workspacesApi.create(workspaceName);
       toast.success("Workspace created successfully!");
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Failed to create workspace.");
     } finally {
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
     try {
       await workspacesApi.directJoin(discoveredWorkspace.id);
       toast.success(`Joined ${discoveredWorkspace.name} successfully!`);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Failed to join workspace.");
     } finally {

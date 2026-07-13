@@ -17,7 +17,13 @@ async function request(path: string, options: RequestInit = {}) {
     throw new Error(errorData.message || "API request failed");
   }
 
-  return res.json().catch(() => ({}));
+  const text = await res.text();
+  if (!text || text === "null") return null;
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
 }
 
 export const workspacesApi = {

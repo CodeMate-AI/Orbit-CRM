@@ -74,7 +74,7 @@ function InviteAcceptContent() {
     try {
       await workspacesApi.acceptInvitation(token);
       toast.success("Welcome! You have successfully joined the workspace.");
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Failed to accept invitation.");
     } finally {

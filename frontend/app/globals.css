@@ -70,6 +70,9 @@
   --radius-full: var(--radius-full);
 }
 
+
+@layer base {
+
 html {
   scroll-behavior: smooth;
 }
@@ -1779,3 +1782,6 @@ tr.is-selected .row-actions {
     justify-content: flex-start;
   }
 }
+
+} /* end @layer base */
+

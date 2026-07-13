@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { peopleApi, PersonRow, CreatePersonInput } from "@/lib/people-api";
+import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { toast } from "sonner";
 
 type ContactView = "table" | "kanban";
@@ -210,9 +211,17 @@ function AddContactModal({
   onClose: () => void;
   onCreated: (person: PersonRow) => void;
 }) {
-  const [form, setForm] = useState<CreatePersonInput>({ firstName: "", lastName: "" });
+  const [form, setForm] = useState<CreatePersonInput>({ firstName: "", lastName: "", companyId: "" });
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    companiesApi
+      .list(workspaceId)
+      .then(setCompanies)
+      .catch((err) => console.error("Failed to load companies in contact form:", err));
+  }, [workspaceId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,6 +289,21 @@ function AddContactModal({
               value={form.phone ?? ""}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Company</label>
+            <select
+              className="form-input"
+              value={form.companyId ?? ""}
+              onChange={(e) => setForm({ ...form, companyId: e.target.value || undefined })}
+            >
+              <option value="">Select a company...</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-field">
             <label className="form-label">Job title</label>

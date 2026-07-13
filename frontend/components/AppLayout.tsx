@@ -137,7 +137,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const navigationItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutGrid, active: pathname === "/dashboard" },
     { href: "/contacts", label: "Contacts", icon: Users, active: pathname === "/contacts" },
-    { href: "#", label: "Companies", icon: Briefcase, active: false },
+    { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
     { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
     { href: "#", label: "Tasks", icon: CheckSquare, active: false },
     { href: "#", label: "Automations", icon: GitFork, active: false },

@@ -1,0 +1,124 @@
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaClient } from "@prisma/client";
+import { CreateCompanyDto } from "./dto/create-company.dto";
+import { UpdateCompanyDto } from "./dto/update-company.dto";
+
+const prisma = new PrismaClient();
+
+@Injectable()
+export class CompaniesService {
+  private async assertMembership(userId: string, workspaceId: string) {
+    const member = await prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId } },
+    });
+
+    if (!member) {
+      throw new ForbiddenException("You are not a member of this workspace.");
+    }
+  }
+
+  async listByWorkspace(userId: string, workspaceId: string) {
+    await this.assertMembership(userId, workspaceId);
+
+    const companies = await prisma.company.findMany({
+      where: { workspaceId, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return companies.map((company) => ({
+      id: company.id,
+      name: company.name,
+      domain: company.domain,
+      address: company.address,
+      city: company.city,
+      industry: company.industry,
+      employeeCount: company.employeeCount,
+      annualRevenue: company.annualRevenue ? Number(company.annualRevenue) : null,
+      linkedInUrl: company.linkedInUrl,
+      createdAt: company.createdAt,
+    }));
+  }
+
+  async create(userId: string, dto: CreateCompanyDto) {
+    await this.assertMembership(userId, dto.workspaceId);
+
+    const company = await prisma.company.create({
+      data: {
+        name: dto.name,
+        domain: dto.domain,
+        address: dto.address,
+        city: dto.city,
+        industry: dto.industry,
+        employeeCount: dto.employeeCount,
+        annualRevenue: dto.annualRevenue,
+        linkedInUrl: dto.linkedInUrl,
+        workspaceId: dto.workspaceId,
+      },
+    });
+
+    return {
+      id: company.id,
+      name: company.name,
+      domain: company.domain,
+      address: company.address,
+      city: company.city,
+      industry: company.industry,
+      employeeCount: company.employeeCount,
+      annualRevenue: company.annualRevenue ? Number(company.annualRevenue) : null,
+      linkedInUrl: company.linkedInUrl,
+      createdAt: company.createdAt,
+    };
+  }
+
+  async update(userId: string, companyId: string, dto: UpdateCompanyDto) {
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company || company.deletedAt) {
+      throw new NotFoundException("Company not found.");
+    }
+
+    await this.assertMembership(userId, company.workspaceId);
+
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        name: dto.name ?? company.name,
+        domain: dto.domain !== undefined ? dto.domain : company.domain,
+        address: dto.address !== undefined ? dto.address : company.address,
+        city: dto.city !== undefined ? dto.city : company.city,
+        industry: dto.industry !== undefined ? dto.industry : company.industry,
+        employeeCount: dto.employeeCount !== undefined ? dto.employeeCount : company.employeeCount,
+        annualRevenue: dto.annualRevenue !== undefined ? dto.annualRevenue : company.annualRevenue,
+        linkedInUrl: dto.linkedInUrl !== undefined ? dto.linkedInUrl : company.linkedInUrl,
+      },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      domain: updated.domain,
+      address: updated.address,
+      city: updated.city,
+      industry: updated.industry,
+      employeeCount: updated.employeeCount,
+      annualRevenue: updated.annualRevenue ? Number(updated.annualRevenue) : null,
+      linkedInUrl: updated.linkedInUrl,
+      createdAt: updated.createdAt,
+    };
+  }
+
+  async delete(userId: string, companyId: string) {
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company || company.deletedAt) {
+      throw new NotFoundException("Company not found.");
+    }
+
+    await this.assertMembership(userId, company.workspaceId);
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { deletedAt: new Date() },
+    });
+
+    return { success: true };
+  }
+}

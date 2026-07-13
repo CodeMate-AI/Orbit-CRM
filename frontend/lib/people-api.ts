@@ -60,6 +60,12 @@ export const peopleApi = {
       body: JSON.stringify({ ...data, workspaceId }),
     }),
 
+  update: (id: string, data: Partial<CreatePersonInput>): Promise<PersonRow> =>
+    request(`/people/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   delete: (id: string): Promise<{ success: boolean }> =>
     request(`/people/${id}`, { method: "DELETE" }),
 };

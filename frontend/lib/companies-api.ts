@@ -36,6 +36,25 @@ export interface CompanyRow {
   createdAt: string;
 }
 
+export interface CompanyDetailRow extends CompanyRow {
+  people: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    jobTitle: string | null;
+  }[];
+  opportunities: {
+    id: string;
+    name: string;
+    amount: number | null;
+    stageName: string;
+    closeDate: string | null;
+  }[];
+}
+
 export interface CreateCompanyInput {
   name: string;
   domain?: string;
@@ -50,6 +69,8 @@ export interface CreateCompanyInput {
 export const companiesApi = {
   list: (workspaceId: string): Promise<CompanyRow[]> =>
     request(`/companies?workspaceId=${encodeURIComponent(workspaceId)}`),
+
+  get: (id: string): Promise<CompanyDetailRow> => request(`/companies/${id}`),
 
   create: (workspaceId: string, data: CreateCompanyInput): Promise<CompanyRow> =>
     request("/companies", {

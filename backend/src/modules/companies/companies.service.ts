@@ -39,6 +39,60 @@ export class CompaniesService {
     }));
   }
 
+  async findOne(userId: string, id: string) {
+    const company = await prisma.company.findUnique({
+      where: { id },
+      include: {
+        people: {
+          where: { deletedAt: null },
+          orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        },
+        opportunities: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "desc" },
+          include: {
+            stage: true,
+          },
+        },
+      },
+    });
+
+    if (!company || company.deletedAt) {
+      throw new NotFoundException("Company not found.");
+    }
+
+    await this.assertMembership(userId, company.workspaceId);
+
+    return {
+      id: company.id,
+      name: company.name,
+      domain: company.domain,
+      address: company.address,
+      city: company.city,
+      industry: company.industry,
+      employeeCount: company.employeeCount,
+      annualRevenue: company.annualRevenue ? Number(company.annualRevenue) : null,
+      linkedInUrl: company.linkedInUrl,
+      createdAt: company.createdAt,
+      people: company.people.map((person) => ({
+        id: person.id,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        name: `${person.firstName} ${person.lastName}`,
+        email: person.email,
+        phone: person.phone,
+        jobTitle: person.jobTitle,
+      })),
+      opportunities: company.opportunities.map((opportunity) => ({
+        id: opportunity.id,
+        name: opportunity.name,
+        amount: opportunity.amount ? Number(opportunity.amount) : null,
+        stageName: opportunity.stage.name,
+        closeDate: opportunity.closeDate,
+      })),
+    };
+  }
+
   async create(userId: string, dto: CreateCompanyDto) {
     await this.assertMembership(userId, dto.workspaceId);
 

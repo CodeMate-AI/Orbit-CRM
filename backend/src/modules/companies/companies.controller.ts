@@ -15,6 +15,11 @@ export class CompaniesController {
     return this.companiesService.listByWorkspace(user.id, workspaceId);
   }
 
+  @Get(":id")
+  findOne(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.companiesService.findOne(user.id, id);
+  }
+
   @Post()
   create(@CurrentUser() user: any, @Body() dto: CreateCompanyDto) {
     return this.companiesService.create(user.id, dto);

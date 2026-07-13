@@ -1,6 +1,7 @@
-import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { CreatePersonDto } from "./dto/create-person.dto";
+import { UpdatePersonDto } from "./dto/update-person.dto";
 
 const prisma = new PrismaClient();
 
@@ -67,6 +68,52 @@ export class PeopleService {
       jobTitle: person.jobTitle,
       companyId: person.companyId,
       createdAt: person.createdAt,
+    };
+  }
+
+  async update(userId: string, personId: string, dto: UpdatePersonDto) {
+    const person = await prisma.person.findUnique({
+      where: { id: personId },
+      include: { company: { select: { id: true, name: true } } },
+    });
+
+    if (!person || person.deletedAt) {
+      throw new NotFoundException("Contact not found.");
+    }
+
+    await this.assertMembership(userId, person.workspaceId);
+
+    if (dto.companyId) {
+      const company = await prisma.company.findUnique({ where: { id: dto.companyId } });
+      if (!company || company.deletedAt || company.workspaceId !== person.workspaceId) {
+        throw new ForbiddenException("Invalid company assignment.");
+      }
+    }
+
+    const updated = await prisma.person.update({
+      where: { id: personId },
+      data: {
+        firstName: dto.firstName ?? person.firstName,
+        lastName: dto.lastName ?? person.lastName,
+        email: dto.email !== undefined ? dto.email : person.email,
+        phone: dto.phone !== undefined ? dto.phone : person.phone,
+        jobTitle: dto.jobTitle !== undefined ? dto.jobTitle : person.jobTitle,
+        companyId: dto.companyId === "" ? null : dto.companyId !== undefined ? dto.companyId : person.companyId,
+      },
+      include: { company: { select: { id: true, name: true } } },
+    });
+
+    return {
+      id: updated.id,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      name: `${updated.firstName} ${updated.lastName}`,
+      email: updated.email,
+      phone: updated.phone,
+      jobTitle: updated.jobTitle,
+      company: updated.company?.name ?? null,
+      companyId: updated.companyId,
+      createdAt: updated.createdAt,
     };
   }
 

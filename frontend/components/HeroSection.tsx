@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const sidebarItems = [
@@ -62,8 +63,9 @@ export default function HeroSection() {
             <Button
               id="hero-signup-btn"
               className="bg-orbit-primary font-sans text-sm font-medium tracking-[0.01em] text-[#0b0b0b] hover:bg-orbit-primary-hover"
+              asChild
             >
-              Start free trial
+              <Link href="/signup">Start free trial</Link>
             </Button>
             <Button
               id="hero-demo-btn"

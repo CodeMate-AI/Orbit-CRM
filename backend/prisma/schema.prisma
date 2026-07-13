@@ -18,6 +18,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Better Auth Fields
+  emailVerified Boolean   @default(false)
+  image         String?
+
   workspaces    WorkspaceMember[]
   activities    Activity[]
   tasks         Task[]
@@ -26,6 +30,8 @@ model User {
   attachments   Attachment[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  sessions      Session[]
+  accounts      Account[]
 }
 
 model Workspace {
@@ -54,6 +60,7 @@ model Workspace {
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
   notifications       Notification[]
+  activities          Activity[]
 }
 
 model WorkspaceMember {
@@ -558,4 +565,42 @@ enum NotificationType {
   MEMBER_INVITED
   WORKFLOW_COMPLETED
   ALERT
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 }

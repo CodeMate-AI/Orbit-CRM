@@ -86,15 +86,17 @@ export default function Navbar() {
               variant="ghost"
               size="sm"
               className="text-text-secondary hover:text-text-primary"
+              asChild
             >
-              Sign in
+              <Link href="/signin">Sign in</Link>
             </Button>
             <Button
               id="nav-signup-btn"
               size="sm"
               className="bg-orbit-primary text-white hover:bg-orbit-primary-hover"
+              asChild
             >
-              Start free trial
+              <Link href="/signup">Start free trial</Link>
             </Button>
           </div>
 
@@ -150,11 +152,22 @@ export default function Navbar() {
               </div>
 
               <div className="flex flex-col gap-3 border-t border-border-default pt-6">
-                <Button variant="ghost" className="w-full justify-center text-text-secondary hover:bg-surface-default hover:text-text-primary">
-                  Sign in
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center text-text-secondary hover:bg-surface-default hover:text-text-primary"
+                  asChild
+                >
+                  <Link href="/signin" onClick={() => setOpen(false)}>
+                    Sign in
+                  </Link>
                 </Button>
-                <Button className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover">
-                  Start free trial
+                <Button
+                  className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover"
+                  asChild
+                >
+                  <Link href="/signup" onClick={() => setOpen(false)}>
+                    Start free trial
+                  </Link>
                 </Button>
               </div>
             </SheetContent>

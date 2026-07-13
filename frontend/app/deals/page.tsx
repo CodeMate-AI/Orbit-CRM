@@ -145,6 +145,7 @@ function DealsContent() {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [movingDealId, setMovingDealId] = useState<string | null>(null);
+  const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,7 +153,12 @@ function DealsContent() {
     setLoading(true);
     opportunitiesApi
       .list(workspaceId)
-      .then((res) => setStages(res.stages))
+      .then((res) => {
+        setStages(res.stages);
+        if (res.stages.length > 0) {
+          setActiveStageId((prev) => prev && res.stages.some(s => s.id === prev) ? prev : res.stages[0].id);
+        }
+      })
       .catch((err) => setError(err.message || "Failed to load deals."))
       .finally(() => setLoading(false));
   }, [workspaceId]);
@@ -302,13 +308,36 @@ function DealsContent() {
         </div>
       )}
 
+      {/* Mobile Stage Switcher Tab Bar */}
+      {!loading && !error && stages.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-3 sm:hidden border-b border-border-subtle mb-4 scrollbar-none">
+          {stages.map((column) => (
+            <button
+              key={column.id}
+              onClick={() => setActiveStageId(column.id)}
+              className={`flex-shrink-0 rounded-full px-4 py-2 text-xs font-medium transition ${
+                activeStageId === column.id
+                  ? "bg-orbit-primary text-white"
+                  : "bg-bg-secondary text-text-secondary border border-border-subtle hover:bg-bg-tertiary"
+              }`}
+            >
+              {column.name} ({column.deals.length})
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Kanban board */}
       {!loading && !error && stages.length > 0 && (
         <section ref={boardRef} className="flex gap-4 overflow-x-auto pb-4">
           {stages.map((column) => (
             <div
               key={column.id}
-              className="min-w-[260px] max-w-[300px] flex-shrink-0 rounded border border-border-subtle bg-bg-secondary p-4"
+              className={`rounded border border-border-subtle bg-bg-secondary p-4 transition-all duration-200 ${
+                activeStageId === column.id
+                  ? "w-full min-w-0 flex-shrink-0 block sm:min-w-[280px] sm:max-w-[300px]"
+                  : "hidden sm:block sm:min-w-[280px] sm:max-w-[300px] sm:flex-shrink-0"
+              }`}
               style={{ borderTopColor: column.color, borderTopWidth: 2 }}
             >
               <div className="mb-4 flex items-center justify-between">

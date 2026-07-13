@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,34 +37,39 @@ function SignUpForm() {
     }
 
     setIsLoading(true);
-    
-    // If invitation token exists, redirect back to accept page after auth. Else go to onboarding.
-    const callbackURL = tokenParam
-      ? `${window.location.origin}/invite/accept?token=${tokenParam}`
-      : `${window.location.origin}/onboarding`;
 
-    const { data, error } = await authClient.signUp.email({
-      email,
-      password,
-      name,
-      callbackURL,
-    });
+    try {
+      // If invitation token exists, redirect back to accept page after auth. Else go to onboarding.
+      const callbackURL = tokenParam
+        ? `${window.location.origin}/invite/accept?token=${tokenParam}`
+        : `${window.location.origin}/onboarding`;
 
-    setIsLoading(false);
+      const { error } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+        callbackURL,
+      });
 
-    if (error) {
-      setPassword("");
-      toast.error(error.message || "Something went wrong. Please try again.");
-    } else {
+      if (error) {
+        setPassword("");
+        toast.error(error.message || "Something went wrong. Please try again.");
+        return;
+      }
+
       setName("");
       setEmail("");
       setPassword("");
       toast.success("Account created successfully!");
-      // Manually push to the same destination in client-side router
       const nextUrl = tokenParam
         ? `/invite/accept?token=${tokenParam}`
         : "/onboarding";
       router.push(nextUrl);
+    } catch (err: any) {
+      setPassword("");
+      toast.error(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -194,7 +199,7 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-bg-primary px-4 py-12 text-text-primary">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-bg-primary px-4 py-12 text-text-primary">
       {/* Background Radial Glow */}
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
@@ -205,14 +210,27 @@ export default function SignUpPage() {
         }}
       />
 
-      <Suspense fallback={
-        <div className="relative z-10 w-full max-w-md rounded-xl border border-border-default bg-bg-secondary p-8 text-center shadow-lg">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-orbit-primary border-t-transparent" />
-          <p className="mt-4 text-sm text-text-secondary">Loading sign up form...</p>
+      <div className="relative z-10 w-full max-w-md">
+        <div className="mb-6 flex justify-start">
+          <Link
+            id="signup-back-btn"
+            href="/"
+            className="inline-flex items-center gap-2 rounded-full border border-border-default bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
         </div>
-      }>
-        <SignUpForm />
-      </Suspense>
+
+        <Suspense fallback={
+          <div className="w-full rounded-xl border border-border-default bg-bg-secondary p-8 text-center shadow-lg">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-orbit-primary border-t-transparent" />
+            <p className="mt-4 text-sm text-text-secondary">Loading sign up form...</p>
+          </div>
+        }>
+          <SignUpForm />
+        </Suspense>
+      </div>
     </main>
   );
 }

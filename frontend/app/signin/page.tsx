@@ -51,8 +51,11 @@ function SignInForm() {
     setIsLoading(false);
 
     if (error) {
+      setPassword("");
       toast.error(error.message || "Invalid email or password.");
     } else {
+      setEmail("");
+      setPassword("");
       toast.success("Signed in successfully!");
       // Manually push to the same destination in client-side router
       const nextUrl = tokenParam
@@ -112,6 +115,7 @@ function SignInForm() {
             placeholder="name@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             className="bg-bg-primary border-border-default focus:border-orbit-primary"
             disabled={isLoading || !!emailParam} // Lock the email input if prefilled via invite
             required
@@ -136,6 +140,7 @@ function SignInForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="bg-bg-primary border-border-default pr-10 focus:border-orbit-primary"
               disabled={isLoading}
               required

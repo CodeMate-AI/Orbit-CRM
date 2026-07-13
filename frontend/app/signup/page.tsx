@@ -53,8 +53,12 @@ function SignUpForm() {
     setIsLoading(false);
 
     if (error) {
+      setPassword("");
       toast.error(error.message || "Something went wrong. Please try again.");
     } else {
+      setName("");
+      setEmail("");
+      setPassword("");
       toast.success("Account created successfully!");
       // Manually push to the same destination in client-side router
       const nextUrl = tokenParam
@@ -114,6 +118,7 @@ function SignUpForm() {
             placeholder="Priya Sharma"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
             className="bg-bg-primary border-border-default focus:border-orbit-primary"
             disabled={isLoading}
             required
@@ -128,6 +133,7 @@ function SignUpForm() {
             placeholder="name@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             className="bg-bg-primary border-border-default focus:border-orbit-primary"
             disabled={isLoading || !!emailParam} // Lock the email input if invited
             required
@@ -143,6 +149,7 @@ function SignUpForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               className="bg-bg-primary border-border-default pr-10 focus:border-orbit-primary"
               disabled={isLoading}
               required

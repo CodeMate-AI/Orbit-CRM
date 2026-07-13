@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -30,8 +31,8 @@ export default function FinalCTA() {
           Start your free 14-day trial today. No credit card required. Cancel anytime.
         </p>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
-          <Button className="bg-orbit-primary font-sans text-sm font-medium text-[#0b0b0b] hover:bg-orbit-primary-hover">
-            Start free trial
+          <Button className="bg-orbit-primary font-sans text-sm font-medium text-[#0b0b0b] hover:bg-orbit-primary-hover" asChild>
+            <Link href="/signup">Start free trial</Link>
           </Button>
           <Button
             variant="outline"

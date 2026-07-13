@@ -18,6 +18,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Better Auth Fields
+  emailVerified Boolean   @default(false)
+  image         String?
+
   workspaces    WorkspaceMember[]
   activities    Activity[]
   tasks         Task[]
@@ -26,6 +30,9 @@ model User {
   attachments   Attachment[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  sessions      Session[]
+  accounts      Account[]
+  joinRequests  JoinRequest[]
 }
 
 model Workspace {
@@ -54,6 +61,26 @@ model Workspace {
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
   notifications       Notification[]
+  activities          Activity[]
+  domainAutoJoin      Boolean          @default(false)
+  domainRequestJoin   Boolean          @default(true)
+  invitations         Invitation[]
+  joinRequests        JoinRequest[]
+  smtpConfig          SmtpConfig?
+}
+
+model SmtpConfig {
+  id          String    @id @default(cuid())
+  host        String
+  port        Int
+  username    String
+  password    String
+  senderName  String
+  senderEmail String
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model WorkspaceMember {
@@ -558,4 +585,71 @@ enum NotificationType {
   MEMBER_INVITED
   WORKFLOW_COMPLETED
   ALERT
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model Invitation {
+  id          String      @id @default(cuid())
+  email       String
+  role        MemberRole  @default(MEMBER)
+  token       String      @unique
+  expiresAt   DateTime
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+}
+
+model JoinRequest {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status      JoinRequestStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+
+  @@unique([userId, workspaceId])
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

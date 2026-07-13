@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, CircleDollarSign, Plus, Loader2, LayoutGrid } from "lucide-react";
+import { CalendarClock, CircleDollarSign, Plus, Loader2, LayoutGrid, Trash2 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import { toast } from "sonner";
 import {
   opportunitiesApi,
   StageColumn,
@@ -168,6 +169,20 @@ function DealsContent() {
     setShowModal(false);
   };
 
+  const handleDeleteDeal = async (id: string, stageId: string) => {
+    try {
+      await opportunitiesApi.delete(id);
+      toast.success("Deal deleted successfully");
+      setStages((prev) =>
+        prev.map((s) =>
+          s.id === stageId ? { ...s, deals: s.deals.filter((d) => d.id !== id) } : s
+        )
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete deal.");
+    }
+  };
+
   return (
     <div className="p-6 md:p-8 mx-auto flex w-full max-w-7xl flex-col gap-6 md:gap-8">
       {/* Header */}
@@ -260,9 +275,22 @@ function DealsContent() {
                   column.deals.map((deal) => (
                     <article
                       key={deal.id}
-                      className="rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm hover:border-orbit-primary transition-colors cursor-pointer"
+                      className="group relative rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm hover:border-orbit-primary transition-colors cursor-pointer"
                     >
-                      <h3 className="font-medium text-sm text-text-primary leading-snug">{deal.name}</h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-medium text-sm text-text-primary leading-snug">{deal.name}</h3>
+                        <button
+                          type="button"
+                          className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-error transition-opacity duration-200 focus:opacity-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDeal(deal.id, deal.stageId);
+                          }}
+                          aria-label={`Delete ${deal.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       {deal.company && (
                         <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>
                       )}

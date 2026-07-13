@@ -192,34 +192,36 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
         </nav>
       </div>
 
-      <div className="sidebar-bottom relative">
-        <div className="user-avatar">{userInitials}</div>
-        <div className="user-info">
-          <div className="user-name">{userName}</div>
-          <div className="user-role" title={userEmail}>Team Member</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-          className="text-text-tertiary hover:text-text-primary transition focus:outline-none"
-          aria-label="Open profile actions"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-
-        {isProfileDropdownOpen && (
-          <div className="absolute bottom-12 right-2 z-50 w-48 rounded border border-border-light bg-bg-tertiary p-1 shadow-md">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
+      {!isMobileDrawer && (
+        <div className="sidebar-bottom relative">
+          <div className="user-avatar">{userInitials}</div>
+          <div className="user-info">
+            <div className="user-name">{userName}</div>
+            <div className="user-role" title={userEmail}>Team Member</div>
           </div>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+            className="text-text-tertiary hover:text-text-primary transition focus:outline-none"
+            aria-label="Open profile actions"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+
+          {isProfileDropdownOpen && (
+            <div className="absolute bottom-12 right-2 z-50 w-48 rounded border border-border-light bg-bg-tertiary p-1 shadow-md">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -243,29 +245,53 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
         <div className="main">
           <header className="mobile-header-bar">
-            <div className="mobile-header-brand">
-              <div className="brand-mark">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  <path d="M2 12h20" />
-                </svg>
-              </div>
-              <div className="mobile-header-copy">
-                <span className="brand-text">Orbit</span>
-                <span className="mobile-header-workspace">{workspaceName}</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="mobile-menu-trigger"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open navigation menu"
+                aria-expanded={isMobileMenuOpen}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="mobile-header-brand">
+                <div className="brand-mark">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    <path d="M2 12h20" />
+                  </svg>
+                </div>
+                <div className="mobile-header-copy">
+                  <span className="brand-text">Orbit</span>
+                  <span className="mobile-header-workspace">{workspaceName}</span>
+                </div>
               </div>
             </div>
-            <button
-              type="button"
-              className="mobile-menu-trigger"
-              onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Open navigation menu"
-              aria-expanded={isMobileMenuOpen}
-              aria-controls="mobile-navigation-drawer"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                className="top-avatar focus:outline-none"
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                aria-label="Open profile actions"
+              >
+                {userInitials}
+              </button>
+              {isProfileDropdownOpen && (
+                <div className="absolute top-10 right-0 z-50 w-48 rounded border border-border-light bg-bg-tertiary p-1 shadow-md">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </header>
 
           <header className="top-bar">
@@ -290,7 +316,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                 <Bell className="h-[18px] w-[18px]" />
                 <span className="notif-dot"></span>
               </button>
-              <div className="top-avatar">{userInitials}</div>
             </div>
           </header>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -62,7 +63,7 @@ export default function RootLayout({
       className={`${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="bg-primary text-primary font-sans antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

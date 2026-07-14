@@ -139,7 +139,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     { href: "/contacts", label: "Contacts", icon: Users, active: pathname === "/contacts" },
     { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
     { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
-    { href: "#", label: "Tasks", icon: CheckSquare, active: false },
+    { href: "/tasks", label: "Tasks", icon: CheckSquare, active: pathname === "/tasks" },
     { href: "#", label: "Automations", icon: GitFork, active: false },
     { href: "#", label: "AI Assistant", icon: Sparkles, active: false },
   ];

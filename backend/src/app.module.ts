@@ -7,6 +7,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module";
 import { PeopleModule } from "./modules/people/people.module";
 import { SettingsModule } from "./modules/settings/settings.module";
+import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
 
@@ -19,6 +20,7 @@ import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
     OpportunitiesModule,
     PeopleModule,
     SettingsModule,
+    TasksModule,
     WorkflowsModule,
     WorkspacesModule,
   ],

@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import NotesTimeline from "@/components/NotesTimeline";
 import { peopleApi, PersonRow, CreatePersonInput } from "@/lib/people-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { toast } from "sonner";
@@ -316,13 +317,16 @@ function ContactDetailDrawer({
   onClose: () => void;
   onContactUpdated: (contact: PersonRow) => void;
 }) {
+  const { workspaceId } = useWorkspace();
   const [form, setForm] = useState<ContactDrawerForm | null>(null);
   const [savingField, setSavingField] = useState<EditableContactField | null>(null);
   const [phoneError, setPhoneError] = useState("");
+  const [activeTab, setActiveTab] = useState<"details" | "notes">("details");
 
   useEffect(() => {
     setForm(contact ? buildDrawerForm(contact) : null);
     setPhoneError("");
+    setActiveTab("details");
   }, [contact]);
 
   if (!open || !contact || !form) return null;
@@ -454,102 +458,138 @@ function ContactDetailDrawer({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <DrawerField
-              label="First name"
-              value={form.firstName}
-              placeholder="Priya"
-              saving={savingField === "firstName"}
-              onChange={(value) => updateFieldValue("firstName", value)}
-              onSave={() => persistField("firstName")}
-            />
-            <DrawerField
-              label="Last name"
-              value={form.lastName}
-              placeholder="Sharma"
-              saving={savingField === "lastName"}
-              onChange={(value) => updateFieldValue("lastName", value)}
-              onSave={() => persistField("lastName")}
-            />
-            <DrawerField
-              label="Email"
-              value={form.email}
-              placeholder="priya@company.com"
-              saving={savingField === "email"}
-              onChange={(value) => updateFieldValue("email", value)}
-              onSave={() => persistField("email")}
-              type="email"
-            />
-            <DrawerField
-              label="Phone"
-              value={form.phone}
-              placeholder="+91 98765 43210"
-              saving={savingField === "phone"}
-              onChange={(value) => updateFieldValue("phone", value)}
-              onSave={() => persistField("phone")}
-              error={phoneError}
-            />
-            <DrawerField
-              label="Job title"
-              value={form.jobTitle}
-              placeholder="VP of Sales"
-              saving={savingField === "jobTitle"}
-              onChange={(value) => updateFieldValue("jobTitle", value)}
-              onSave={() => persistField("jobTitle")}
-            />
-            <DrawerSelectField
-              label="Lead source"
-              value={form.leadSource}
-              saving={savingField === "leadSource"}
-              options={LEAD_SOURCE_OPTIONS}
-              placeholder="Select lead source"
-              onChange={(value) => updateFieldValue("leadSource", value)}
-              onSave={() => persistField("leadSource")}
-            />
-            <DrawerSelectField
-              label="Industry"
-              value={form.industry}
-              saving={savingField === "industry"}
-              options={INDUSTRY_OPTIONS}
-              placeholder="Select industry"
-              onChange={(value) => updateFieldValue("industry", value)}
-              onSave={() => persistField("industry")}
-            />
-            <DrawerField
-              label="Tags"
-              value={form.tagsString}
-              placeholder="Customer, Hot lead"
-              saving={savingField === "tagsString"}
-              onChange={(value) => updateFieldValue("tagsString", value)}
-              onSave={() => persistField("tagsString")}
-            />
-            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Company</label>
-              <select
-                className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
-                value={form.companyId}
-                onChange={(e) => updateFieldValue("companyId", e.target.value)}
-                onBlur={() => persistField("companyId")}
-              >
-                <option value="">No company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs"
-                  onClick={() => persistField("companyId")}
-                  disabled={savingField === "companyId"}
+          {/* Tabs Selector */}
+          <div className="mt-6 flex border-b border-border-subtle">
+            <button
+              type="button"
+              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                activeTab === "details"
+                  ? "border-orbit-primary text-white"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setActiveTab("details")}
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                activeTab === "notes"
+                  ? "border-orbit-primary text-white"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setActiveTab("notes")}
+            >
+              Notes
+            </button>
+          </div>
+
+          {activeTab === "details" ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <DrawerField
+                label="First name"
+                value={form.firstName}
+                placeholder="Priya"
+                saving={savingField === "firstName"}
+                onChange={(value) => updateFieldValue("firstName", value)}
+                onSave={() => persistField("firstName")}
+              />
+              <DrawerField
+                label="Last name"
+                value={form.lastName}
+                placeholder="Sharma"
+                saving={savingField === "lastName"}
+                onChange={(value) => updateFieldValue("lastName", value)}
+                onSave={() => persistField("lastName")}
+              />
+              <DrawerField
+                label="Email"
+                value={form.email}
+                placeholder="priya@company.com"
+                saving={savingField === "email"}
+                onChange={(value) => updateFieldValue("email", value)}
+                onSave={() => persistField("email")}
+                type="email"
+              />
+              <DrawerField
+                label="Phone"
+                value={form.phone}
+                placeholder="+91 98765 43210"
+                saving={savingField === "phone"}
+                onChange={(value) => updateFieldValue("phone", value)}
+                onSave={() => persistField("phone")}
+                error={phoneError}
+              />
+              <DrawerField
+                label="Job title"
+                value={form.jobTitle}
+                placeholder="VP of Sales"
+                saving={savingField === "jobTitle"}
+                onChange={(value) => updateFieldValue("jobTitle", value)}
+                onSave={() => persistField("jobTitle")}
+              />
+              <DrawerSelectField
+                label="Lead source"
+                value={form.leadSource}
+                saving={savingField === "leadSource"}
+                options={LEAD_SOURCE_OPTIONS}
+                placeholder="Select lead source"
+                onChange={(value) => updateFieldValue("leadSource", value)}
+                onSave={() => persistField("leadSource")}
+              />
+              <DrawerSelectField
+                label="Industry"
+                value={form.industry}
+                saving={savingField === "industry"}
+                options={INDUSTRY_OPTIONS}
+                placeholder="Select industry"
+                onChange={(value) => updateFieldValue("industry", value)}
+                onSave={() => persistField("industry")}
+              />
+              <DrawerField
+                label="Tags"
+                value={form.tagsString}
+                placeholder="Customer, Hot lead"
+                saving={savingField === "tagsString"}
+                onChange={(value) => updateFieldValue("tagsString", value)}
+                onSave={() => persistField("tagsString")}
+              />
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Company</label>
+                <select
+                  className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                  value={form.companyId}
+                  onChange={(e) => updateFieldValue("companyId", e.target.value)}
+                  onBlur={() => persistField("companyId")}
                 >
-                  {savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                </button>
+                  <option value="">No company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs"
+                    onClick={() => persistField("companyId")}
+                    disabled={savingField === "companyId"}
+                  >
+                    {savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            workspaceId && (
+              <NotesTimeline
+                workspaceId={workspaceId}
+                entityType="person"
+                entityId={contact.id}
+              />
+            )
+          )}
         </div>
       </aside>
     </div>

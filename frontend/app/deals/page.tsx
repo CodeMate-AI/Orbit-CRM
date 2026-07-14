@@ -16,6 +16,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import NotesTimeline from "@/components/NotesTimeline";
 import { toast } from "sonner";
 import {
   opportunitiesApi,
@@ -223,6 +224,7 @@ function DealDetailDrawer({
   onClose: () => void;
   onDealUpdated: (detail: OpportunityDetailRow, previousStageId: string) => void;
 }) {
+  const { workspaceId } = useWorkspace();
   const [detail, setDetail] = useState<OpportunityDetailRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -231,7 +233,7 @@ function DealDetailDrawer({
   const [linkRole, setLinkRole] = useState("");
   const [linking, setLinking] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"contacts" | "summary">("contacts");
+  const [activeTab, setActiveTab] = useState<"contacts" | "summary" | "notes">("contacts");
   const [form, setForm] = useState({
     name: "",
     amount: "",
@@ -245,6 +247,7 @@ function DealDetailDrawer({
 
     setLoading(true);
     setError("");
+    setActiveTab("contacts");
     opportunitiesApi
       .get(dealId)
       .then((res) => {
@@ -548,6 +551,15 @@ function DealDetailDrawer({
                 >
                   Summary
                 </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    activeTab === "notes" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                  onClick={() => setActiveTab("notes")}
+                >
+                  Notes
+                </button>
               </div>
 
               {activeTab === "contacts" ? (
@@ -625,7 +637,7 @@ function DealDetailDrawer({
                     )}
                   </div>
                 </div>
-              ) : (
+              ) : activeTab === "summary" ? (
                 <div className="grid gap-4 pt-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
                     <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Stage</p>
@@ -642,6 +654,14 @@ function DealDetailDrawer({
                     <p className="mt-2 text-lg font-semibold text-text-primary">{formatDate(detail.closeDate) ?? "No close date"}</p>
                   </div>
                 </div>
+              ) : (
+                workspaceId && (
+                  <NotesTimeline
+                    workspaceId={workspaceId}
+                    entityType="opportunity"
+                    entityId={detail.id}
+                  />
+                )
               )}
             </div>
           </div>

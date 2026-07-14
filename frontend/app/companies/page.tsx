@@ -20,6 +20,7 @@ import {
   Landmark,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import NotesTimeline from "@/components/NotesTimeline";
 import { companiesApi, CompanyDetailRow, CompanyRow, CreateCompanyInput } from "@/lib/companies-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { toast } from "sonner";
@@ -42,7 +43,7 @@ type DecoratedCompany = CompanyRow & {
   avatarGradient: string;
 };
 
-type DrawerTab = "contacts" | "deals";
+type DrawerTab = "contacts" | "deals" | "notes";
 
 type EditableCompanyField = Exclude<keyof CreateCompanyInput, never>;
 
@@ -351,6 +352,7 @@ function CompanyDetailDrawer({
   onContactUpdated?: (person: PersonRow) => void;
   allContacts: PersonRow[];
 }) {
+  const { workspaceId } = useWorkspace();
   const [detail, setDetail] = useState<CompanyDetailRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -374,6 +376,7 @@ function CompanyDetailDrawer({
     if (!open || !companyId) {
       return;
     }
+    setActiveTab("contacts");
 
     setLoading(true);
     setError("");
@@ -754,8 +757,8 @@ function CompanyDetailDrawer({
             <div className="mt-6 rounded-[28px] border border-border-subtle bg-bg-secondary/20 p-4 md:p-5">
               <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-text-primary">Relationships</h3>
-                  <p className="text-sm text-text-secondary">Manage linked contacts and live opportunities.</p>
+                  <h3 className="text-lg font-semibold text-text-primary">Relationships & Notes</h3>
+                  <p className="text-sm text-text-secondary">Manage linked contacts, opportunities, and log notes.</p>
                 </div>
                 <div className="inline-flex rounded-full border border-border-subtle bg-bg-tertiary p-1">
                   <button
@@ -771,6 +774,13 @@ function CompanyDetailDrawer({
                     onClick={() => setActiveTab("deals")}
                   >
                     Deals
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-4 py-2 text-sm transition ${activeTab === "notes" ? "bg-orbit-primary text-white" : "text-text-secondary hover:text-text-primary"}`}
+                    onClick={() => setActiveTab("notes")}
+                  >
+                    Notes
                   </button>
                 </div>
               </div>
@@ -842,7 +852,7 @@ function CompanyDetailDrawer({
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : activeTab === "deals" ? (
                 <div className="mt-4 space-y-3">
                   {detail.opportunities.length === 0 ? (
                     <div className="rounded-2xl border border-border-subtle bg-bg-secondary/10 p-6 text-center text-sm text-text-secondary">
@@ -873,6 +883,14 @@ function CompanyDetailDrawer({
                     ))
                   )}
                 </div>
+              ) : (
+                workspaceId && (
+                  <NotesTimeline
+                    workspaceId={workspaceId}
+                    entityType="company"
+                    entityId={detail.id}
+                  />
+                )
               )}
             </div>
           </div>

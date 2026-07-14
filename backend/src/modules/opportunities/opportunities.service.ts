@@ -50,12 +50,54 @@ export class OpportunitiesService {
           id: o.id,
           name: o.name,
           amount: o.amount ? Number(o.amount) : null,
-          currency: o.currency,
           closeDate: o.closeDate,
           stageId: o.stageId,
           company: o.company?.name ?? null,
         })),
       })),
+    };
+  }
+
+  async findOne(userId: string, oppId: string) {
+    const opp = await prisma.opportunity.findUnique({
+      where: { id: oppId },
+      include: {
+        company: { select: { id: true, name: true } },
+        contacts: {
+          orderBy: [{ person: { firstName: "asc" } }, { person: { lastName: "asc" } }],
+          include: {
+            person: true,
+          },
+        },
+      },
+    });
+
+    if (!opp || opp.deletedAt) {
+      throw new NotFoundException("Opportunity not found.");
+    }
+
+    await this.assertMembership(userId, opp.workspaceId);
+
+    return {
+      id: opp.id,
+      name: opp.name,
+      amount: opp.amount ? Number(opp.amount) : null,
+      closeDate: opp.closeDate,
+      stageId: opp.stageId,
+      companyId: opp.companyId,
+      company: opp.company,
+      contacts: opp.contacts
+        .filter((link) => !link.person.deletedAt)
+        .map((link) => ({
+          id: link.person.id,
+          firstName: link.person.firstName,
+          lastName: link.person.lastName,
+          name: `${link.person.firstName} ${link.person.lastName}`,
+          email: link.person.email,
+          phone: link.person.phone,
+          jobTitle: link.person.jobTitle,
+          role: link.role,
+        })),
     };
   }
 
@@ -80,7 +122,6 @@ export class OpportunitiesService {
       data: {
         name: dto.name,
         amount: dto.amount ?? null,
-        currency: dto.currency ?? "INR",
         closeDate: dto.closeDate ? new Date(dto.closeDate) : null,
         stageId,
         workspaceId: dto.workspaceId,
@@ -93,7 +134,6 @@ export class OpportunitiesService {
       id: opp.id,
       name: opp.name,
       amount: opp.amount ? Number(opp.amount) : null,
-      currency: opp.currency,
       closeDate: opp.closeDate,
       stageId: opp.stageId,
       stageName: opp.stage.name,
@@ -110,7 +150,6 @@ export class OpportunitiesService {
       data: {
         name: dto.name ?? opp.name,
         amount: dto.amount !== undefined ? dto.amount : opp.amount,
-        currency: dto.currency ?? opp.currency,
         closeDate:
           dto.closeDate !== undefined ? (dto.closeDate ? new Date(dto.closeDate) : null) : opp.closeDate,
         stageId: dto.stageId ?? opp.stageId,
@@ -123,11 +162,60 @@ export class OpportunitiesService {
       id: updated.id,
       name: updated.name,
       amount: updated.amount ? Number(updated.amount) : null,
-      currency: updated.currency,
       closeDate: updated.closeDate,
       stageId: updated.stageId,
       stageName: updated.stage.name,
     };
+  }
+
+  async linkContact(userId: string, oppId: string, personId: string, role?: string) {
+    const opp = await prisma.opportunity.findUnique({ where: { id: oppId } });
+    if (!opp || opp.deletedAt) {
+      throw new NotFoundException("Opportunity not found.");
+    }
+
+    await this.assertMembership(userId, opp.workspaceId);
+
+    const person = await prisma.person.findUnique({ where: { id: personId } });
+    if (!person || person.deletedAt || person.workspaceId !== opp.workspaceId) {
+      throw new NotFoundException("Contact not found.");
+    }
+
+    await prisma.opportunityContact.upsert({
+      where: { opportunityId_personId: { opportunityId: oppId, personId } },
+      update: { role: role ?? null },
+      create: {
+        workspaceId: opp.workspaceId,
+        opportunityId: oppId,
+        personId,
+        role: role ?? null,
+      },
+    });
+
+    return this.findOne(userId, oppId);
+  }
+
+  async unlinkContact(userId: string, oppId: string, personId: string) {
+    const opp = await prisma.opportunity.findUnique({ where: { id: oppId } });
+    if (!opp || opp.deletedAt) {
+      throw new NotFoundException("Opportunity not found.");
+    }
+
+    await this.assertMembership(userId, opp.workspaceId);
+
+    const link = await prisma.opportunityContact.findUnique({
+      where: { opportunityId_personId: { opportunityId: oppId, personId } },
+    });
+
+    if (!link) {
+      throw new NotFoundException("Opportunity contact link not found.");
+    }
+
+    await prisma.opportunityContact.delete({
+      where: { opportunityId_personId: { opportunityId: oppId, personId } },
+    });
+
+    return this.findOne(userId, oppId);
   }
 
   async delete(userId: string, oppId: string) {

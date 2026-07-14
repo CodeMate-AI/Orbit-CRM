@@ -10,10 +10,6 @@ export class UpdateOpportunityDto {
   amount?: number;
 
   @IsOptional()
-  @IsString()
-  currency?: string;
-
-  @IsOptional()
   @IsDateString()
   closeDate?: string;
 

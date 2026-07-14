@@ -9,10 +9,6 @@ export class CreateOpportunityDto {
   amount?: number;
 
   @IsOptional()
-  @IsString()
-  currency?: string;
-
-  @IsOptional()
   @IsDateString()
   closeDate?: string;
 

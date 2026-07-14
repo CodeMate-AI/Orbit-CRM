@@ -177,7 +177,6 @@ model Opportunity {
   id                String             @id @default(cuid())
   name              String
   amount            Decimal?           @db.Decimal(12, 2)
-  currency          String             @default("INR")
   closeDate         DateTime?
   probability       Int?
   stageId           String

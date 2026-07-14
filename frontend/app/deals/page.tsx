@@ -1,7 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { CalendarClock, CircleDollarSign, Plus, Loader2, LayoutGrid, Trash2, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Building2,
+  CalendarClock,
+  CircleDollarSign,
+  Loader2,
+  Mail,
+  Phone,
+  Plus,
+  Trash2,
+  UserRound,
+  X,
+  ChevronDown,
+  LayoutGrid,
+} from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { toast } from "sonner";
 import {
@@ -9,9 +22,17 @@ import {
   StageColumn,
   CreateOpportunityInput,
   DealRow,
+  OpportunityDetailRow,
 } from "@/lib/opportunities-api";
+import { companiesApi, CompanyRow } from "@/lib/companies-api";
+import { peopleApi, PersonRow } from "@/lib/people-api";
+import {
+  formatDealCurrency,
+  normalizeDealAmount,
+  normalizeDealCloseDate,
+  normalizeDealOptionalString,
+} from "./deal-normalizers";
 
-// ── Add Deal Modal ─────────────────────────────────────────────────────────
 function AddDealModal({
   workspaceId,
   stages,
@@ -25,7 +46,6 @@ function AddDealModal({
 }) {
   const [form, setForm] = useState<CreateOpportunityInput>({
     name: "",
-    currency: "INR",
     stageId: stages[0]?.id ?? "",
   });
   const [saving, setSaving] = useState(false);
@@ -55,7 +75,9 @@ function AddDealModal({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">New deal</h2>
-          <button type="button" className="modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="modal-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-field">
@@ -107,7 +129,9 @@ function AddDealModal({
           </div>
           {error && <p className="form-error">{error}</p>}
           <div className="modal-footer">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn-ghost" onClick={onClose}>
+              Cancel
+            </button>
             <button type="submit" className="btn-primary" disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create deal"}
             </button>
@@ -118,18 +142,8 @@ function AddDealModal({
   );
 }
 
-// ── Formatters ─────────────────────────────────────────────────────────────
-function formatCurrency(amount: number | null, currency = "INR") {
-  if (amount === null || amount === 0) return null;
-  try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
+function formatCurrency(amount: number | null) {
+  return formatDealCurrency(amount);
 }
 
 function formatDate(date: string | null) {
@@ -137,29 +151,539 @@ function formatDate(date: string | null) {
   return new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-// ── Page Content ───────────────────────────────────────────────────────────
+function toDateInputValue(date: string | null) {
+  if (!date) return "";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function mapDetailToCard(detail: OpportunityDetailRow): DealRow {
+  return {
+    id: detail.id,
+    name: detail.name,
+    amount: detail.amount,
+    closeDate: detail.closeDate,
+    stageId: detail.stageId,
+    company: detail.company?.name ?? null,
+  };
+}
+
+function DrawerField({
+  label,
+  value,
+  placeholder,
+  saving,
+  onChange,
+  onSave,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  saving: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  type?: "text" | "number";
+}) {
+  return (
+    <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+      <div className="mb-2 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">{label}</div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <input
+          className="w-full min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onSave}
+        />
+        <button type="button" className="btn-primary min-w-[88px] justify-center text-xs h-9 py-0" onClick={onSave} disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DealDetailDrawer({
+  dealId,
+  open,
+  stages,
+  companies,
+  contacts,
+  onClose,
+  onDealUpdated,
+}: {
+  dealId: string | null;
+  open: boolean;
+  stages: StageColumn[];
+  companies: CompanyRow[];
+  contacts: PersonRow[];
+  onClose: () => void;
+  onDealUpdated: (detail: OpportunityDetailRow, previousStageId: string) => void;
+}) {
+  const [detail, setDetail] = useState<OpportunityDetailRow | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [linkingContactId, setLinkingContactId] = useState("");
+  const [linkRole, setLinkRole] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"contacts" | "summary">("contacts");
+  const [form, setForm] = useState({
+    name: "",
+    amount: "",
+    stageId: "",
+    companyId: "",
+    closeDate: "",
+  });
+
+  useEffect(() => {
+    if (!open || !dealId) return;
+
+    setLoading(true);
+    setError("");
+    opportunitiesApi
+      .get(dealId)
+      .then((res) => {
+        setDetail(res);
+        setForm({
+          name: res.name ?? "",
+          amount: res.amount === null ? "" : String(res.amount),
+          stageId: res.stageId,
+          companyId: res.companyId ?? "",
+          closeDate: toDateInputValue(res.closeDate),
+        });
+      })
+      .catch((err: any) => setError(err.message || "Failed to load deal details."))
+      .finally(() => setLoading(false));
+  }, [open, dealId]);
+
+  useEffect(() => {
+    if (!open) {
+      setDetail(null);
+      setError("");
+      setSavingField(null);
+      setLinkingContactId("");
+      setLinkRole("");
+      setLinking(false);
+      setUnlinkingId(null);
+      setActiveTab("contacts");
+    }
+  }, [open]);
+
+  const availableContacts = useMemo(() => {
+    const assignedIds = new Set(detail?.contacts.map((contact) => contact.id) ?? []);
+    return contacts.filter((person) => !assignedIds.has(person.id));
+  }, [contacts, detail]);
+
+  const persistUpdate = async (field: string, payload: Partial<CreateOpportunityInput>) => {
+    if (!detail) return;
+    setSavingField(field);
+    const previousStageId = detail.stageId;
+
+    try {
+      const updated = await opportunitiesApi.update(detail.id, payload);
+      const nextDetail: OpportunityDetailRow = {
+        ...detail,
+        ...updated,
+        companyId: payload.companyId !== undefined ? payload.companyId ?? null : detail.companyId,
+        company:
+          payload.companyId !== undefined
+            ? companies.find((company) => company.id === payload.companyId) ?? null
+            : detail.company,
+      };
+      setDetail(nextDetail);
+      setForm((current) => ({
+        ...current,
+        name: nextDetail.name,
+        amount: nextDetail.amount === null ? "" : String(nextDetail.amount),
+        stageId: nextDetail.stageId,
+        companyId: nextDetail.companyId ?? "",
+        closeDate: toDateInputValue(nextDetail.closeDate),
+      }));
+      onDealUpdated(nextDetail, previousStageId);
+      toast.success("Deal updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update deal.");
+      setForm((current) => ({
+        ...current,
+        name: detail.name,
+        amount: detail.amount === null ? "" : String(detail.amount),
+        stageId: detail.stageId,
+        companyId: detail.companyId ?? "",
+        closeDate: toDateInputValue(detail.closeDate),
+      }));
+    } finally {
+      setSavingField(null);
+    }
+  };
+
+  const saveName = async () => {
+    if (!detail) return;
+    const nextName = form.name.trim();
+    if (!nextName) {
+      toast.error("Deal name is required.");
+      setForm((current) => ({ ...current, name: detail.name }));
+      return;
+    }
+    if (nextName === detail.name) return;
+    await persistUpdate("name", { name: nextName });
+  };
+
+  const saveAmount = async () => {
+    if (!detail) return;
+    const nextAmount = normalizeDealAmount(form.amount);
+    const currentAmount = detail.amount ?? null;
+    if (nextAmount === currentAmount) return;
+    await persistUpdate("amount", { amount: nextAmount });
+  };
+
+
+  const saveStage = async (value: string) => {
+    if (!detail || value === detail.stageId) return;
+    setForm((current) => ({ ...current, stageId: value }));
+    await persistUpdate("stageId", { stageId: value });
+  };
+
+  const saveCompany = async (value: string) => {
+    if (!detail) return;
+    const normalized = normalizeDealOptionalString(value);
+    if ((detail.companyId ?? null) === normalized) return;
+    setForm((current) => ({ ...current, companyId: value }));
+    await persistUpdate("companyId", { companyId: normalized });
+  };
+
+  const saveCloseDate = async (value: string) => {
+    if (!detail) return;
+    const normalized = normalizeDealCloseDate(value);
+    const currentValue = normalizeDealCloseDate(toDateInputValue(detail.closeDate));
+    if (normalized === currentValue) return;
+    setForm((current) => ({ ...current, closeDate: value }));
+    await persistUpdate("closeDate", { closeDate: normalized });
+  };
+
+  const handleLinkContact = async () => {
+    if (!detail || !linkingContactId) return;
+    setLinking(true);
+    try {
+      const updated = await opportunitiesApi.linkContact(detail.id, linkingContactId, linkRole.trim() || undefined);
+      setDetail(updated);
+      setLinkingContactId("");
+      setLinkRole("");
+      toast.success("Contact linked successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to link contact.");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleUnlinkContact = async (personId: string) => {
+    if (!detail) return;
+    setUnlinkingId(personId);
+    try {
+      const updated = await opportunitiesApi.unlinkContact(detail.id, personId);
+      setDetail(updated);
+      toast.success("Contact unlinked successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unlink contact.");
+    } finally {
+      setUnlinkingId(null);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm" onClick={onClose}>
+      <aside
+        className="flex h-full w-full max-w-[720px] flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4 md:px-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-text-tertiary">Deal detail</p>
+            <h2 className="mt-1 text-lg font-semibold text-text-primary">Opportunity drawer</h2>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+            onClick={onClose}
+            aria-label="Close deal drawer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {loading && (
+          <div className="flex flex-1 items-center justify-center gap-3 text-text-secondary">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Loading deal details…</span>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="m-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>
+        )}
+
+        {!loading && !error && detail && (
+          <div className="flex-1 overflow-y-auto px-5 py-5 text-text-primary md:px-6 md:py-6">
+            <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,_rgba(129,116,248,0.12),_transparent_35%),linear-gradient(180deg,_var(--bg-secondary),_var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
+              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 flex-1">
+                  <input
+                    className="w-full bg-transparent text-2xl font-semibold text-white outline-none placeholder:text-slate-400 md:text-3xl"
+                    value={form.name}
+                    onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                    onBlur={() => void saveName()}
+                    placeholder="Deal name"
+                  />
+                  <p className="mt-2 text-sm text-slate-300">
+                    Revenue target {formatCurrency(detail.amount) ?? "—"}
+                    {detail.company?.name ? ` · ${detail.company.name}` : " · No linked company"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+                  onClick={() => void saveName()}
+                  disabled={savingField === "name"}
+                >
+                  {savingField === "name" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save title"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <DrawerField
+                label="Amount"
+                value={form.amount}
+                placeholder="500000"
+                saving={savingField === "amount"}
+                onChange={(value) => setForm((current) => ({ ...current, amount: value }))}
+                onSave={() => void saveAmount()}
+                type="number"
+              />
+
+
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Stage</div>
+                <select
+                  className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                  value={form.stageId}
+                  onChange={(e) => void saveStage(e.target.value)}
+                  disabled={savingField === "stageId"}
+                >
+                  {stages.map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Company</div>
+                <select
+                  className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                  value={form.companyId}
+                  onChange={(e) => void saveCompany(e.target.value)}
+                  disabled={savingField === "companyId"}
+                >
+                  <option value="">No company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+                <div className="mb-2 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Expected close date</div>
+                <input
+                  className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                  type="date"
+                  value={form.closeDate}
+                  onChange={(e) => void saveCloseDate(e.target.value)}
+                  disabled={savingField === "closeDate"}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-border-subtle bg-bg-secondary/30 p-4 text-sm text-text-secondary">
+              <div className="flex flex-wrap gap-4">
+                <span>
+                  Current value: <strong className="text-text-primary">{formatCurrency(detail.amount) ?? "—"}</strong>
+                </span>
+                <span>
+                  Company: <strong className="text-text-primary">{detail.company?.name ?? "Unassigned"}</strong>
+                </span>
+                <span>
+                  Close date: <strong className="text-text-primary">{formatDate(detail.closeDate) ?? "—"}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="inline-flex rounded-full border border-border-subtle bg-bg-tertiary p-1">
+                <button
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    activeTab === "contacts" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                  onClick={() => setActiveTab("contacts")}
+                >
+                  Contacts ({detail.contacts.length})
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    activeTab === "summary" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                  onClick={() => setActiveTab("summary")}
+                >
+                  Summary
+                </button>
+              </div>
+
+              {activeTab === "contacts" ? (
+                <div className="pt-4">
+                  <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                    <h3 className="text-sm font-semibold text-text-primary">Link workspace contacts</h3>
+                    <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                      <select
+                        className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                        value={linkingContactId}
+                        onChange={(e) => setLinkingContactId(e.target.value)}
+                      >
+                        <option value="">Select a contact</option>
+                        {availableContacts.map((person) => (
+                          <option key={person.id} value={person.id}>
+                            {person.name}
+                            {person.company ? ` · ${person.company}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+                        placeholder="Role (optional)"
+                        value={linkRole}
+                        onChange={(e) => setLinkRole(e.target.value)}
+                      />
+                      <button type="button" className="btn-primary justify-center" onClick={() => void handleLinkContact()} disabled={!linkingContactId || linking}>
+                        {linking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Link
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {detail.contacts.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-border-subtle px-4 py-8 text-center text-sm text-text-tertiary">
+                        No contacts linked to this deal yet.
+                      </div>
+                    ) : (
+                      detail.contacts.map((contact) => (
+                        <div key={contact.id} className="flex flex-col gap-3 rounded-2xl border border-border-subtle bg-surface-default p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                              <UserRound className="h-4 w-4 text-orbit-primary" />
+                              <span className="truncate">{contact.name}</span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-secondary">
+                              {contact.role && <span>{contact.role}</span>}
+                              {contact.jobTitle && <span>{contact.jobTitle}</span>}
+                              {contact.email && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Mail className="h-3.5 w-3.5" />
+                                  {contact.email}
+                                </span>
+                              )}
+                              {contact.phone && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Phone className="h-3.5 w-3.5" />
+                                  {contact.phone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-red-200 hover:text-red-600"
+                            onClick={() => void handleUnlinkContact(contact.id)}
+                            disabled={unlinkingId === contact.id}
+                          >
+                            {unlinkingId === contact.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                            Unlink
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 pt-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Stage</p>
+                    <p className="mt-2 text-lg font-semibold text-text-primary">
+                      {stages.find((stage) => stage.id === detail.stageId)?.name ?? "Unknown"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Linked contacts</p>
+                    <p className="mt-2 text-lg font-semibold text-text-primary">{detail.contacts.length}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+                    <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Expected close date</p>
+                    <p className="mt-2 text-lg font-semibold text-text-primary">{formatDate(detail.closeDate) ?? "No close date"}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
 function DealsContent() {
   const { workspaceId } = useWorkspace();
   const [stages, setStages] = useState<StageColumn[]>([]);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [contacts, setContacts] = useState<PersonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [movingDealId, setMovingDealId] = useState<string | null>(null);
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
-    opportunitiesApi
-      .list(workspaceId)
-      .then((res) => {
-        setStages(res.stages);
-        if (res.stages.length > 0) {
-          setActiveStageId((prev) => prev && res.stages.some(s => s.id === prev) ? prev : res.stages[0].id);
+
+    Promise.all([
+      opportunitiesApi.list(workspaceId),
+      companiesApi.list(workspaceId).catch(() => []),
+      peopleApi.list(workspaceId).then((res) => res.data).catch(() => []),
+    ])
+      .then(([opportunities, workspaceCompanies, workspaceContacts]) => {
+        setStages(opportunities.stages);
+        setCompanies(workspaceCompanies);
+        setContacts(workspaceContacts);
+        if (opportunities.stages.length > 0) {
+          setActiveStageId((prev) =>
+            prev && opportunities.stages.some((s) => s.id === prev) ? prev : opportunities.stages[0].id,
+          );
         }
       })
-      .catch((err) => setError(err.message || "Failed to load deals."))
+      .catch((err: any) => setError(err.message || "Failed to load deals."))
       .finally(() => setLoading(false));
   }, [workspaceId]);
 
@@ -182,11 +706,7 @@ function DealsContent() {
     .reduce((acc, s) => acc + s.deals.reduce((a, d) => a + (d.amount ?? 0), 0), 0);
 
   const handleDealCreated = (deal: DealRow & { stageName: string }) => {
-    setStages((prev) =>
-      prev.map((s) =>
-        s.id === deal.stageId ? { ...s, deals: [deal, ...s.deals] } : s,
-      ),
-    );
+    setStages((prev) => prev.map((s) => (s.id === deal.stageId ? { ...s, deals: [deal, ...s.deals] } : s)));
     setShowModal(false);
   };
 
@@ -195,10 +715,11 @@ function DealsContent() {
       await opportunitiesApi.delete(id);
       toast.success("Deal deleted successfully");
       setStages((prev) =>
-        prev.map((s) =>
-          s.id === stageId ? { ...s, deals: s.deals.filter((d) => d.id !== id) } : s
-        )
+        prev.map((s) => (s.id === stageId ? { ...s, deals: s.deals.filter((d) => d.id !== id) } : s)),
       );
+      if (selectedDealId === id) {
+        setSelectedDealId(null);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to delete deal.");
     }
@@ -246,25 +767,45 @@ function DealsContent() {
     }
   };
 
+  const handleDealUpdatedFromDrawer = (detail: OpportunityDetailRow, previousStageId: string) => {
+    const nextCard = mapDetailToCard(detail);
+    setStages((prev) => {
+      const withoutDeal = prev.map((stage) => ({
+        ...stage,
+        deals: stage.deals.filter((deal) => deal.id !== detail.id),
+      }));
+
+      return withoutDeal.map((stage) => {
+        if (stage.id !== detail.stageId) return stage;
+
+        const previousStage = prev.find((column) => column.id === previousStageId);
+        const previousCard = previousStage?.deals.find((deal) => deal.id === detail.id);
+        const inserted = previousCard ? previousCard : nextCard;
+
+        return {
+          ...stage,
+          deals: [inserted, ...stage.deals].map((deal) => (deal.id === detail.id ? nextCard : deal)),
+        };
+      });
+    });
+  };
+
   return (
-    <div className="p-6 md:p-8 mx-auto flex w-full max-w-7xl flex-col gap-6 md:gap-8">
-      {/* Header */}
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 md:gap-8 md:p-8">
       <section className="rounded-xl border border-border-subtle bg-surface-default p-5 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Deals</p>
-            <h2 className="mt-2 text-2xl md:text-3xl font-semibold">Opportunity board</h2>
+            <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Opportunity board</h2>
             <p className="mt-1 max-w-2xl text-sm text-text-secondary">
               Review pipeline health, spot stuck deals, and keep revenue momentum visible.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             {!loading && (
-              <div className="text-sm text-text-secondary font-mono">
+              <div className="font-mono text-sm text-text-secondary">
                 {totalDeals} deal{totalDeals !== 1 ? "s" : ""}
-                {pipelineValue > 0 && (
-                  <> · {formatCurrency(pipelineValue)}</>
-                )}
+                {pipelineValue > 0 && <> · {formatCurrency(pipelineValue)}</>}
               </div>
             )}
             <button
@@ -280,7 +821,6 @@ function DealsContent() {
         </div>
       </section>
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center gap-3 py-20 text-text-tertiary">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -288,12 +828,8 @@ function DealsContent() {
         </div>
       )}
 
-      {/* Error */}
-      {!loading && error && (
-        <div className="py-12 text-center text-sm text-error">{error}</div>
-      )}
+      {!loading && error && <div className="py-12 text-center text-sm text-error">{error}</div>}
 
-      {/* Empty state — no pipeline (new workspace) */}
       {!loading && !error && stages.length === 0 && (
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <div className="rounded-full bg-orbit-primary-muted p-4">
@@ -301,16 +837,13 @@ function DealsContent() {
           </div>
           <div>
             <p className="font-medium text-text-primary">No pipeline found</p>
-            <p className="mt-1 text-sm text-text-secondary">
-              Your workspace pipeline will appear here automatically.
-            </p>
+            <p className="mt-1 text-sm text-text-secondary">Your workspace pipeline will appear here automatically.</p>
           </div>
         </div>
       )}
 
-      {/* Mobile Stage Switcher Tab Bar */}
       {!loading && !error && stages.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-3 sm:hidden border-b border-border-subtle mb-4 scrollbar-none">
+        <div className="mb-4 flex gap-2 overflow-x-auto border-b border-border-subtle pb-3 scrollbar-none sm:hidden">
           {stages.map((column) => (
             <button
               key={column.id}
@@ -318,7 +851,7 @@ function DealsContent() {
               className={`flex-shrink-0 rounded-full px-4 py-2 text-xs font-medium transition ${
                 activeStageId === column.id
                   ? "bg-orbit-primary text-white"
-                  : "bg-bg-secondary text-text-secondary border border-border-subtle hover:bg-bg-tertiary"
+                  : "border border-border-subtle bg-bg-secondary text-text-secondary hover:bg-bg-tertiary"
               }`}
             >
               {column.name} ({column.deals.length})
@@ -327,7 +860,6 @@ function DealsContent() {
         </div>
       )}
 
-      {/* Kanban board */}
       {!loading && !error && stages.length > 0 && (
         <section ref={boardRef} className="flex gap-4 overflow-x-auto pb-4">
           {stages.map((column) => (
@@ -335,19 +867,19 @@ function DealsContent() {
               key={column.id}
               className={`rounded border border-border-subtle bg-bg-secondary p-4 transition-all duration-200 ${
                 activeStageId === column.id
-                  ? "w-full min-w-0 flex-shrink-0 block sm:min-w-[280px] sm:max-w-[300px]"
+                  ? "block w-full min-w-0 flex-shrink-0 sm:min-w-[280px] sm:max-w-[300px]"
                   : "hidden sm:block sm:min-w-[280px] sm:max-w-[300px] sm:flex-shrink-0"
               }`}
               style={{ borderTopColor: column.color, borderTopWidth: 2 }}
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-sm">{column.name}</h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
+                  <h2 className="text-sm font-semibold">{column.name}</h2>
+                  <p className="mt-0.5 text-xs text-text-secondary">
                     {column.deals.length} deal{column.deals.length !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <span className="rounded bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary font-mono">
+                <span className="rounded bg-bg-tertiary px-2.5 py-1 font-mono text-xs text-text-secondary">
                   {column.deals.length}
                 </span>
               </div>
@@ -361,10 +893,11 @@ function DealsContent() {
                   column.deals.map((deal) => (
                     <article
                       key={deal.id}
-                      className="group relative rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm hover:border-orbit-primary transition-colors cursor-pointer"
+                      className="group relative cursor-pointer rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm transition-colors hover:border-orbit-primary"
+                      onClick={() => setSelectedDealId(deal.id)}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-medium text-sm text-text-primary leading-snug">{deal.name}</h3>
+                        <h3 className="text-sm font-medium leading-snug text-text-primary">{deal.name}</h3>
                         <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
                           <label className="relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded border border-border-subtle bg-surface-default text-text-tertiary hover:text-orbit-primary focus-within:text-orbit-primary">
                             <select
@@ -385,17 +918,17 @@ function DealsContent() {
                               ))}
                             </select>
                             {movingDealId === deal.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin m-1.5" />
+                              <Loader2 className="m-1.5 h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <ChevronDown className="h-3.5 w-3.5 m-1.5" />
+                              <ChevronDown className="m-1.5 h-3.5 w-3.5" />
                             )}
                           </label>
                           <button
                             type="button"
-                            className="text-text-tertiary hover:text-error transition-colors duration-200 focus:opacity-100"
+                            className="text-text-tertiary transition-colors duration-200 hover:text-error focus:opacity-100"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteDeal(deal.id, deal.stageId);
+                              void handleDeleteDeal(deal.id, deal.stageId);
                             }}
                             aria-label={`Delete ${deal.name}`}
                           >
@@ -403,14 +936,12 @@ function DealsContent() {
                           </button>
                         </div>
                       </div>
-                      {deal.company && (
-                        <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>
-                      )}
+                      {deal.company && <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>}
                       <div className="mt-3 flex flex-col gap-1.5">
                         {deal.amount !== null && (
                           <div className="flex items-center gap-2 text-xs text-text-secondary">
-                            <CircleDollarSign className="h-3.5 w-3.5 text-orbit-primary shrink-0" />
-                            <span className="font-mono">{formatCurrency(deal.amount, deal.currency)}</span>
+                            <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
+                            <span className="font-mono">{formatCurrency(deal.amount)}</span>
                           </div>
                         )}
                         {deal.closeDate && (
@@ -429,7 +960,6 @@ function DealsContent() {
         </section>
       )}
 
-      {/* Modal */}
       {showModal && workspaceId && stages.length > 0 && (
         <AddDealModal
           workspaceId={workspaceId}
@@ -438,6 +968,16 @@ function DealsContent() {
           onCreated={handleDealCreated}
         />
       )}
+
+      <DealDetailDrawer
+        dealId={selectedDealId}
+        open={Boolean(selectedDealId)}
+        stages={stages}
+        companies={companies}
+        contacts={contacts}
+        onClose={() => setSelectedDealId(null)}
+        onDealUpdated={handleDealUpdatedFromDrawer}
+      />
     </div>
   );
 }

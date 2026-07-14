@@ -321,7 +321,7 @@ function DrawerField({
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
-          className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+          className="w-full min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
           type={type}
           value={value}
           placeholder={placeholder}
@@ -406,13 +406,10 @@ function CompanyDetailDrawer({
     }
   }, [open]);
 
-  const availableContacts = useMemo(() => {
-    console.log("Drawer debug - allContacts in drawer:", allContacts);
-    console.log("Drawer debug - current detail:", detail);
-    const filtered = allContacts.filter((person) => !person.companyId || person.companyId !== detail?.id);
-    console.log("Drawer debug - computed availableContacts:", filtered);
-    return filtered;
-  }, [allContacts, detail?.id]);
+  const availableContacts = useMemo(
+    () => allContacts.filter((person) => !person.companyId || person.companyId !== detail?.id),
+    [allContacts, detail?.id],
+  );
 
   const updateFieldValue = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));

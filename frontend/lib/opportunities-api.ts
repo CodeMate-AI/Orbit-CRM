@@ -27,10 +27,29 @@ export interface DealRow {
   id: string;
   name: string;
   amount: number | null;
-  currency: string;
   closeDate: string | null;
   stageId: string;
   company: string | null;
+}
+
+export interface OpportunityDetailRow {
+  id: string;
+  name: string;
+  amount: number | null;
+  closeDate: string | null;
+  stageId: string;
+  companyId: string | null;
+  company: { id: string; name: string } | null;
+  contacts: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    jobTitle: string | null;
+    role: string | null;
+  }>;
 }
 
 export interface StageColumn {
@@ -49,16 +68,17 @@ export interface OpportunitiesListResponse {
 
 export interface CreateOpportunityInput {
   name: string;
-  amount?: number;
-  currency?: string;
-  closeDate?: string;
+  amount?: number | null;
+  closeDate?: string | null;
   stageId?: string;
-  companyId?: string;
+  companyId?: string | null;
 }
 
 export const opportunitiesApi = {
   list: (workspaceId: string): Promise<OpportunitiesListResponse> =>
     request(`/opportunities?workspaceId=${encodeURIComponent(workspaceId)}`),
+
+  get: (id: string): Promise<OpportunityDetailRow> => request(`/opportunities/${id}`),
 
   create: (workspaceId: string, data: CreateOpportunityInput): Promise<DealRow> =>
     request("/opportunities", {
@@ -71,6 +91,15 @@ export const opportunitiesApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  linkContact: (id: string, personId: string, role?: string): Promise<OpportunityDetailRow> =>
+    request(`/opportunities/${id}/contacts`, {
+      method: "POST",
+      body: JSON.stringify({ personId, role }),
+    }),
+
+  unlinkContact: (id: string, personId: string): Promise<OpportunityDetailRow> =>
+    request(`/opportunities/${id}/contacts/${personId}`, { method: "DELETE" }),
 
   delete: (id: string): Promise<{ success: boolean }> =>
     request(`/opportunities/${id}`, { method: "DELETE" }),

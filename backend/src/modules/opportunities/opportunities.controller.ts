@@ -20,6 +20,29 @@ export class OpportunitiesController {
     return this.opportunitiesService.create(user.id, dto);
   }
 
+  @Get(":id")
+  findOne(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.opportunitiesService.findOne(user.id, id);
+  }
+
+  @Post(":id/contacts")
+  linkContact(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: { personId: string; role?: string },
+  ) {
+    return this.opportunitiesService.linkContact(user.id, id, dto.personId, dto.role);
+  }
+
+  @Delete(":id/contacts/:personId")
+  unlinkContact(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+  ) {
+    return this.opportunitiesService.unlinkContact(user.id, id, personId);
+  }
+
   @Patch(":id")
   update(@CurrentUser() user: any, @Param("id") id: string, @Body() dto: UpdateOpportunityDto) {
     return this.opportunitiesService.update(user.id, id, dto);

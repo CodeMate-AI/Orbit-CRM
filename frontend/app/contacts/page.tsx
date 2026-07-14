@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import AttachmentList from "@/components/AttachmentList";
 import NotesTimeline from "@/components/NotesTimeline";
 import { peopleApi, PersonRow, CreatePersonInput } from "@/lib/people-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
@@ -321,7 +322,7 @@ function ContactDetailDrawer({
   const [form, setForm] = useState<ContactDrawerForm | null>(null);
   const [savingField, setSavingField] = useState<EditableContactField | null>(null);
   const [phoneError, setPhoneError] = useState("");
-  const [activeTab, setActiveTab] = useState<"details" | "notes">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "notes" | "files">("details");
 
   useEffect(() => {
     setForm(contact ? buildDrawerForm(contact) : null);
@@ -482,6 +483,17 @@ function ContactDetailDrawer({
             >
               Notes
             </button>
+            <button
+              type="button"
+              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+                activeTab === "files"
+                  ? "border-orbit-primary text-white"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setActiveTab("files")}
+            >
+              Files
+            </button>
           </div>
 
           {activeTab === "details" ? (
@@ -581,13 +593,17 @@ function ContactDetailDrawer({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : activeTab === "notes" ? (
             workspaceId && (
               <NotesTimeline
                 workspaceId={workspaceId}
                 entityType="person"
                 entityId={contact.id}
               />
+            )
+          ) : (
+            workspaceId && (
+              <AttachmentList workspaceId={workspaceId} entityType="person" entityId={contact.id} />
             )
           )}
         </div>

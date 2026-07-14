@@ -16,6 +16,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import AttachmentList from "@/components/AttachmentList";
 import NotesTimeline from "@/components/NotesTimeline";
 import { toast } from "sonner";
 import {
@@ -233,7 +234,7 @@ function DealDetailDrawer({
   const [linkRole, setLinkRole] = useState("");
   const [linking, setLinking] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"contacts" | "summary" | "notes">("contacts");
+  const [activeTab, setActiveTab] = useState<"contacts" | "summary" | "notes" | "files">("contacts");
   const [form, setForm] = useState({
     name: "",
     amount: "",
@@ -560,6 +561,15 @@ function DealDetailDrawer({
                 >
                   Notes
                 </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    activeTab === "files" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                  }`}
+                  onClick={() => setActiveTab("files")}
+                >
+                  Files
+                </button>
               </div>
 
               {activeTab === "contacts" ? (
@@ -654,13 +664,17 @@ function DealDetailDrawer({
                     <p className="mt-2 text-lg font-semibold text-text-primary">{formatDate(detail.closeDate) ?? "No close date"}</p>
                   </div>
                 </div>
-              ) : (
+              ) : activeTab === "notes" ? (
                 workspaceId && (
                   <NotesTimeline
                     workspaceId={workspaceId}
                     entityType="opportunity"
                     entityId={detail.id}
                   />
+                )
+              ) : (
+                workspaceId && (
+                  <AttachmentList workspaceId={workspaceId} entityType="opportunity" entityId={detail.id} />
                 )
               )}
             </div>

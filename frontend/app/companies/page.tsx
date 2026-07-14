@@ -20,6 +20,7 @@ import {
   Landmark,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import AttachmentList from "@/components/AttachmentList";
 import NotesTimeline from "@/components/NotesTimeline";
 import { companiesApi, CompanyDetailRow, CompanyRow, CreateCompanyInput } from "@/lib/companies-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
@@ -43,7 +44,7 @@ type DecoratedCompany = CompanyRow & {
   avatarGradient: string;
 };
 
-type DrawerTab = "contacts" | "deals" | "notes";
+type DrawerTab = "contacts" | "deals" | "notes" | "files";
 
 type EditableCompanyField = Exclude<keyof CreateCompanyInput, never>;
 
@@ -782,6 +783,13 @@ function CompanyDetailDrawer({
                   >
                     Notes
                   </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-4 py-2 text-sm transition ${activeTab === "files" ? "bg-orbit-primary text-white" : "text-text-secondary hover:text-text-primary"}`}
+                    onClick={() => setActiveTab("files")}
+                  >
+                    Files
+                  </button>
                 </div>
               </div>
 
@@ -883,13 +891,17 @@ function CompanyDetailDrawer({
                     ))
                   )}
                 </div>
-              ) : (
+              ) : activeTab === "notes" ? (
                 workspaceId && (
                   <NotesTimeline
                     workspaceId={workspaceId}
                     entityType="company"
                     entityId={detail.id}
                   />
+                )
+              ) : (
+                workspaceId && (
+                  <AttachmentList workspaceId={workspaceId} entityType="company" entityId={detail.id} />
                 )
               )}
             </div>

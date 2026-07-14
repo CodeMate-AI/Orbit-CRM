@@ -16,6 +16,18 @@ function normalizeString(value?: string | null) {
   return trimmed ? trimmed : undefined;
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+
+  return "Unknown SMTP error";
+}
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly emailService: EmailService) {}
@@ -114,14 +126,19 @@ export class SettingsService {
   }
 
   async testSmtpConfig(userEmail: string, workspaceId: string, dto?: TestSmtpConfigDto) {
-    const config = await this.resolveSmtpConfig(workspaceId, dto);
-    const recipient = normalizeString(dto?.to) ?? userEmail;
+    try {
+      const config = await this.resolveSmtpConfig(workspaceId, dto);
+      const recipient = normalizeString(dto?.to) ?? userEmail;
 
-    if (!recipient) {
-      throw new BadRequestException("A test recipient email is required.");
+      if (!recipient) {
+        throw new BadRequestException("A test recipient email is required.");
+      }
+
+      await this.emailService.sendTestEmail(config, recipient);
+      return { success: true };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      throw new BadRequestException(`SMTP test failed: ${message}`);
     }
-
-    await this.emailService.sendTestEmail(config, recipient);
-    return { success: true };
   }
 }

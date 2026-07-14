@@ -53,6 +53,14 @@ import {
 const DEFAULT_TIMEZONE = "Asia/Kolkata";
 const DEFAULT_LOCALE = "en-IN";
 
+const TIMEZONE_OPTIONS = [
+  { value: "Asia/Kolkata", label: "Asia/Kolkata (IST)" },
+];
+
+const LOCALE_OPTIONS = [
+  { value: "en-IN", label: "English (India) - en-IN" },
+];
+
 const ROLE_OPTIONS: Array<{ value: WorkspaceMemberRole; label: string }> = [
   { value: "OWNER", label: "Owner" },
   { value: "ADMIN", label: "Admin" },
@@ -543,30 +551,40 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-timezone">Timezone</Label>
-                    <Input
+                    <NativeSelect
                       id="profile-timezone"
                       value={profileForm.timezone}
                       onChange={(event) =>
                         setProfileForm((current) => ({ ...current, timezone: event.target.value }))
                       }
-                      placeholder="Asia/Kolkata"
-                    />
+                    >
+                      {TIMEZONE_OPTIONS.map((option) => (
+                        <NativeSelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-locale">Locale</Label>
-                    <Input
+                    <NativeSelect
                       id="profile-locale"
                       value={profileForm.locale}
                       onChange={(event) => setProfileForm((current) => ({ ...current, locale: event.target.value }))}
-                      placeholder="en-IN"
-                    />
+                    >
+                      {LOCALE_OPTIONS.map((option) => (
+                        <NativeSelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
                   </div>
-                  <div className="md:col-span-2 flex flex-wrap items-center gap-3">
-                    <Button type="submit" disabled={profileSaving}>
+                  <div className="md:col-span-2 mt-2 flex flex-col gap-3">
+                    <Button type="submit" className="w-full sm:w-auto" disabled={profileSaving}>
                       {profileSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       Save profile
                     </Button>
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-xs text-text-secondary">
                       These values are stored on your user profile and used across the app.
                     </p>
                   </div>
@@ -653,16 +671,24 @@ export default function SettingsPage() {
                       placeholder="noreply@orbitcrm.com"
                     />
                   </div>
-                  <div className="md:col-span-2 flex flex-wrap items-center gap-3">
-                    <Button type="submit" disabled={smtpSaving || workspaceLoading}>
-                      {smtpSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      Save SMTP settings
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleTestSmtp} disabled={smtpTesting || workspaceLoading}>
-                      {smtpTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      Test connection
-                    </Button>
-                    <p className="text-sm text-text-secondary">
+                  <div className="md:col-span-2 mt-2 flex flex-col gap-3">
+                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                      <Button type="submit" className="w-full sm:w-auto" disabled={smtpSaving || workspaceLoading}>
+                        {smtpSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        Save SMTP settings
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleTestSmtp}
+                        className="w-full sm:w-auto"
+                        disabled={smtpTesting || workspaceLoading}
+                      >
+                        {smtpTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        Test connection
+                      </Button>
+                    </div>
+                    <p className="text-xs text-text-secondary">
                       Test emails are sent to {currentUser?.email || "your account email"}.
                     </p>
                   </div>

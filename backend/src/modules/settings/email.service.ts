@@ -18,6 +18,22 @@ function parsePort(value: string | undefined): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 587;
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+
+  return "Unknown SMTP error";
+}
+
+function toBadRequest(message: string, prefix: string) {
+  return new BadRequestException(`${prefix}: ${message}`);
+}
+
 export function mapStoredConfig(config: {
   host: string;
   port: number;
@@ -89,29 +105,37 @@ export class EmailService {
     const config = await this.resolveSmtpConfig(workspaceId);
     const transport = this.createTransport(config);
 
-    return transport.sendMail({
-      from: `"${config.senderName}" <${config.senderEmail}>`,
-      to,
-      subject,
-      html,
-    });
+    try {
+      return await transport.sendMail({
+        from: `"${config.senderName}" <${config.senderEmail}>`,
+        to,
+        subject,
+        html,
+      });
+    } catch (error) {
+      throw toBadRequest(getErrorMessage(error), "SMTP send failed");
+    }
   }
 
   async sendTestEmail(config: ResolvedSmtpConfig, to: string) {
     const transport = this.createTransport(config);
 
-    return transport.sendMail({
-      from: `"${config.senderName}" <${config.senderEmail}>`,
-      to,
-      subject: "Orbit CRM SMTP test email",
-      html: `
+    try {
+      return await transport.sendMail({
+        from: `"${config.senderName}" <${config.senderEmail}>`,
+        to,
+        subject: "Orbit CRM SMTP test email",
+        html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2>SMTP test email</h2>
           <p>This email confirms that Orbit CRM can send transactional mail from your configured Gmail SMTP account.</p>
           <p>If you received this message, your workspace SMTP settings are working correctly.</p>
         </div>
       `,
-    });
+      });
+    } catch (error) {
+      throw toBadRequest(getErrorMessage(error), "SMTP test email failed");
+    }
   }
 
   async testConnection(input?: Partial<ResolvedSmtpConfig>, workspaceId?: string | null) {
@@ -135,8 +159,12 @@ export class EmailService {
       : await this.resolveSmtpConfig(workspaceId ?? null);
 
     const transport = this.createTransport(config);
-    await transport.verify();
 
-    return { success: true };
+    try {
+      await transport.verify();
+      return { success: true };
+    } catch (error) {
+      throw toBadRequest(getErrorMessage(error), "SMTP verification failed");
+    }
   }
 }

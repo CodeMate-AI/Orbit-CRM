@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { workspacesApi } from "@/lib/workspaces-api";
+import SearchDialog from "./SearchDialog";
 import { toast } from "sonner";
 import {
   Users,
@@ -55,6 +56,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("This week");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     async function loadSessionAndWorkspace() {
@@ -98,6 +100,17 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
     return undefined;
   }, [isMobileMenuOpen, isProfileDropdownOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!isMobileMenuOpen) {
@@ -308,7 +321,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                   </button>
                 ))}
               </div>
-              <div className="search-trigger">
+              <div className="search-trigger" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-3.5 w-3.5" />
                 ⌘K
               </div>
@@ -318,6 +331,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
           {children}
         </div>
       </div>
+      <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </WorkspaceContext.Provider>
   );
 }

@@ -4,6 +4,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { CompaniesModule } from "./modules/companies/companies.module";
 import { ContactsModule } from "./modules/contacts/contacts.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { NotesModule } from "./modules/notes/notes.module";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module";
 import { PeopleModule } from "./modules/people/people.module";
 import { SearchModule } from "./modules/search/search.module";
@@ -18,6 +19,7 @@ import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
     CompaniesModule,
     ContactsModule,
     DashboardModule,
+    NotesModule,
     OpportunitiesModule,
     PeopleModule,
     SearchModule,

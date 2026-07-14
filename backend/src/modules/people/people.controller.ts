@@ -3,6 +3,8 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/user.decorator";
 import { PeopleService } from "./people.service";
 import { CreatePersonDto } from "./dto/create-person.dto";
+import { DryRunImportDto } from "./dto/dry-run-import.dto";
+import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
 
 @Controller("people")
@@ -18,6 +20,16 @@ export class PeopleController {
   @Post()
   create(@CurrentUser() user: any, @Body() dto: CreatePersonDto) {
     return this.peopleService.create(user.id, dto);
+  }
+
+  @Post("import/dry-run")
+  async dryRun(@Body() dto: DryRunImportDto) {
+    return this.peopleService.dryRun(dto);
+  }
+
+  @Post("import")
+  async startImport(@CurrentUser() user: any, @Body() dto: StartImportDto) {
+    return this.peopleService.startImport(user.id, dto);
   }
 
   @Patch(":id")

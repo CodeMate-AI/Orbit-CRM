@@ -1,12 +1,19 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import { PrismaClient } from "@prisma/client";
+import { Queue } from "bullmq";
+import { parse } from "csv-parse/sync";
 import { CreatePersonDto } from "./dto/create-person.dto";
+import { DryRunImportDto } from "./dto/dry-run-import.dto";
+import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class PeopleService {
+  constructor(@InjectQueue("people-import") private readonly importQueue: Queue) {}
+
   /** Verify user is a member of the workspace */
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -78,6 +85,47 @@ export class PeopleService {
       companyId: person.companyId,
       createdAt: person.createdAt,
     };
+  }
+
+  async dryRun(dto: DryRunImportDto) {
+    try {
+      const records = parse(dto.csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      }) as Record<string, string>[];
+
+      const headers = records.length > 0 ? Object.keys(records[0]) : [];
+      const totalRows = records.length;
+      const validationErrors: string[] = [];
+
+      records.forEach((record: Record<string, string>, idx: number) => {
+        const rowNum = idx + 2;
+        const email = record.Email || record.email || "";
+        if (email && !email.includes("@")) {
+          validationErrors.push(`Row ${rowNum}: Invalid email format ("${email}")`);
+        }
+      });
+
+      return {
+        headers,
+        totalRows,
+        validationErrors,
+      };
+    } catch (err: any) {
+      throw new Error(`Failed to parse CSV: ${err.message}`);
+    }
+  }
+
+  async startImport(userId: string, dto: StartImportDto) {
+    const job = await this.importQueue.add("import-job", {
+      csvContent: dto.csvContent,
+      columnMapping: dto.columnMapping,
+      workspaceId: dto.workspaceId,
+      userId,
+    });
+
+    return { jobId: job.id };
   }
 
   async update(userId: string, personId: string, dto: UpdatePersonDto) {

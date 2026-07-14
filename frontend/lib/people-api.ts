@@ -74,4 +74,20 @@ export const peopleApi = {
 
   delete: (id: string): Promise<{ success: boolean }> =>
     request(`/people/${id}`, { method: "DELETE" }),
+
+  dryRunImport: (data: { csvContent: string; workspaceId: string }) =>
+    request("/people/import/dry-run", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  startImport: (data: {
+    csvContent: string;
+    columnMapping: Record<string, string>;
+    workspaceId: string;
+  }) =>
+    request("/people/import", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };

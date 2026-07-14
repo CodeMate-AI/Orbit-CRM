@@ -3,7 +3,11 @@ import { PrismaClient } from "@prisma/client";
 import { CreateOpportunityDto } from "./dto/create-opportunity.dto";
 import { UpdateOpportunityDto } from "./dto/update-opportunity.dto";
 
-const prisma = new PrismaClient();
+let prisma = new PrismaClient();
+
+export function setOpportunitiesPrisma(client: PrismaClient) {
+  prisma = client;
+}
 
 @Injectable()
 export class OpportunitiesService {
@@ -125,7 +129,7 @@ export class OpportunitiesService {
         closeDate: dto.closeDate ? new Date(dto.closeDate) : null,
         stageId,
         workspaceId: dto.workspaceId,
-        companyId: dto.companyId ?? null,
+        companyId: dto.companyId || null,
       },
       include: { stage: true },
     });
@@ -153,7 +157,7 @@ export class OpportunitiesService {
         closeDate:
           dto.closeDate !== undefined ? (dto.closeDate ? new Date(dto.closeDate) : null) : opp.closeDate,
         stageId: dto.stageId ?? opp.stageId,
-        companyId: dto.companyId !== undefined ? dto.companyId : opp.companyId,
+        companyId: dto.companyId !== undefined ? (dto.companyId || null) : opp.companyId,
       },
       include: { stage: true },
     });

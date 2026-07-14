@@ -8,7 +8,11 @@ import { DryRunImportDto } from "./dto/dry-run-import.dto";
 import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
 
-const prisma = new PrismaClient();
+let prisma = new PrismaClient();
+
+export function setPeoplePrisma(client: PrismaClient) {
+  prisma = client;
+}
 
 @Injectable()
 export class PeopleService {
@@ -67,7 +71,7 @@ export class PeopleService {
         industry: dto.industry,
         tagsString: dto.tagsString,
         workspaceId: dto.workspaceId,
-        companyId: dto.companyId,
+        companyId: dto.companyId || null,
       },
     });
 

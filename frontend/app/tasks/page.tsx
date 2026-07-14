@@ -10,6 +10,7 @@ import {
   Clock3,
   Link2,
   Loader2,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -619,28 +620,44 @@ function TasksContent() {
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-2xl border border-border-subtle">
-            <div className="hidden grid-cols-[auto_minmax(220px,1.6fr)_110px_120px_120px_1fr_auto] gap-4 border-b border-border-subtle bg-bg-secondary/50 px-4 py-3 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary md:grid">
+            <div className="hidden grid-cols-[48px_minmax(220px,1.6fr)_110px_120px_120px_1fr_120px] gap-4 border-b border-border-subtle bg-bg-secondary/50 px-4 py-3 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary md:grid">
               <span>Status</span>
               <span>Task</span>
               <span>Priority</span>
               <span>Due date</span>
               <span>Contact</span>
               <span>Relations</span>
-              <span>Actions</span>
+              <span className="md:text-right">Actions</span>
             </div>
             <div className="divide-y divide-border-subtle">
               {filteredTasks.map((task) => {
                 const quickToggleBusy = togglingTaskId === task.id;
                 const deleteBusy = deletingTaskId === task.id;
                 return (
-                  <div key={task.id} className="grid gap-4 px-4 py-4 transition hover:bg-bg-secondary/30 md:grid-cols-[auto_minmax(220px,1.6fr)_110px_120px_120px_1fr_auto] md:items-center">
-                    <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-orbit-primary hover:text-orbit-primary" onClick={() => void handleToggleStatus(task)} disabled={quickToggleBusy} aria-label={task.status === "DONE" ? `Mark ${task.title} as to do` : `Mark ${task.title} as done`}>
+                  <div
+                    key={task.id}
+                    className="group grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-bg-secondary/30 md:grid-cols-[48px_minmax(220px,1.6fr)_110px_120px_120px_1fr_120px] md:items-center"
+                    onClick={() => setSelectedTaskId(task.id)}
+                  >
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-orbit-primary hover:text-orbit-primary"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleToggleStatus(task);
+                      }}
+                      disabled={quickToggleBusy}
+                      aria-label={task.status === "DONE" ? `Mark ${task.title} as to do` : `Mark ${task.title} as done`}
+                    >
                       {quickToggleBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : task.status === "DONE" ? <CheckCircle2 className="h-5 w-5 text-emerald-300" /> : task.status === "IN_PROGRESS" ? <Clock3 className="h-5 w-5 text-violet-300" /> : <Circle className="h-5 w-5" />}
                     </button>
-                    <button type="button" className="min-w-0 text-left" onClick={() => setSelectedTaskId(task.id)}>
-                      <div className="font-medium text-text-primary">{task.title}</div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-text-primary transition-colors group-hover:text-orbit-primary">{task.title}</span>
+                        <Pencil className="h-3.5 w-3.5 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
                       <div className="mt-1 line-clamp-2 text-sm text-text-secondary">{task.description || "No description added"}</div>
-                    </button>
+                    </div>
                     <div><span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${priorityBadgeClass(task.priority)}`}>{formatPriority(task.priority)}</span></div>
                     <div className="text-sm text-text-secondary">{formatDate(task.dueDate)}</div>
                     <div className="text-sm text-text-secondary">{task.person?.name ?? "—"}</div>
@@ -651,7 +668,16 @@ function TasksContent() {
                     </div>
                     <div className="flex items-center gap-2 md:justify-end">
                       <span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${statusBadgeClass(task.status)}`}>{formatStatus(task.status)}</span>
-                      <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-rose-400/40 hover:text-rose-300" onClick={() => void handleDeleteTask(task.id)} disabled={deleteBusy} aria-label={`Delete ${task.title}`}>
+                      <button
+                        type="button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-rose-400/40 hover:text-rose-300"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteTask(task.id);
+                        }}
+                        disabled={deleteBusy}
+                        aria-label={`Delete ${task.title}`}
+                      >
                         {deleteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
                     </div>

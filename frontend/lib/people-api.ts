@@ -31,6 +31,9 @@ export interface PersonRow {
   email: string | null;
   phone: string | null;
   jobTitle: string | null;
+  leadSource: string | null;
+  industry: string | null;
+  tagsString: string | null;
   company: string | null;
   companyId: string | null;
   createdAt: string;
@@ -47,6 +50,9 @@ export interface CreatePersonInput {
   email?: string;
   phone?: string;
   jobTitle?: string;
+  leadSource?: string;
+  industry?: string;
+  tagsString?: string;
   companyId?: string;
 }
 

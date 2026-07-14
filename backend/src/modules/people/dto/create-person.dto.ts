@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsEmail } from "class-validator";
+import { IsValidPhone } from "./phone-validator";
 
 export class CreatePersonDto {
   @IsString()
@@ -13,6 +14,7 @@ export class CreatePersonDto {
 
   @IsOptional()
   @IsString()
+  @IsValidPhone()
   phone?: string;
 
   @IsOptional()
@@ -22,6 +24,18 @@ export class CreatePersonDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  @IsOptional()
+  @IsString()
+  leadSource?: string;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsString()
+  tagsString?: string;
 
   @IsString()
   workspaceId!: string;

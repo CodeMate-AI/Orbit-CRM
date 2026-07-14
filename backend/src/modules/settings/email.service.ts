@@ -90,22 +90,47 @@ export class EmailService {
     const transport = this.createTransport(config);
 
     return transport.sendMail({
-      from: `\"${config.senderName}\" <${config.senderEmail}>`,
+      from: `"${config.senderName}" <${config.senderEmail}>`,
       to,
       subject,
       html,
     });
   }
 
+  async sendTestEmail(config: ResolvedSmtpConfig, to: string) {
+    const transport = this.createTransport(config);
+
+    return transport.sendMail({
+      from: `"${config.senderName}" <${config.senderEmail}>`,
+      to,
+      subject: "Orbit CRM SMTP test email",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+          <h2>SMTP test email</h2>
+          <p>This email confirms that Orbit CRM can send transactional mail from your configured Gmail SMTP account.</p>
+          <p>If you received this message, your workspace SMTP settings are working correctly.</p>
+        </div>
+      `,
+    });
+  }
+
   async testConnection(input?: Partial<ResolvedSmtpConfig>, workspaceId?: string | null) {
-    const config = input?.host && input?.port && input?.username && input?.password && input?.senderName && input?.senderEmail
+    const hasCompleteInput =
+      Boolean(input?.host) &&
+      Boolean(input?.port) &&
+      Boolean(input?.username) &&
+      Boolean(input?.password) &&
+      Boolean(input?.senderName) &&
+      Boolean(input?.senderEmail);
+
+    const config = hasCompleteInput
       ? {
-          host: input.host,
-          port: input.port,
-          username: input.username,
-          password: input.password,
-          senderName: input.senderName,
-          senderEmail: input.senderEmail,
+          host: input!.host as string,
+          port: input!.port as number,
+          username: input!.username as string,
+          password: input!.password as string,
+          senderName: input!.senderName as string,
+          senderEmail: input!.senderEmail as string,
         }
       : await this.resolveSmtpConfig(workspaceId ?? null);
 

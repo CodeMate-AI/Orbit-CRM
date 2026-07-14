@@ -74,6 +74,23 @@ export interface CreateOpportunityInput {
   companyId?: string | null;
 }
 
+export type WorkspaceMemberRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
+export interface WorkspaceMemberRow {
+  id: string;
+  role: WorkspaceMemberRole;
+  userId: string;
+  user: { name: string | null; email: string };
+}
+
+export interface InvitationRow {
+  id: string;
+  email: string;
+  role: WorkspaceMemberRole;
+  token: string;
+  expiresAt: string;
+}
+
 export const opportunitiesApi = {
   list: (workspaceId: string): Promise<OpportunitiesListResponse> =>
     request(`/opportunities?workspaceId=${encodeURIComponent(workspaceId)}`),

@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsNotEmpty, IsString, Max, Min } from "class-validator";
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
 
 export class UpsertSmtpConfigDto {
   @IsString()
@@ -15,8 +15,8 @@ export class UpsertSmtpConfigDto {
   username!: string;
 
   @IsString()
-  @IsNotEmpty()
-  password!: string;
+  @IsOptional()
+  password?: string;
 
   @IsString()
   @IsNotEmpty()

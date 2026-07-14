@@ -5,7 +5,11 @@ import { InviteMemberDto } from "./dto/invite-member.dto";
 import { EmailService } from "../settings/email.service";
 import * as crypto from "crypto";
 
-const prisma = new PrismaClient();
+let prisma = new PrismaClient();
+
+export function setWorkspacesPrisma(client: PrismaClient) {
+  prisma = client;
+}
 
 const PUBLIC_DOMAINS = new Set([
   "gmail.com",
@@ -23,6 +27,8 @@ const PUBLIC_DOMAINS = new Set([
   "proton.me"
 ]);
 
+const PRIVILEGED_ROLES = new Set<MemberRole>([MemberRole.OWNER, MemberRole.ADMIN]);
+
 @Injectable()
 export class WorkspacesService {
   constructor(private readonly emailService: EmailService) {}
@@ -35,12 +41,106 @@ export class WorkspacesService {
     return PUBLIC_DOMAINS.has(domain) ? null : domain;
   }
 
+  private async requirePrivilegedMembership(userId: string, workspaceId: string) {
+    const member = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: { userId, workspaceId },
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException("Workspace membership not found.");
+    }
+
+    if (!PRIVILEGED_ROLES.has(member.role as MemberRole)) {
+      throw new ForbiddenException("Only workspace owners or admins can manage members and invitations.");
+    }
+
+    return member;
+  }
+
   async getUserWorkspaces(userId: string) {
     return await prisma.workspaceMember.findMany({
       where: { userId },
       include: {
         workspace: true,
       },
+    });
+  }
+
+  async getMembers(userId: string, workspaceId: string) {
+    await this.requirePrivilegedMembership(userId, workspaceId);
+
+    return prisma.workspaceMember.findMany({
+      where: { workspaceId },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: "asc",
+      },
+    });
+  }
+
+  async updateMemberRole(userId: string, workspaceId: string, memberId: string, role: MemberRole) {
+    const actor = await this.requirePrivilegedMembership(userId, workspaceId);
+
+    const target = await prisma.workspaceMember.findUnique({
+      where: { id: memberId },
+    });
+
+    if (!target || target.workspaceId !== workspaceId) {
+      throw new NotFoundException("Workspace member not found.");
+    }
+
+    if (target.role === MemberRole.OWNER) {
+      throw new ForbiddenException("Workspace owners cannot be re-assigned from this endpoint.");
+    }
+
+    if (actor.role !== MemberRole.OWNER && role === MemberRole.OWNER) {
+      throw new ForbiddenException("Only workspace owners can assign owner role.");
+    }
+
+    if (target.id === actor.id && actor.role === MemberRole.ADMIN && role === MemberRole.VIEWER) {
+      throw new ForbiddenException("Admins cannot demote themselves to viewer.");
+    }
+
+    return prisma.workspaceMember.update({
+      where: { id: memberId },
+      data: { role },
+    });
+  }
+
+  async removeMember(userId: string, workspaceId: string, memberId: string) {
+    const actor = await this.requirePrivilegedMembership(userId, workspaceId);
+
+    const target = await prisma.workspaceMember.findUnique({
+      where: { id: memberId },
+    });
+
+    if (!target || target.workspaceId !== workspaceId) {
+      throw new NotFoundException("Workspace member not found.");
+    }
+
+    if (target.role === MemberRole.OWNER) {
+      throw new ForbiddenException("Workspace owners cannot be removed.");
+    }
+
+    if (actor.id === target.id) {
+      throw new ForbiddenException("Members cannot remove themselves from this endpoint.");
+    }
+
+    return prisma.workspaceMember.delete({
+      where: { id: memberId },
     });
   }
 
@@ -199,16 +299,7 @@ export class WorkspacesService {
   }
 
   async inviteMember(userId: string, workspaceId: string, dto: InviteMemberDto) {
-    // Check permission: only OWNER or ADMIN can invite
-    const inviter = await prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: { userId, workspaceId },
-      },
-    });
-
-    if (!inviter || (inviter.role !== MemberRole.OWNER && inviter.role !== MemberRole.ADMIN)) {
-      throw new ForbiddenException("Only workspace owners or admins can invite members.");
-    }
+    const inviter = await this.requirePrivilegedMembership(userId, workspaceId);
 
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -284,6 +375,31 @@ export class WorkspacesService {
     }
 
     return invitation;
+  }
+
+  async getInvitations(userId: string, workspaceId: string) {
+    await this.requirePrivilegedMembership(userId, workspaceId);
+
+    return prisma.invitation.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async revokeInvitation(userId: string, workspaceId: string, inviteId: string) {
+    await this.requirePrivilegedMembership(userId, workspaceId);
+
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: inviteId },
+    });
+
+    if (!invitation || invitation.workspaceId !== workspaceId) {
+      throw new NotFoundException("Invitation not found.");
+    }
+
+    return prisma.invitation.delete({
+      where: { id: inviteId },
+    });
   }
 
   async acceptInvitation(userId: string, userEmail: string, token: string) {

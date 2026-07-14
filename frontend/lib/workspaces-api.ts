@@ -21,13 +21,42 @@ async function request(path: string, options: RequestInit = {}) {
   if (!text || text === "null") return null;
   try {
     return JSON.parse(text);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
+export type WorkspaceMemberRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
+export interface WorkspaceMembershipRow {
+  id: string;
+  role: WorkspaceMemberRole;
+  workspaceId: string;
+  workspace: {
+    id: string;
+    name: string;
+    logo: string | null;
+    domain: string | null;
+  };
+}
+
+export interface WorkspaceMemberRow {
+  id: string;
+  role: WorkspaceMemberRole;
+  userId: string;
+  user: { name: string | null; email: string };
+}
+
+export interface InvitationRow {
+  id: string;
+  email: string;
+  role: WorkspaceMemberRole;
+  token: string;
+  expiresAt: string;
+}
+
 export const workspacesApi = {
-  listMine: () =>
+  listMine: (): Promise<WorkspaceMembershipRow[]> =>
     request("/workspaces/mine", {
       method: "GET",
     }),
@@ -41,6 +70,38 @@ export const workspacesApi = {
   discover: () =>
     request("/workspaces/discover", {
       method: "GET",
+    }),
+
+  listMembers: (id: string): Promise<WorkspaceMemberRow[]> =>
+    request(`/workspaces/${id}/members`, {
+      method: "GET",
+    }),
+
+  updateMemberRole: (workspaceId: string, memberId: string, role: WorkspaceMemberRole): Promise<WorkspaceMemberRow> =>
+    request(`/workspaces/${workspaceId}/members/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+
+  kickMember: (workspaceId: string, memberId: string): Promise<{ success: boolean }> =>
+    request(`/workspaces/${workspaceId}/members/${memberId}`, {
+      method: "DELETE",
+    }),
+
+  listInvitations: (id: string): Promise<InvitationRow[]> =>
+    request(`/workspaces/${id}/invitations`, {
+      method: "GET",
+    }),
+
+  inviteMember: (id: string, email: string, role: WorkspaceMemberRole = "MEMBER") =>
+    request(`/workspaces/${id}/invitations`, {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    }),
+
+  revokeInvitation: (workspaceId: string, inviteId: string): Promise<{ success: boolean }> =>
+    request(`/workspaces/${workspaceId}/invitations/${inviteId}`, {
+      method: "DELETE",
     }),
 
   requestJoin: (workspaceId: string) =>

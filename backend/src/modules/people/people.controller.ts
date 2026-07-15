@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from "@nestjs/common";
+import { Response } from "express";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/user.decorator";
 import { PeopleService } from "./people.service";
@@ -15,6 +16,19 @@ export class PeopleController {
   @Get()
   list(@CurrentUser() user: any, @Query("workspaceId") workspaceId: string) {
     return this.peopleService.listByWorkspace(user.id, workspaceId);
+  }
+
+  @Get("export")
+  async exportCsv(
+    @CurrentUser() user: any,
+    @Query("workspaceId") workspaceId: string,
+    @Res() res: Response,
+  ) {
+    const csv = await this.peopleService.exportCsv(user.id, workspaceId);
+    const filename = `contacts-${new Date().toISOString().split("T")[0]}.csv`;
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 
   @Get(":id")

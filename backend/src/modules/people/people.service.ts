@@ -16,6 +16,44 @@ export function setPeoplePrisma(client: PrismaClient) {
   prisma = client;
 }
 
+type CsvImportRow = Record<string, string>;
+
+type CsvImportResult = {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  jobId?: string;
+};
+
+const CSV_HEADERS = [
+  "Name",
+  "First Name",
+  "Last Name",
+  "Email",
+  "Phone",
+  "Job Title",
+  "Company",
+  "Lead Source",
+  "Industry",
+  "Tags",
+  "Created At",
+];
+
+const CSV_COLUMNS = [
+  "Name",
+  "First Name",
+  "Last Name",
+  "Email",
+  "Phone",
+  "Job Title",
+  "Company",
+  "Lead Source",
+  "Industry",
+  "Tags",
+  "Created At",
+];
+
 @Injectable()
 export class PeopleService {
   constructor(
@@ -32,6 +70,81 @@ export class PeopleService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+  }
+
+  private normalizeEmail(value?: string | null) {
+    const email = value?.trim().toLowerCase() ?? "";
+    return email || null;
+  }
+
+  private normalizeValue(value?: string | null) {
+    const next = value?.trim() ?? "";
+    return next || null;
+  }
+
+  private buildCsvLine(values: Array<string | null | undefined>) {
+    return values
+      .map((value) => {
+        const text = value ?? "";
+        if (/[",\n]/.test(text)) {
+          return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+      })
+      .join(",");
+  }
+
+  private validateImportRow(row: CsvImportRow, rowNumber: number) {
+    const firstName = this.normalizeValue(row["First Name"]);
+    const lastName = this.normalizeValue(row["Last Name"]);
+    const email = this.normalizeEmail(row.Email);
+
+    if (!firstName && !lastName && !email) {
+      return { ok: false, error: `Row ${rowNumber}: Missing first name, last name, and email.` };
+    }
+
+    if (!firstName && !lastName) {
+      if (!email) {
+        return { ok: false, error: `Row ${rowNumber}: Missing first name, last name, or email.` };
+      }
+      return { ok: true as const };
+    }
+
+    if (email && !email.includes("@")) {
+      return { ok: false, error: `Row ${rowNumber}: Invalid email format.` };
+    }
+
+    return { ok: true as const };
+  }
+
+  private async exportCurrentContacts(workspaceId: string) {
+    const people = await prisma.person.findMany({
+      where: { workspaceId, deletedAt: null },
+      include: { company: { select: { name: true } } },
+      orderBy: [{ createdAt: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+    });
+
+    const lines = [CSV_COLUMNS.join(",")];
+    for (const person of people) {
+      const name = `${person.firstName} ${person.lastName}`.trim();
+      lines.push(
+        this.buildCsvLine([
+          name,
+          person.firstName,
+          person.lastName,
+          person.email,
+          person.phone,
+          person.jobTitle,
+          person.company?.name ?? null,
+          person.leadSource,
+          person.industry,
+          person.tagsString,
+          person.createdAt.toISOString(),
+        ]),
+      );
+    }
+
+    return lines.join("\n");
   }
 
   async listByWorkspace(userId: string, workspaceId: string) {
@@ -113,6 +226,50 @@ export class PeopleService {
       tagsString: person.tagsString,
       companyId: person.companyId,
       createdAt: person.createdAt,
+    };
+  }
+
+  async exportCsv(userId: string, workspaceId: string): Promise<string> {
+    await this.assertMembership(userId, workspaceId);
+    return this.exportCurrentContacts(workspaceId);
+  }
+
+  async importCsv(
+    userId: string,
+    workspaceId: string,
+    rows: CsvImportRow[],
+    dryRun: boolean,
+  ): Promise<CsvImportResult> {
+    await this.assertMembership(userId, workspaceId);
+
+    const errors: string[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    if (dryRun) {
+      rows.forEach((row, index) => {
+        const validation = this.validateImportRow(row, index + 2);
+        if (!validation.ok) {
+          errors.push(validation.error);
+        }
+      });
+
+      return { created: 0, updated: 0, skipped: 0, errors };
+    }
+
+    const job = await this.importQueue.add("import-job", {
+      rows,
+      workspaceId,
+      userId,
+    });
+
+    return {
+      created,
+      updated,
+      skipped,
+      errors,
+      jobId: `${job.id ?? "queued"}`,
     };
   }
 

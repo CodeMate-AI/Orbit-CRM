@@ -547,31 +547,6 @@ model TagAssignment {
   @@unique([tagId, opportunityId])
 }
 
-// ─── Views ───
-model View {
-  id          String       @id @default(cuid())
-  name        String
-  entityType  EntityType
-  type        ViewType     @default(TABLE)
-  filters     Json?
-  sorts       Json?
-  fieldConfig Json?
-  groupBy     String?
-  isDefault   Boolean      @default(false)
-  isShared    Boolean      @default(false)
-  position    Int          @default(0)
-
-  workspaceId String
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id])
-  createdById String?
-  createdBy   User?        @relation(fields: [createdById], references: [id])
-}
-
-enum ViewType {
-  TABLE
-  KANBAN
-}
-
 // ─── Workflows ───
 model Workflow {
   id          String        @id @default(cuid())
@@ -669,4 +644,28 @@ model Invitation {
   workspaceId String
   workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
+}
+
+model View {
+  id          String     @id @default(cuid())
+  name        String
+  entityType  EntityType
+  type        ViewType   @default(TABLE)
+  filters     Json?
+  sorts       Json?
+  isDefault   Boolean    @default(false)
+  position    Int        @default(0)
+  createdAt   DateTime   @default(now())
+
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?      @relation(fields: [createdById], references: [id])
+
+  @@index([workspaceId, entityType])
+}
+
+enum ViewType {
+  TABLE
+  KANBAN
 }

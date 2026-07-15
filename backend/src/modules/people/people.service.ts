@@ -8,6 +8,7 @@ import { DryRunImportDto } from "./dto/dry-run-import.dto";
 import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
 import { EventsService } from "../events/events.service";
+import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
 let prisma = new PrismaClient();
 
@@ -20,6 +21,7 @@ export class PeopleService {
   constructor(
     @InjectQueue("people-import") private readonly importQueue: Queue,
     private readonly eventsService: EventsService,
+    private readonly workflowTriggerService: WorkflowTriggerService,
   ) {}
 
   /** Verify user is a member of the workspace */
@@ -80,6 +82,12 @@ export class PeopleService {
     });
 
     this.eventsService.emitToWorkspace(dto.workspaceId, "person.created", { id: person.id });
+    await this.workflowTriggerService.trigger(dto.workspaceId, "contact_created", {
+      id: person.id,
+      name: `${person.firstName} ${person.lastName}`,
+      email: person.email,
+      companyId: person.companyId,
+    });
 
     return {
       id: person.id,
@@ -174,6 +182,12 @@ export class PeopleService {
     });
 
     this.eventsService.emitToWorkspace(person.workspaceId, "person.updated", { id: updated.id });
+    await this.workflowTriggerService.trigger(person.workspaceId, "contact_updated", {
+      id: updated.id,
+      name: `${updated.firstName} ${updated.lastName}`,
+      email: updated.email,
+      companyId: updated.companyId,
+    });
 
     return {
       id: updated.id,

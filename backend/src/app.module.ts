@@ -17,6 +17,7 @@ import { SettingsModule } from "./modules/settings/settings.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { HealthController } from "./modules/health/health.controller";
 
 @Module({
@@ -35,6 +36,7 @@ import { HealthController } from "./modules/health/health.controller";
     EventsModule,
     CustomFieldsModule,
     NotesModule,
+    NotificationsModule,
     OpportunitiesModule,
     PeopleModule,
     SearchModule,

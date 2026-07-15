@@ -11,6 +11,7 @@
     "@base-ui/react": "^1.5.0",
     "@tiptap/react": "^3.27.4",
     "@tiptap/starter-kit": "^3.27.4",
+    "@xyflow/react": "^12.9.1",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

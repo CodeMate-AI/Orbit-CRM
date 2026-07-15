@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: orbit-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: orbit_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orbit_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: orbit-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orbit-backend
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgrespassword@db:5432/orbit_crm?schema=public
+      - REDIS_URL=redis://redis:6379
+      - WORKFLOW_QUEUE_NAME=workflow-jobs
+      - BETTER_AUTH_SECRET=please-replace-this-with-a-very-long-random-string-in-production
+      - BETTER_AUTH_URL=http://localhost:4000/api/auth
+      # If AWS S3 is not provided, backend will fall back or error, user can configure these
+      - AWS_REGION=ap-southeast-2
+      - AWS_ACCESS_KEY_ID=placeholder_key
+      - AWS_SECRET_ACCESS_KEY=placeholder_secret
+      - AWS_BUCKET_NAME=orbit-crm-bucket
+      # Optional: AI Keys
+      - OPENROUTER_API_KEY=
+      - OPENROUTER_MODEL=openrouter/free
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4000/api
+    container_name: orbit-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

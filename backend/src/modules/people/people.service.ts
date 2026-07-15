@@ -81,6 +81,17 @@ export class PeopleService {
       },
     });
 
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_CREATED",
+        title: "Contact created",
+        body: `${person.firstName} ${person.lastName} was created.`,
+        workspaceId: dto.workspaceId,
+        authorId: userId,
+        personId: person.id,
+      },
+    });
+
     this.eventsService.emitToWorkspace(dto.workspaceId, "person.created", { id: person.id });
     await this.workflowTriggerService.trigger(dto.workspaceId, "contact_created", {
       id: person.id,
@@ -146,6 +157,35 @@ export class PeopleService {
     return { jobId: job.id };
   }
 
+  async findOne(userId: string, personId: string) {
+    const person = await prisma.person.findUnique({
+      where: { id: personId },
+      include: { company: { select: { id: true, name: true } } },
+    });
+
+    if (!person || person.deletedAt) {
+      throw new NotFoundException("Contact not found.");
+    }
+
+    await this.assertMembership(userId, person.workspaceId);
+
+    return {
+      id: person.id,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      name: `${person.firstName} ${person.lastName}`,
+      email: person.email,
+      phone: person.phone,
+      jobTitle: person.jobTitle,
+      leadSource: person.leadSource,
+      industry: person.industry,
+      tagsString: person.tagsString,
+      company: person.company?.name ?? null,
+      companyId: person.companyId,
+      createdAt: person.createdAt,
+    };
+  }
+
   async update(userId: string, personId: string, dto: UpdatePersonDto) {
     const person = await prisma.person.findUnique({
       where: { id: personId },
@@ -179,6 +219,17 @@ export class PeopleService {
         companyId: dto.companyId === "" ? null : dto.companyId !== undefined ? dto.companyId : person.companyId,
       },
       include: { company: { select: { id: true, name: true } } },
+    });
+
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_UPDATED",
+        title: "Contact updated",
+        body: `${updated.firstName} ${updated.lastName} was updated.`,
+        workspaceId: person.workspaceId,
+        authorId: userId,
+        personId: updated.id,
+      },
     });
 
     this.eventsService.emitToWorkspace(person.workspaceId, "person.updated", { id: updated.id });

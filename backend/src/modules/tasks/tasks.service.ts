@@ -5,7 +5,11 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 import { EventsService } from "../events/events.service";
 import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
-const prisma = new PrismaClient();
+let prisma = new PrismaClient();
+
+export function setTasksPrisma(client: PrismaClient) {
+  prisma = client;
+}
 
 @Injectable()
 export class TasksService {
@@ -157,6 +161,19 @@ export class TasksService {
       },
     });
 
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_CREATED",
+        title: "Task created",
+        body: `${task.title} was created.`,
+        workspaceId: dto.workspaceId,
+        authorId: userId,
+        ...(task.personId ? { personId: task.personId } : {}),
+        ...(task.companyId ? { companyId: task.companyId } : {}),
+        ...(task.opportunityId ? { opportunityId: task.opportunityId } : {}),
+      },
+    });
+
     this.eventsService.emitToWorkspace(dto.workspaceId, "task.created", { id: task.id });
     await this.workflowTriggerService.trigger(dto.workspaceId, "task_created", {
       id: task.id,
@@ -186,6 +203,8 @@ export class TasksService {
     });
 
     const nextStatus = dto.status ?? task.status;
+    const wasCompleted = task.status === TaskStatus.DONE;
+    const willBeCompleted = nextStatus === TaskStatus.DONE;
 
     const updated = await prisma.task.update({
       where: { id: taskId },
@@ -213,6 +232,34 @@ export class TasksService {
         opportunity: { select: { id: true, name: true } },
       },
     });
+
+    if (!wasCompleted && willBeCompleted) {
+      await prisma.activity.create({
+        data: {
+          type: "TASK_COMPLETED",
+          title: "Task completed",
+          body: `${updated.title} was completed.`,
+          workspaceId: task.workspaceId,
+          authorId: userId,
+          ...(updated.personId ? { personId: updated.personId } : {}),
+          ...(updated.companyId ? { companyId: updated.companyId } : {}),
+          ...(updated.opportunityId ? { opportunityId: updated.opportunityId } : {}),
+        },
+      });
+    } else {
+      await prisma.activity.create({
+        data: {
+          type: "RECORD_UPDATED",
+          title: "Task updated",
+          body: `${updated.title} was updated.`,
+          workspaceId: task.workspaceId,
+          authorId: userId,
+          ...(updated.personId ? { personId: updated.personId } : {}),
+          ...(updated.companyId ? { companyId: updated.companyId } : {}),
+          ...(updated.opportunityId ? { opportunityId: updated.opportunityId } : {}),
+        },
+      });
+    }
 
     this.eventsService.emitToWorkspace(task.workspaceId, "task.updated", { id: updated.id });
     await this.workflowTriggerService.trigger(task.workspaceId, "task_completed", {

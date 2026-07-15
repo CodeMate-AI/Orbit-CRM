@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarClock,
@@ -14,7 +15,7 @@ import {
   X,
   ChevronDown,
   LayoutGrid,
-} from "lucide-react";
+} from "lucide-react"
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import AttachmentList from "@/components/AttachmentList";
 import NotesTimeline from "@/components/NotesTimeline";
@@ -686,6 +687,7 @@ function DealDetailDrawer({
 }
 
 function DealsContent() {
+  const router = useRouter();
   const { workspaceId } = useWorkspace();
   const [stages, setStages] = useState<StageColumn[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -938,7 +940,7 @@ function DealsContent() {
                     <article
                       key={deal.id}
                       className="group relative cursor-pointer rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm transition-colors hover:border-orbit-primary"
-                      onClick={() => setSelectedDealId(deal.id)}
+                      onClick={() => router.push(`/deals/${deal.id}`)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-sm font-medium leading-snug text-text-primary">{deal.name}</h3>
@@ -1013,15 +1015,6 @@ function DealsContent() {
         />
       )}
 
-      <DealDetailDrawer
-        dealId={selectedDealId}
-        open={Boolean(selectedDealId)}
-        stages={stages}
-        companies={companies}
-        contacts={contacts}
-        onClose={() => setSelectedDealId(null)}
-        onDealUpdated={handleDealUpdatedFromDrawer}
-      />
     </div>
   );
 }

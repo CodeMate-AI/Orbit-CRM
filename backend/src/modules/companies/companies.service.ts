@@ -117,6 +117,17 @@ export class CompaniesService {
       },
     });
 
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_CREATED",
+        title: "Company created",
+        body: `${company.name} was created.`,
+        workspaceId: dto.workspaceId,
+        authorId: userId,
+        companyId: company.id,
+      },
+    });
+
     this.eventsService.emitToWorkspace(dto.workspaceId, "company.created", { id: company.id });
     await this.workflowTriggerService.trigger(dto.workspaceId, "company_created", {
       id: company.id,
@@ -157,6 +168,17 @@ export class CompaniesService {
         employeeCount: dto.employeeCount !== undefined ? dto.employeeCount : company.employeeCount,
         annualRevenue: dto.annualRevenue !== undefined ? dto.annualRevenue : company.annualRevenue,
         linkedInUrl: dto.linkedInUrl !== undefined ? dto.linkedInUrl : company.linkedInUrl,
+      },
+    });
+
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_UPDATED",
+        title: "Company updated",
+        body: `${updated.name} was updated.`,
+        workspaceId: company.workspaceId,
+        authorId: userId,
+        companyId: updated.id,
       },
     });
 

@@ -1,0 +1,248 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import NoteEditor from "@/components/NoteEditor";
+import { activitiesApi, ActivityRow } from "@/lib/activities-api";
+import { companiesApi, CompanyDetailRow } from "@/lib/companies-api";
+import { notesApi, NoteRow } from "@/lib/notes-api";
+import { peopleApi, PersonRow } from "@/lib/people-api";
+import { tasksApi, TaskRow } from "@/lib/tasks-api";
+import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
+import { tagsApi, TagRow } from "@/lib/tags-api";
+import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
+import { toast } from "sonner";
+import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Tag as TagIcon, Trash2, Users } from "lucide-react";
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function getInitials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+function ActivityIcon({ type }: { type: ActivityRow["type"] }) {
+  if (type === "TASK_COMPLETED") return <CheckSquare className="h-4 w-4" />;
+  return <Building2 className="h-4 w-4" />;
+}
+
+function CompanyCustomFieldEditor({ field, saving, onSave }: { field: CustomFieldDefinitionRow; saving: boolean; onSave: (value: string) => void }) {
+  const [value, setValue] = useState(String(field.value ?? ""));
+  useEffect(() => setValue(String(field.value ?? "")), [field.value]);
+  return (
+    <div className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
+      <div className="mb-2 text-sm font-medium text-text-primary">{field.label}</div>
+      <div className="flex gap-2">
+        <input className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onSave(value)} />
+        <button type="button" className="btn-primary h-10 justify-center px-3 text-xs" disabled={saving} onClick={() => onSave(value)}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button>
+      </div>
+    </div>
+  );
+}
+
+function CompanyDetailPage() {
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const companyId = params.id;
+  const { workspaceId } = useWorkspace();
+
+  const [company, setCompany] = useState<CompanyDetailRow | null>(null);
+  const [people, setPeople] = useState<PersonRow[]>([]);
+  const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [assignedTags, setAssignedTags] = useState<TagRow[]>([]);
+  const [customFields, setCustomFields] = useState<CustomFieldDefinitionRow[]>([]);
+  const [newNoteBody, setNewNoteBody] = useState<any>(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
+  const [newTagId, setNewTagId] = useState("");
+  const [tagName, setTagName] = useState("");
+  const [tagColor, setTagColor] = useState("#6366f1");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const relatedTasks = useMemo(() => tasks.filter((task) => task.companyId === company?.id), [tasks, company]);
+  const recentPeople = useMemo(() => people.slice(0, 5), [people]);
+
+  useEffect(() => {
+    if (!workspaceId || !companyId) return;
+    setLoading(true);
+    setError("");
+    Promise.all([
+      companiesApi.get(companyId),
+      peopleApi.list(workspaceId),
+      activitiesApi.listForEntity(workspaceId, "company", companyId),
+      notesApi.list(workspaceId, "company", companyId),
+      tasksApi.list(workspaceId),
+      attachmentsApi.list(workspaceId, "company", companyId),
+      tagsApi.list(workspaceId),
+      tagsApi.listForEntity(workspaceId, "company", companyId),
+      customFieldValuesApi.get(workspaceId, "COMPANY", companyId),
+    ])
+      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows, tagRows, assignedRows, fieldRows]) => {
+        setCompany(detail);
+        setPeople(peopleResponse.data.filter((person) => person.companyId === detail.id));
+        setActivities(timeline);
+        setNotes(noteRows);
+        setTasks(taskRows);
+        setAttachments(fileRows);
+        setTags(tagRows);
+        setAssignedTags(assignedRows);
+        setCustomFields(fieldRows);
+      })
+      .catch((err) => setError(err.message || "Failed to load company."))
+      .finally(() => setLoading(false));
+  }, [workspaceId, companyId]);
+
+  const handleSaveNote = async () => {
+    if (!workspaceId || !company) return;
+    if (!newNoteBody?.content || newNoteBody.content.length === 0) {
+      toast.error("Note content cannot be empty.");
+      return;
+    }
+    setSavingNote(true);
+    try {
+      const created = await notesApi.create({ workspaceId, companyId: company.id, body: newNoteBody });
+      setNotes((current) => [created, ...current]);
+      setNewNoteBody(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save note.");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleSaveField = async (field: CustomFieldDefinitionRow, value: string) => {
+    if (!workspaceId || !company) return;
+    setSavingFieldId(field.id);
+    try {
+      const updated = await customFieldValuesApi.upsert(workspaceId, { fieldId: field.id, entityType: "COMPANY", entityId: company.id, value: value.trim() });
+      setCustomFields((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save custom field.");
+    } finally {
+      setSavingFieldId(null);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!workspaceId || !tagName.trim()) return;
+    try {
+      const created = await tagsApi.create(workspaceId, { name: tagName.trim(), color: tagColor });
+      setTags((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setTagName("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create tag.");
+    }
+  };
+
+  const handleAssignTag = async () => {
+    if (!workspaceId || !company || !newTagId) return;
+    try {
+      await tagsApi.assign(workspaceId, { entityType: "company", entityId: company.id, tagId: newTagId });
+      const tag = tags.find((entry) => entry.id === newTagId);
+      if (tag && !assignedTags.some((entry) => entry.id === tag.id)) setAssignedTags((current) => [...current, tag].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewTagId("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to assign tag.");
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!workspaceId || !company) return;
+    try {
+      await tagsApi.remove(workspaceId, { entityType: "company", entityId: company.id, tagId });
+      setAssignedTags((current) => current.filter((entry) => entry.id !== tagId));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove tag.");
+    }
+  };
+
+  if (loading) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10"><Loader2 className="h-5 w-5 animate-spin" /> Loading company…</div>;
+  if (error || !company) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10"><p>{error || "Company not found."}</p><button className="btn-primary" onClick={() => router.push("/companies")}>Back to companies</button></div>;
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="flex items-center justify-between gap-3">
+        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary" onClick={() => router.push("/companies")}><ArrowLeft className="h-4 w-4" /> Back</button>
+        <div className="text-right"><p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Company detail</p><h1 className="text-2xl font-semibold text-text-primary">{company.name}</h1></div>
+      </div>
+
+      <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
+        <aside className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orbit-primary/15 text-xl font-semibold text-orbit-primary">{getInitials(company.name)}</div>
+            <div>
+              <h2 className="text-xl font-semibold text-text-primary">{company.name}</h2>
+              <p className="mt-1 text-sm text-text-secondary">{company.industry || "No industry"}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-text-secondary">
+                {company.domain && <span className="rounded-full bg-bg-tertiary px-3 py-1">{company.domain}</span>}
+                {company.city && <span className="rounded-full bg-bg-tertiary px-3 py-1">{company.city}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3 text-sm text-text-secondary">
+            <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {company.domain || "No domain"}</div>
+            <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {company.address || "No address"}</div>
+            <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(company.createdAt)}</div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary"><TagIcon className="h-4 w-4" /> Tags</div>
+            <div className="flex flex-wrap gap-2">
+              {assignedTags.length === 0 ? <span className="text-sm text-text-tertiary">No tags</span> : assignedTags.map((tag) => <span key={tag.id} className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: tag.color }}><button type="button" onClick={() => handleRemoveTag(tag.id)}><Trash2 className="h-3 w-3" /></button>{tag.name}</span>)}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
+              <select className="rounded-xl border border-border-subtle bg-bg-tertiary px-3 py-2 text-sm" value={newTagId} onChange={(e) => setNewTagId(e.target.value)}>
+                <option value="">Assign tag</option>
+                {tags.filter((tag) => !assignedTags.some((entry) => entry.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+              </select>
+              <button className="btn-primary h-10 justify-center text-xs" onClick={handleAssignTag} disabled={!newTagId}>Add</button>
+            </div>
+            <div className="space-y-2 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
+              <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Create tag</div>
+              <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="High Value" />
+              <div className="flex gap-2"><input type="color" className="h-10 w-12 rounded-xl border border-border-subtle bg-bg-secondary p-1" value={tagColor} onChange={(e) => setTagColor(e.target.value)} /><button className="btn-primary flex-1 justify-center text-xs" onClick={handleCreateTag}>Create</button></div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Custom fields</div>
+            {customFields.length === 0 ? <p className="text-sm text-text-tertiary">No custom fields configured.</p> : customFields.map((field) => <CompanyCustomFieldEditor key={field.id} field={field} saving={savingFieldId === field.id} onSave={(value) => handleSaveField(field, value)} />)}
+          </div>
+        </aside>
+
+        <main className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
+          <section>
+            <div className="mb-4 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Activity timeline</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{activities.length} events</span></div>
+            <div className="space-y-3">{activities.length === 0 ? <div className="rounded-2xl border border-dashed border-border-subtle py-10 text-center text-sm text-text-tertiary">No activity yet.</div> : activities.map((activity) => <article key={activity.id} className="flex gap-4 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4"><div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orbit-primary/15 text-orbit-primary"><ActivityIcon type={activity.type} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-medium text-text-primary">{activity.title}</h4><span className="text-xs text-text-tertiary">{formatDateTime(activity.occurredAt)}</span></div>{activity.body && <p className="mt-2 text-sm leading-6 text-text-secondary">{activity.body}</p>}</div></article>)}</div>
+          </section>
+
+          <section className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Add note</div>
+            <NoteEditor value={newNoteBody} onChange={setNewNoteBody} />
+            <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 px-4 text-xs" disabled={savingNote} onClick={handleSaveNote}>{savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save note"}</button></div>
+          </section>
+        </main>
+
+        <aside className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
+          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Contacts</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{recentPeople.length}</span></div><div className="space-y-2">{recentPeople.length === 0 ? <p className="text-sm text-text-tertiary">No contacts linked.</p> : recentPeople.map((person) => <button key={person.id} type="button" className="w-full rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-left text-sm transition hover:border-orbit-primary" onClick={() => router.push(`/contacts/${person.id}`)}><p className="font-medium text-text-primary">{person.name}</p><p className="mt-1 text-xs text-text-tertiary">{person.jobTitle || "No title"}</p></button>)}</div></div>
+
+          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Tasks</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{relatedTasks.length}</span></div><div className="space-y-2">{relatedTasks.length === 0 ? <p className="text-sm text-text-tertiary">No tasks linked.</p> : relatedTasks.slice(0, 5).map((task) => <div key={task.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{task.title}</p><p className="mt-1 text-xs text-text-tertiary">{task.status}</p></div>)}</div></div>
+
+          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Files</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{attachments.length}</span></div><div className="space-y-2">{attachments.length === 0 ? <p className="text-sm text-text-tertiary">No files uploaded.</p> : attachments.slice(0, 5).map((file) => <div key={file.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{file.name}</p><p className="mt-1 text-xs text-text-tertiary">{file.mimeType}</p></div>)}</div></div>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+export default function CompanyDetailRoute() {
+  return <AppLayout pageTitle="Company detail"><CompanyDetailPage /></AppLayout>;
+}

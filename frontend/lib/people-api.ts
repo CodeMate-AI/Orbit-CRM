@@ -60,6 +60,8 @@ export const peopleApi = {
   list: (workspaceId: string): Promise<PeopleListResponse> =>
     request(`/people?workspaceId=${encodeURIComponent(workspaceId)}`),
 
+  get: (id: string): Promise<PersonRow> => request(`/people/${id}`),
+
   create: (workspaceId: string, data: CreatePersonInput): Promise<PersonRow> =>
     request("/people", {
       method: "POST",

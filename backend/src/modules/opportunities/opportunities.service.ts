@@ -141,6 +141,17 @@ export class OpportunitiesService {
       include: { stage: true },
     });
 
+    await prisma.activity.create({
+      data: {
+        type: "RECORD_CREATED",
+        title: "Deal created",
+        body: `${opp.name} was created.`,
+        workspaceId: dto.workspaceId,
+        authorId: userId,
+        opportunityId: opp.id,
+      },
+    });
+
     this.eventsService.emitToWorkspace(dto.workspaceId, "opportunity.created", { id: opp.id });
     await this.workflowTriggerService.trigger(dto.workspaceId, "deal_created", {
       id: opp.id,
@@ -165,6 +176,7 @@ export class OpportunitiesService {
     if (!opp) throw new NotFoundException("Opportunity not found.");
     await this.assertMembership(userId, opp.workspaceId);
 
+    const previousStageId = opp.stageId;
     const updated = await prisma.opportunity.update({
       where: { id: oppId },
       data: {
@@ -177,6 +189,31 @@ export class OpportunitiesService {
       },
       include: { stage: true },
     });
+
+    if (dto.stageId && dto.stageId !== previousStageId) {
+      await prisma.activity.create({
+        data: {
+          type: "DEAL_STAGE_CHANGED",
+          title: "Deal stage changed",
+          body: `${updated.name} moved to ${updated.stage.name}.`,
+          workspaceId: opp.workspaceId,
+          authorId: userId,
+          opportunityId: updated.id,
+          metadata: { fromStageId: previousStageId, toStageId: updated.stageId },
+        },
+      });
+    } else {
+      await prisma.activity.create({
+        data: {
+          type: "RECORD_UPDATED",
+          title: "Deal updated",
+          body: `${updated.name} was updated.`,
+          workspaceId: opp.workspaceId,
+          authorId: userId,
+          opportunityId: updated.id,
+        },
+      });
+    }
 
     this.eventsService.emitToWorkspace(opp.workspaceId, "opportunity.updated", { id: updated.id });
     await this.workflowTriggerService.trigger(opp.workspaceId, "deal_updated", {

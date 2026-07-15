@@ -17,6 +17,11 @@ export class PeopleController {
     return this.peopleService.listByWorkspace(user.id, workspaceId);
   }
 
+  @Get(":id")
+  findOne(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.peopleService.findOne(user.id, id);
+  }
+
   @Post()
   create(@CurrentUser() user: any, @Body() dto: CreatePersonDto) {
     return this.peopleService.create(user.id, dto);

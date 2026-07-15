@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
@@ -913,6 +914,7 @@ function CompanyDetailDrawer({
 }
 
 function CompaniesContent() {
+  const router = useRouter();
   const { workspaceId } = useWorkspace();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [contacts, setContacts] = useState<PersonRow[]>([]);
@@ -924,7 +926,6 @@ function CompaniesContent() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: "name", direction: "asc" });
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -942,8 +943,6 @@ function CompaniesContent() {
     setError("");
     Promise.all([companiesApi.list(workspaceId), peopleApi.list(workspaceId)])
       .then(([companyRows, peopleResponse]) => {
-        console.log("CompaniesContent debug - companyRows:", companyRows);
-        console.log("CompaniesContent debug - peopleResponse:", peopleResponse);
         setCompanies(companyRows);
         setContacts(peopleResponse.data);
         setSelectedIds(new Set());
@@ -1030,9 +1029,6 @@ function CompaniesContent() {
         next.delete(id);
         return next;
       });
-      if (activeCompanyId === id) {
-        setActiveCompanyId(null);
-      }
       setContacts((prev) => prev.map((person) => (person.companyId === id ? { ...person, companyId: null, company: null } : person)));
     } catch (err: any) {
       toast.error(err.message || "Failed to delete company.");
@@ -1049,9 +1045,6 @@ function CompaniesContent() {
       setContacts((prev) =>
         prev.map((person) => (person.companyId && selectedIds.has(person.companyId) ? { ...person, companyId: null, company: null } : person)),
       );
-      if (activeCompanyId && selectedIds.has(activeCompanyId)) {
-        setActiveCompanyId(null);
-      }
       setSelectedIds(new Set());
     } catch (err: any) {
       toast.error(err.message || "Failed to delete companies.");
@@ -1210,7 +1203,7 @@ function CompaniesContent() {
                           className={`${isSelected ? "is-selected" : ""} ${isHovered ? "is-hovered" : ""} cursor-pointer`.trim()}
                           onMouseEnter={() => setHoveredRowId(company.id)}
                           onMouseLeave={() => setHoveredRowId((current) => (current === company.id ? null : current))}
-                          onClick={() => setActiveCompanyId(company.id)}
+                          onClick={() => router.push(`/companies/${company.id}`)}
                         >
                           <td className="col-checkbox">
                             <button
@@ -1293,14 +1286,6 @@ function CompaniesContent() {
         )}
       </div>
 
-      <CompanyDetailDrawer
-        open={Boolean(activeCompanyId)}
-        companyId={activeCompanyId}
-        onClose={() => setActiveCompanyId(null)}
-        onCompanyUpdated={handleCompanyPatched}
-        onContactUpdated={handleContactUpdated}
-        allContacts={contacts}
-      />
     </>
   );
 }

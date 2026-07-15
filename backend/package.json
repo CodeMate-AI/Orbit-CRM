@@ -8,8 +8,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "worker": "ts-node src/worker.ts",
-    "prisma:generate": "prisma generate",
-    "test": "node --test dist/**/*.spec.js"
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@apollo/server": "^5.0.0",

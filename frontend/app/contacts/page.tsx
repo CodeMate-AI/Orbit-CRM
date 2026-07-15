@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
@@ -786,6 +787,7 @@ function AddContactModal({
 }
 
 function ContactsContent() {
+  const router = useRouter();
   const { workspaceId } = useWorkspace();
   const [contacts, setContacts] = useState<PersonRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -793,7 +795,6 @@ function ContactsContent() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: "name", direction: "asc" });
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -824,10 +825,6 @@ function ContactsContent() {
   }, [workspaceId, refreshTrigger]);
 
   const decoratedContacts = useMemo(() => decorateContacts(contacts), [contacts]);
-  const selectedContact = useMemo(
-    () => contacts.find((contact) => contact.id === selectedContactId) ?? null,
-    [contacts, selectedContactId],
-  );
 
   const filteredContacts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -926,7 +923,6 @@ function ContactsContent() {
         next.delete(id);
         return next;
       });
-      setSelectedContactId((current) => (current === id ? null : current));
     } catch (err: any) {
       toast.error(err.message || "Failed to delete contact.");
     }
@@ -940,7 +936,6 @@ function ContactsContent() {
       toast.success(`Successfully deleted ${selectedIds.size} contacts`);
       setContacts((prev) => prev.filter((c) => !selectedIds.has(c.id)));
       setSelectedIds(new Set());
-      setSelectedContactId((current) => (current && selectedIds.has(current) ? null : current));
     } catch (err: any) {
       toast.error(err.message || "Failed to delete contacts.");
     } finally {
@@ -1112,7 +1107,7 @@ function ContactsContent() {
                         className={`${isSelected ? "is-selected" : ""} ${isHovered ? "is-hovered" : ""} cursor-pointer`.trim()}
                         onMouseEnter={() => setHoveredRowId(contact.id)}
                         onMouseLeave={() => setHoveredRowId((current) => (current === contact.id ? null : current))}
-                        onClick={() => setSelectedContactId(contact.id)}
+                        onClick={() => router.push(`/contacts/${contact.id}`)}
                       >
                         <td className="col-checkbox">
                           <button
@@ -1196,15 +1191,6 @@ function ContactsContent() {
         />
       )}
 
-      <ContactDetailDrawer
-        open={Boolean(selectedContact)}
-        contact={selectedContact}
-        companies={companies}
-        onClose={() => setSelectedContactId(null)}
-        onContactUpdated={(updatedContact) => {
-          setContacts((prev) => prev.map(mapContactUpdate(updatedContact)));
-        }}
-      />
     </div>
   );
 }

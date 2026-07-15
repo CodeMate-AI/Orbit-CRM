@@ -476,6 +476,16 @@ function TasksContent() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event?.startsWith("task.")) setRefreshTrigger((v) => v + 1);
+    };
+    window.addEventListener("crm:update", handler);
+    return () => window.removeEventListener("crm:update", handler);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -497,7 +507,7 @@ function TasksContent() {
       })
       .catch((err: any) => setError(err.message || "Failed to load tasks."))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, refreshTrigger]);
 
   const selectedTask = useMemo(() => tasks.find((task) => task.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
 

@@ -925,6 +925,16 @@ function CompaniesContent() {
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event?.startsWith("company.")) setRefreshTrigger((v) => v + 1);
+    };
+    window.addEventListener("crm:update", handler);
+    return () => window.removeEventListener("crm:update", handler);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -940,7 +950,7 @@ function CompaniesContent() {
       })
       .catch((err: any) => setError(err.message || "Failed to load companies."))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, refreshTrigger]);
 
   const decoratedCompanies = useMemo(() => decorateCompanies(companies), [companies]);
 

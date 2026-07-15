@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { workspacesApi } from "@/lib/workspaces-api";
 import SearchDialog from "./SearchDialog";
 import AiChatDrawer from "./AiChatDrawer";
+import { useWorkspaceEvents } from "@/hooks/useWorkspaceEvents";
 import { toast } from "sonner";
 import {
   Users,
@@ -59,6 +60,8 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
+
+  useWorkspaceEvents(workspaceId);
 
   useEffect(() => {
     async function loadSessionAndWorkspace() {

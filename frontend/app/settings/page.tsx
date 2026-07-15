@@ -15,10 +15,12 @@ import {
   UserRound,
   Users,
   KeyRound,
+  Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import { Badge } from "@/components/ui/badge";
+import { customFieldsApi, CustomFieldRow, FieldType, EntityType } from "@/lib/custom-fields-api";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -71,8 +73,9 @@ const ROLE_OPTIONS: Array<{ value: WorkspaceMemberRole; label: string }> = [
 const PROFILE_TAB = "profile";
 const SMTP_TAB = "smtp";
 const WORKSPACE_TAB = "workspace";
+const CUSTOM_FIELDS_TAB = "custom-fields";
 
-type SettingsTab = typeof PROFILE_TAB | typeof SMTP_TAB | typeof WORKSPACE_TAB;
+type SettingsTab = typeof PROFILE_TAB | typeof SMTP_TAB | typeof WORKSPACE_TAB | typeof CUSTOM_FIELDS_TAB;
 
 type ProfileFormState = {
   name: string;
@@ -129,6 +132,15 @@ export default function SettingsPage() {
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
   const [memberMutationId, setMemberMutationId] = useState<string | null>(null);
+
+  // Custom Fields States
+  const [customFields, setCustomFields] = useState<CustomFieldRow[]>([]);
+  const [activeEntity, setActiveEntity] = useState<EntityType>("PERSON");
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldType, setNewFieldType] = useState<FieldType>("TEXT");
+  const [newFieldOptions, setNewFieldOptions] = useState("");
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const [customFieldsSaving, setCustomFieldsSaving] = useState(false);
   const [inviteMutationId, setInviteMutationId] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
@@ -234,14 +246,16 @@ export default function SettingsPage() {
   async function loadWorkspaceData(id: string) {
     setWorkspaceLoading(true);
     try {
-      const [smtpConfig, memberRows, invitationRows] = await Promise.all([
+      const [smtpConfig, memberRows, invitationRows, fields] = await Promise.all([
         settingsApi.getSmtpConfig(id),
         workspacesApi.listMembers(id),
         workspacesApi.listInvitations(id),
+        customFieldsApi.list(id),
       ]);
 
       setMembers(memberRows ?? []);
       setInvitations(invitationRows ?? []);
+      setCustomFields(fields ?? []);
 
       if (smtpConfig) {
         setSmtpPasswordExists(smtpConfig.passwordExists);
@@ -418,6 +432,53 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleCreateCustomField(event: React.FormEvent) {
+    event.preventDefault();
+    if (!workspaceId) return;
+    if (!newFieldLabel.trim()) {
+      toast.error("Field label is required.");
+      return;
+    }
+
+    setCustomFieldsSaving(true);
+    try {
+      const options = newFieldType === "SELECT" || newFieldType === "MULTI_SELECT"
+        ? newFieldOptions.split(",").map(o => o.trim()).filter(Boolean)
+        : undefined;
+
+      const created = await customFieldsApi.create(workspaceId, {
+        label: newFieldLabel.trim(),
+        type: newFieldType,
+        entityType: activeEntity,
+        options,
+      });
+
+      setCustomFields(current => [...current, created]);
+      setNewFieldLabel("");
+      setNewFieldOptions("");
+      toast.success("Custom field created successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create custom field.");
+    } finally {
+      setCustomFieldsSaving(false);
+    }
+  }
+
+  async function handleDeleteCustomField(id: string) {
+    if (!workspaceId) return;
+
+    setCustomFieldsLoading(true);
+    try {
+      await customFieldsApi.delete(workspaceId, id);
+      setCustomFields(current => current.filter(field => field.id !== id));
+      toast.success("Custom field deleted.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete custom field.");
+    } finally {
+      setCustomFieldsLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <AppLayout pageTitle="Settings">
@@ -528,6 +589,7 @@ export default function SettingsPage() {
             <TabsTrigger value={PROFILE_TAB}>Profile</TabsTrigger>
             <TabsTrigger value={SMTP_TAB}>SMTP</TabsTrigger>
             <TabsTrigger value={WORKSPACE_TAB}>Workspace</TabsTrigger>
+            <TabsTrigger value={CUSTOM_FIELDS_TAB}>Custom Fields</TabsTrigger>
           </TabsList>
 
           <TabsContent value={PROFILE_TAB} className="space-y-4">
@@ -872,6 +934,196 @@ export default function SettingsPage() {
                       <p>
                         SMTP changes can be verified instantly with a test email to make sure Gmail credentials are
                         valid before sending workflow notifications.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value={CUSTOM_FIELDS_TAB} className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle>Field schema settings</CardTitle>
+                        <CardDescription>
+                          Define custom attributes that team members can fill in for CRM records.
+                        </CardDescription>
+                      </div>
+                      <div className="inline-flex rounded-full border border-border-subtle bg-bg-tertiary p-1">
+                        <button
+                          type="button"
+                          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            activeEntity === "PERSON" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                          }`}
+                          onClick={() => setActiveEntity("PERSON")}
+                        >
+                          Contacts
+                        </button>
+                        <button
+                          type="button"
+                          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            activeEntity === "COMPANY" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                          }`}
+                          onClick={() => setActiveEntity("COMPANY")}
+                        >
+                          Companies
+                        </button>
+                        <button
+                          type="button"
+                          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                            activeEntity === "OPPORTUNITY" ? "bg-orbit-primary text-white shadow-sm" : "text-text-secondary hover:text-text-primary"
+                          }`}
+                          onClick={() => setActiveEntity("OPPORTUNITY")}
+                        >
+                          Deals
+                        </button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {customFieldsLoading ? (
+                      <div className="flex justify-center py-8 text-text-tertiary">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    ) : customFields.filter(f => f.entityType === activeEntity).length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border-subtle p-8 text-center text-sm text-text-secondary">
+                        No custom fields configured for this entity yet. Use the panel on the right to add one.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-text-secondary">
+                          <thead>
+                            <tr className="border-b border-border-subtle text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                              <th className="py-3 px-4">Label</th>
+                              <th className="py-3 px-4">Key</th>
+                              <th className="py-3 px-4">Type</th>
+                              <th className="py-3 px-4">Required</th>
+                              <th className="py-3 px-4">Options</th>
+                              <th className="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-subtle">
+                            {customFields
+                              .filter(f => f.entityType === activeEntity)
+                              .map(field => (
+                                <tr key={field.id} className="hover:bg-surface-hover transition-colors">
+                                  <td className="py-3 px-4 font-medium text-text-primary">{field.label}</td>
+                                  <td className="py-3 px-4 font-mono text-xs text-orbit-primary">{field.name}</td>
+                                  <td className="py-3 px-4">
+                                    <Badge variant="outline" className="text-xs">{field.type}</Badge>
+                                  </td>
+                                  <td className="py-3 px-4">{field.isRequired ? "Yes" : "No"}</td>
+                                  <td className="py-3 px-4 max-w-[200px] truncate">
+                                    {field.options && Array.isArray(field.options)
+                                      ? field.options.join(", ")
+                                      : "—"}
+                                  </td>
+                                  <td className="py-3 px-4 text-right">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                                      onClick={() => handleDeleteCustomField(field.id)}
+                                      disabled={!canManageWorkspace}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Add custom field</CardTitle>
+                    <CardDescription>Configure a new field schema for {activeEntity.toLowerCase()} records.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCreateCustomField} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="field-label">Field Label</Label>
+                        <Input
+                          id="field-label"
+                          placeholder="e.g. Lead Score, Segment"
+                          value={newFieldLabel}
+                          onChange={(e) => setNewFieldLabel(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="field-type">Type</Label>
+                        <NativeSelect
+                          id="field-type"
+                          value={newFieldType}
+                          onChange={(e) => setNewFieldType(e.target.value as FieldType)}
+                        >
+                          <NativeSelectOption value="TEXT">Text</NativeSelectOption>
+                          <NativeSelectOption value="NUMBER">Number</NativeSelectOption>
+                          <NativeSelectOption value="CURRENCY">Currency</NativeSelectOption>
+                          <NativeSelectOption value="DATE">Date</NativeSelectOption>
+                          <NativeSelectOption value="BOOLEAN">Checkbox / Toggle</NativeSelectOption>
+                          <NativeSelectOption value="EMAIL">Email</NativeSelectOption>
+                          <NativeSelectOption value="PHONE">Phone</NativeSelectOption>
+                          <NativeSelectOption value="URL">URL Link</NativeSelectOption>
+                          <NativeSelectOption value="SELECT">Single Select Dropdown</NativeSelectOption>
+                          <NativeSelectOption value="MULTI_SELECT">Multi Select Dropdown</NativeSelectOption>
+                          <NativeSelectOption value="RATING">Rating / Star Scale</NativeSelectOption>
+                        </NativeSelect>
+                      </div>
+
+                      {(newFieldType === "SELECT" || newFieldType === "MULTI_SELECT") && (
+                        <div className="space-y-2">
+                          <Label htmlFor="field-options">Dropdown Options</Label>
+                          <Input
+                            id="field-options"
+                            placeholder="Hot, Warm, Cold"
+                            value={newFieldOptions}
+                            onChange={(e) => setNewFieldOptions(e.target.value)}
+                          />
+                          <p className="text-xs text-text-tertiary">Separate options with commas.</p>
+                        </div>
+                      )}
+
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={!canManageWorkspace || customFieldsSaving}
+                      >
+                        {customFieldsSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create Schema Field
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Role requirement</CardTitle>
+                    <CardDescription>Gated schema configurations</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-text-secondary">
+                    <div className="flex items-start gap-3 rounded-xl border border-border-subtle bg-bg-secondary p-4">
+                      <Settings2 className="mt-0.5 h-4 w-4 text-orbit-primary" />
+                      <p>
+                        Workspace owners and admins can configure fields. Standard members can fill in values on CRM record drawers, but cannot modify the schema types here.
                       </p>
                     </div>
                   </CardContent>

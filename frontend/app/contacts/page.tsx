@@ -798,6 +798,16 @@ function ContactsContent() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: "name", direction: "asc" });
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event?.startsWith("person.")) setRefreshTrigger((v) => v + 1);
+    };
+    window.addEventListener("crm:update", handler);
+    return () => window.removeEventListener("crm:update", handler);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -811,7 +821,7 @@ function ContactsContent() {
       })
       .catch((err) => setError(err.message || "Failed to load contacts."))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, refreshTrigger]);
 
   const decoratedContacts = useMemo(() => decorateContacts(contacts), [contacts]);
   const selectedContact = useMemo(

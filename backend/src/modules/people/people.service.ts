@@ -7,6 +7,7 @@ import { CreatePersonDto } from "./dto/create-person.dto";
 import { DryRunImportDto } from "./dto/dry-run-import.dto";
 import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
+import { EventsService } from "../events/events.service";
 
 let prisma = new PrismaClient();
 
@@ -16,7 +17,10 @@ export function setPeoplePrisma(client: PrismaClient) {
 
 @Injectable()
 export class PeopleService {
-  constructor(@InjectQueue("people-import") private readonly importQueue: Queue) {}
+  constructor(
+    @InjectQueue("people-import") private readonly importQueue: Queue,
+    private readonly eventsService: EventsService,
+  ) {}
 
   /** Verify user is a member of the workspace */
   private async assertMembership(userId: string, workspaceId: string) {
@@ -74,6 +78,8 @@ export class PeopleService {
         companyId: dto.companyId || null,
       },
     });
+
+    this.eventsService.emitToWorkspace(dto.workspaceId, "person.created", { id: person.id });
 
     return {
       id: person.id,
@@ -167,6 +173,8 @@ export class PeopleService {
       include: { company: { select: { id: true, name: true } } },
     });
 
+    this.eventsService.emitToWorkspace(person.workspaceId, "person.updated", { id: updated.id });
+
     return {
       id: updated.id,
       firstName: updated.firstName,
@@ -193,6 +201,8 @@ export class PeopleService {
       where: { id: personId },
       data: { deletedAt: new Date() },
     });
+
+    this.eventsService.emitToWorkspace(person.workspaceId, "person.deleted", { id: personId });
 
     return { success: true };
   }

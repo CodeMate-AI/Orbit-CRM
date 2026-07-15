@@ -697,6 +697,16 @@ function DealsContent() {
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event?.startsWith("opportunity.")) setRefreshTrigger((v) => v + 1);
+    };
+    window.addEventListener("crm:update", handler);
+    return () => window.removeEventListener("crm:update", handler);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -719,7 +729,7 @@ function DealsContent() {
       })
       .catch((err: any) => setError(err.message || "Failed to load deals."))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, refreshTrigger]);
 
   useEffect(() => {
     if (!boardRef.current || stages.length === 0) return;

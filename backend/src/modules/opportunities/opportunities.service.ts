@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/commo
 import { PrismaClient } from "@prisma/client";
 import { CreateOpportunityDto } from "./dto/create-opportunity.dto";
 import { UpdateOpportunityDto } from "./dto/update-opportunity.dto";
+import { EventsService } from "../events/events.service";
 
 let prisma = new PrismaClient();
 
@@ -11,6 +12,8 @@ export function setOpportunitiesPrisma(client: PrismaClient) {
 
 @Injectable()
 export class OpportunitiesService {
+  constructor(private readonly eventsService: EventsService) {}
+
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
@@ -134,6 +137,8 @@ export class OpportunitiesService {
       include: { stage: true },
     });
 
+    this.eventsService.emitToWorkspace(dto.workspaceId, "opportunity.created", { id: opp.id });
+
     return {
       id: opp.id,
       name: opp.name,
@@ -161,6 +166,8 @@ export class OpportunitiesService {
       },
       include: { stage: true },
     });
+
+    this.eventsService.emitToWorkspace(opp.workspaceId, "opportunity.updated", { id: updated.id });
 
     return {
       id: updated.id,
@@ -231,6 +238,8 @@ export class OpportunitiesService {
       where: { id: oppId },
       data: { deletedAt: new Date() },
     });
+
+    this.eventsService.emitToWorkspace(opp.workspaceId, "opportunity.deleted", { id: oppId });
 
     return { success: true };
   }

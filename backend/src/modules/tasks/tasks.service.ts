@@ -2,11 +2,14 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaClient, TaskStatus } from "@prisma/client";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
+import { EventsService } from "../events/events.service";
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class TasksService {
+  constructor(private readonly eventsService: EventsService) {}
+
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
@@ -150,6 +153,8 @@ export class TasksService {
       },
     });
 
+    this.eventsService.emitToWorkspace(dto.workspaceId, "task.created", { id: task.id });
+
     return this.serializeTask(task);
   }
 
@@ -197,6 +202,8 @@ export class TasksService {
       },
     });
 
+    this.eventsService.emitToWorkspace(task.workspaceId, "task.updated", { id: updated.id });
+
     return this.serializeTask(updated);
   }
 
@@ -213,6 +220,8 @@ export class TasksService {
       where: { id: taskId },
       data: { deletedAt: new Date() },
     });
+
+    this.eventsService.emitToWorkspace(task.workspaceId, "task.deleted", { id: taskId });
 
     return { success: true };
   }

@@ -2,11 +2,14 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaClient } from "@prisma/client";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
+import { EventsService } from "../events/events.service";
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class CompaniesService {
+  constructor(private readonly eventsService: EventsService) {}
+
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
@@ -110,6 +113,8 @@ export class CompaniesService {
       },
     });
 
+    this.eventsService.emitToWorkspace(dto.workspaceId, "company.created", { id: company.id });
+
     return {
       id: company.id,
       name: company.name,
@@ -146,6 +151,8 @@ export class CompaniesService {
       },
     });
 
+    this.eventsService.emitToWorkspace(company.workspaceId, "company.updated", { id: updated.id });
+
     return {
       id: updated.id,
       name: updated.name,
@@ -172,6 +179,8 @@ export class CompaniesService {
       where: { id: companyId },
       data: { deletedAt: new Date() },
     });
+
+    this.eventsService.emitToWorkspace(company.workspaceId, "company.deleted", { id: companyId });
 
     return { success: true };
   }

@@ -1,7 +1,22 @@
 import { Injectable, ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+export type DashboardRange = "week" | "month" | "quarter" | "year";
+
+let prisma = new PrismaClient();
+
+export function setDashboardPrisma(client: PrismaClient) {
+  prisma = client;
+}
+
+function getRangeStart(now: Date, range: DashboardRange) {
+  return {
+    week: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    month: new Date(now.getFullYear(), now.getMonth(), 1),
+    quarter: new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1),
+    year: new Date(now.getFullYear(), 0, 1),
+  }[range];
+}
 
 @Injectable()
 export class DashboardService {
@@ -12,16 +27,16 @@ export class DashboardService {
     if (!member) throw new ForbiddenException("You are not a member of this workspace.");
   }
 
-  async getStats(userId: string, workspaceId: string) {
+  async getStats(userId: string, workspaceId: string, range: DashboardRange = "month") {
     await this.assertMembership(userId, workspaceId);
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const rangeStart = getRangeStart(now, range);
+    const rangeEnd = now;
 
     const [
       totalContacts,
-      newContactsThisMonth,
+      newContactsThisRange,
       openDeals,
       wonDeals,
       lostDeals,
@@ -32,53 +47,53 @@ export class DashboardService {
       // Total contacts (non-deleted)
       prisma.person.count({ where: { workspaceId, deletedAt: null } }),
 
-      // New contacts created this calendar month
+      // New contacts created within the selected range
       prisma.person.count({
-        where: { workspaceId, deletedAt: null, createdAt: { gte: startOfMonth } },
+        where: { workspaceId, deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
       }),
 
-      // Open deals (all non-deleted, non-Won/Lost)
+      // Open deals within the selected range
       prisma.opportunity.findMany({
-        where: { workspaceId, deletedAt: null },
+        where: { workspaceId, deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
         include: { stage: { select: { name: true, color: true, position: true } } },
         orderBy: { createdAt: "desc" },
       }),
 
-      // Won deals this month
+      // Won deals within the selected range
       prisma.opportunity.count({
         where: {
           workspaceId,
           deletedAt: null,
           stage: { name: "Won" },
-          updatedAt: { gte: startOfMonth },
+          updatedAt: { gte: rangeStart, lte: rangeEnd },
         },
       }),
 
-      // Lost deals this month
+      // Lost deals within the selected range
       prisma.opportunity.count({
         where: {
           workspaceId,
           deletedAt: null,
           stage: { name: "Lost" },
-          updatedAt: { gte: startOfMonth },
+          updatedAt: { gte: rangeStart, lte: rangeEnd },
         },
       }),
 
-      // Pipeline stages with deal counts and values
+      // Pipeline stages with deal counts and values within the selected range
       prisma.pipelineStage.findMany({
         where: { workspaceId, pipeline: { isDefault: true } },
         include: {
           opportunities: {
-            where: { deletedAt: null },
+            where: { deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
             select: { amount: true },
           },
         },
         orderBy: { position: "asc" },
       }),
 
-      // Recent activity (last 30 days)
+      // Recent activity within the selected range
       prisma.activity.findMany({
-        where: { workspaceId, occurredAt: { gte: thirtyDaysAgo } },
+        where: { workspaceId, occurredAt: { gte: rangeStart, lte: rangeEnd } },
         include: {
           author: { select: { name: true } },
           person: { select: { firstName: true, lastName: true } },
@@ -121,14 +136,14 @@ export class DashboardService {
       value: s.opportunities.reduce((acc, o) => acc + (o.amount ? Number(o.amount) : 0), 0),
     }));
 
-    // Conversion rate = won / (won + lost) this month
+    // Conversion rate = won / (won + lost) within the selected range
     const closedTotal = wonDeals + lostDeals;
     const conversionRate = closedTotal > 0 ? Math.round((wonDeals / closedTotal) * 100) : null;
 
     return {
       contacts: {
         total: totalContacts,
-        newThisMonth: newContactsThisMonth,
+        newThisMonth: newContactsThisRange,
       },
       deals: {
         open: activeDeals.length,

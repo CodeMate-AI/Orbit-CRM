@@ -14,6 +14,22 @@ import {
   ListChecks,
 } from "lucide-react";
 
+type DashboardRange = "week" | "month" | "quarter" | "year";
+
+const RANGE_OPTIONS: Array<{ value: DashboardRange; label: string }> = [
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "quarter", label: "This Quarter" },
+  { value: "year", label: "This Year" },
+];
+
+const RANGE_LABELS: Record<DashboardRange, string> = {
+  week: "this week",
+  month: "this month",
+  quarter: "this quarter",
+  year: "this year",
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatCurrency(value: number) {
   if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
@@ -41,6 +57,37 @@ function formatDueDate(dateStr: string | null) {
   if (d.toDateString() === today.toDateString()) return "Due today";
   if (d.toDateString() === tomorrow.toDateString()) return "Due tomorrow";
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+function DashboardRangeSelector({
+  range,
+  onChange,
+}: {
+  range: DashboardRange;
+  onChange: (range: DashboardRange) => void;
+}) {
+  return (
+    <div className="flex w-full flex-wrap gap-2 md:w-auto md:flex-nowrap md:justify-end md:gap-3">
+      {RANGE_OPTIONS.map((option) => {
+        const active = option.value === range;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={`rounded-full px-4 py-2 text-xs font-medium tracking-[0.02em] transition ${
+              active
+                ? "bg-orbit-primary text-[#0b0b0b] shadow-sm"
+                : "border border-border-subtle bg-bg-secondary text-text-secondary hover:border-orbit-primary hover:text-orbit-primary"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── Skeleton block ─────────────────────────────────────────────────────────
@@ -88,18 +135,20 @@ function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [range, setRange] = useState<DashboardRange>("month");
   // task completion toggle (local optimistic — can be wired to API later)
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
+    setError("");
     dashboardApi
-      .stats(workspaceId)
+      .stats(workspaceId, range)
       .then(setStats)
       .catch((err) => setError(err.message || "Failed to load dashboard."))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, range]);
 
   const toggleDone = (id: string) => {
     setDoneIds((prev) => {
@@ -109,41 +158,60 @@ function DashboardContent() {
     });
   };
 
+  const handleRetry = () => {
+    if (!workspaceId) return;
+    setError("");
+    setLoading(true);
+    dashboardApi.stats(workspaceId, range).then(setStats).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  };
+
+  const rangeLabel = RANGE_LABELS[range];
+  const header = (
+    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Dashboard</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-text-primary">Analytics overview</h1>
+        <p className="mt-2 max-w-2xl text-sm text-text-secondary">
+          Switch the date window to refresh all dashboard widgets for the selected period.
+        </p>
+      </div>
+      <DashboardRangeSelector range={range} onChange={setRange} />
+    </div>
+  );
+
   // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="widget-grid">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={`widget ${i === 0 || i === 2 ? "widget--2col" : ""}`}>
-            <Skeleton className="h-5 w-32 mb-4" />
-            <Skeleton className="h-10 w-48 mb-6" />
-            <Skeleton className="h-3 w-full mb-2" />
-            <Skeleton className="h-3 w-4/5 mb-2" />
-            <Skeleton className="h-3 w-3/5" />
-          </div>
-        ))}
-      </div>
+      <>
+        {header}
+        <div className="widget-grid">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={`widget ${i === 0 || i === 2 ? "widget--2col" : ""}`}>
+              <Skeleton className="h-5 w-32 mb-4" />
+              <Skeleton className="h-10 w-48 mb-6" />
+              <Skeleton className="h-3 w-full mb-2" />
+              <Skeleton className="h-3 w-4/5 mb-2" />
+              <Skeleton className="h-3 w-3/5" />
+            </div>
+          ))}
+        </div>
+      </>
     );
   }
 
   // ── Error state ──────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="flex flex-col items-center gap-3 py-24 text-center">
-        <AlertCircle className="h-8 w-8 text-error" />
-        <p className="text-sm text-error">{error}</p>
-        <button
-          className="text-xs text-orbit-primary hover:underline"
-          onClick={() => {
-            if (!workspaceId) return;
-            setError("");
-            setLoading(true);
-            dashboardApi.stats(workspaceId).then(setStats).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }}
-        >
-          Try again
-        </button>
-      </div>
+      <>
+        {header}
+        <div className="flex flex-col items-center gap-3 py-24 text-center">
+          <AlertCircle className="h-8 w-8 text-error" />
+          <p className="text-sm text-error">{error}</p>
+          <button className="text-xs text-orbit-primary hover:underline" onClick={handleRetry}>
+            Try again
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -151,200 +219,201 @@ function DashboardContent() {
 
   const { pipeline, deals, contacts, recentActivity, upcomingTasks } = stats;
   const nonTerminalStages = pipeline.stages.filter((s) => s.name !== "Won" && s.name !== "Lost");
-  const wonStage = pipeline.stages.find((s) => s.name === "Won");
-  const lostStage = pipeline.stages.find((s) => s.name === "Lost");
 
   return (
-    <div className="widget-grid">
+    <>
+      {header}
+      <div className="widget-grid">
 
-      {/* 1. Pipeline Value — 2-col */}
-      <div className="widget widget--2col">
-        <div className="widget-header">
-          <div className="widget-title">Pipeline value</div>
-          <div className="widget-meta">INR</div>
-        </div>
-        <div className="pipeline-total">
-          {pipeline.totalValue > 0 ? formatCurrency(pipeline.totalValue) : "₹0"}
-        </div>
-        {nonTerminalStages.length === 0 ? (
-          <div className="empty-state-inline">No active deals yet</div>
-        ) : (
-          <div className="pipeline-list">
-            {nonTerminalStages.map((s) => {
-              const pct = pipeline.totalValue > 0 ? (s.value / pipeline.totalValue) * 100 : 0;
-              return (
-                <div key={s.id} className="pipeline-row">
-                  <div className="pipeline-header">
-                    <span className="pipeline-stage">{s.name}</span>
-                    <span className="pipeline-value">{s.value > 0 ? formatCurrency(s.value) : "—"}</span>
-                  </div>
-                  <div className="pipeline-bar-bg">
-                    <div
-                      className="pipeline-bar-fill"
-                      style={{ width: `${pct.toFixed(1)}%`, background: s.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+        {/* 1. Pipeline Value — 2-col */}
+        <div className="widget widget--2col">
+          <div className="widget-header">
+            <div className="widget-title">Pipeline value</div>
+            <div className="widget-meta">INR</div>
           </div>
-        )}
-      </div>
-
-      {/* 2. Deals won/lost — 1-col */}
-      <div className="widget">
-        <div className="widget-header">
-          <div className="widget-title">Deals this month</div>
-          <div className="widget-meta">MTD</div>
-        </div>
-        <div className="deal-stats">
-          <div className="deal-stat">
-            <div className="deal-stat-value" style={{ color: "#32d583" }}>{deals.wonThisMonth}</div>
-            <div className="deal-stat-label">Won</div>
+          <div className="pipeline-total">
+            {pipeline.totalValue > 0 ? formatCurrency(pipeline.totalValue) : "₹0"}
           </div>
-          <div className="deal-stat-divider" />
-          <div className="deal-stat">
-            <div className="deal-stat-value" style={{ color: "#fda29b" }}>{deals.lostThisMonth}</div>
-            <div className="deal-stat-label">Lost</div>
-          </div>
-        </div>
-        {deals.conversionRate !== null ? (
-          <div className="conversion-wrap">
-            <div className="conversion-bar-bg">
-              <div className="conversion-bar-fill" style={{ width: `${deals.conversionRate}%` }} />
-            </div>
-            <div className="conversion-label">{deals.conversionRate}% win rate</div>
-          </div>
-        ) : (
-          <div className="empty-state-inline">No closed deals this month</div>
-        )}
-      </div>
-
-      {/* 3. Contacts — 2-col */}
-      <div className="widget widget--2col">
-        <div className="widget-header">
-          <div className="widget-title">Contacts</div>
-          <div className="widget-meta flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            People
-          </div>
-        </div>
-        <div className="contacts-hero">
-          <div className="contacts-total">{contacts.total.toLocaleString()}</div>
-          <div className="contacts-sub">total contacts</div>
-        </div>
-        <div className="contacts-chips">
-          <div className="chip">
-            <span className="chip-dot chip-dot--green" />
-            {contacts.newThisMonth} new this month
-          </div>
-          <div className="chip">
-            <span className="chip-dot chip-dot--blue" />
-            {deals.open} open deal{deals.open !== 1 ? "s" : ""}
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Tasks — 1-col */}
-      <div className="widget">
-        <div className="widget-header">
-          <div className="widget-title">Upcoming tasks</div>
-          <div className="widget-meta flex items-center gap-1">
-            <ListChecks className="h-3.5 w-3.5" />
-            7 days
-          </div>
-        </div>
-        {upcomingTasks.length === 0 ? (
-          <div className="empty-state-inline">No tasks due this week 🎉</div>
-        ) : (
-          <div className="task-list">
-            {upcomingTasks.map((task) => {
-              const done = doneIds.has(task.id);
-              return (
-                <div key={task.id} className={`task-row ${done ? "task-row--done" : ""}`}>
-                  <button
-                    type="button"
-                    className="task-check"
-                    onClick={() => toggleDone(task.id)}
-                    aria-label={done ? "Mark incomplete" : "Mark complete"}
-                  >
-                    {done ? (
-                      <CheckCircle2 className="h-4 w-4 text-orbit-primary" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-text-tertiary" />
-                    )}
-                  </button>
-                  <div className="task-body">
-                    <div className="task-title">{task.title}</div>
-                    <div className="task-meta">
-                      {task.dueDate && (
-                        <span className="task-due">{formatDueDate(task.dueDate)}</span>
-                      )}
-                      <PriorityBadge priority={task.priority} />
+          {nonTerminalStages.length === 0 ? (
+            <div className="empty-state-inline">No active deals yet</div>
+          ) : (
+            <div className="pipeline-list">
+              {nonTerminalStages.map((s) => {
+                const pct = pipeline.totalValue > 0 ? (s.value / pipeline.totalValue) * 100 : 0;
+                return (
+                  <div key={s.id} className="pipeline-row">
+                    <div className="pipeline-header">
+                      <span className="pipeline-stage">{s.name}</span>
+                      <span className="pipeline-value">{s.value > 0 ? formatCurrency(s.value) : "—"}</span>
+                    </div>
+                    <div className="pipeline-bar-bg">
+                      <div
+                        className="pipeline-bar-fill"
+                        style={{ width: `${pct.toFixed(1)}%`, background: s.color }}
+                      />
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Won / Lost summary — 1-col */}
-      <div className="widget">
-        <div className="widget-header">
-          <div className="widget-title">Stage summary</div>
-          <div className="widget-meta flex items-center gap-1">
-            <TrendingUp className="h-3.5 w-3.5" />
-            All time
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {pipeline.stages.length === 0 ? (
-          <div className="empty-state-inline">No pipeline stages</div>
-        ) : (
-          <div className="stage-list">
-            {pipeline.stages.map((s) => (
-              <div key={s.id} className="stage-row">
-                <div className="stage-dot" style={{ background: s.color }} />
-                <div className="stage-name">{s.name}</div>
-                <div className="stage-count">{s.count}</div>
+
+        {/* 2. Deals won/lost — 1-col */}
+        <div className="widget">
+          <div className="widget-header">
+            <div className="widget-title">Deals {rangeLabel}</div>
+            <div className="widget-meta">{rangeLabel}</div>
+          </div>
+          <div className="deal-stats">
+            <div className="deal-stat">
+              <div className="deal-stat-value" style={{ color: "#32d583" }}>{deals.wonThisMonth}</div>
+              <div className="deal-stat-label">Won</div>
+            </div>
+            <div className="deal-stat-divider" />
+            <div className="deal-stat">
+              <div className="deal-stat-value" style={{ color: "#fda29b" }}>{deals.lostThisMonth}</div>
+              <div className="deal-stat-label">Lost</div>
+            </div>
+          </div>
+          {deals.conversionRate !== null ? (
+            <div className="conversion-wrap">
+              <div className="conversion-bar-bg">
+                <div className="conversion-bar-fill" style={{ width: `${deals.conversionRate}%` }} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="conversion-label">{deals.conversionRate}% win rate</div>
+            </div>
+          ) : (
+            <div className="empty-state-inline">No closed deals {rangeLabel}</div>
+          )}
+        </div>
 
-      {/* 6. Recent Activity — 1-col */}
-      <div className="widget">
-        <div className="widget-header">
-          <div className="widget-title">Recent activity</div>
-          <div className="widget-meta flex items-center gap-1">
-            <Activity className="h-3.5 w-3.5" />
-            30 days
+        {/* 3. Contacts — 2-col */}
+        <div className="widget widget--2col">
+          <div className="widget-header">
+            <div className="widget-title">Contacts</div>
+            <div className="widget-meta flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              People
+            </div>
+          </div>
+          <div className="contacts-hero">
+            <div className="contacts-total">{contacts.total.toLocaleString()}</div>
+            <div className="contacts-sub">total contacts</div>
+          </div>
+          <div className="contacts-chips">
+            <div className="chip">
+              <span className="chip-dot chip-dot--green" />
+              {contacts.newThisMonth} new {rangeLabel}
+            </div>
+            <div className="chip">
+              <span className="chip-dot chip-dot--blue" />
+              {deals.open} open deal{deals.open !== 1 ? "s" : ""}
+            </div>
           </div>
         </div>
-        {recentActivity.length === 0 ? (
-          <div className="empty-state-inline">No recent activity</div>
-        ) : (
-          <div className="activity-list">
-            {recentActivity.map((a) => (
-              <div key={a.id} className="activity-row">
-                <div className="activity-dot" />
-                <div className="activity-body">
-                  <div className="activity-title">
-                    {activityLabel(a.type)}
-                    {a.person ? ` · ${a.person}` : ""}
+
+        {/* 4. Tasks — 1-col */}
+        <div className="widget">
+          <div className="widget-header">
+            <div className="widget-title">Upcoming tasks</div>
+            <div className="widget-meta flex items-center gap-1">
+              <ListChecks className="h-3.5 w-3.5" />
+              7 days
+            </div>
+          </div>
+          {upcomingTasks.length === 0 ? (
+            <div className="empty-state-inline">No tasks due this week 🎉</div>
+          ) : (
+            <div className="task-list">
+              {upcomingTasks.map((task) => {
+                const done = doneIds.has(task.id);
+                return (
+                  <div key={task.id} className={`task-row ${done ? "task-row--done" : ""}`}>
+                    <button
+                      type="button"
+                      className="task-check"
+                      onClick={() => toggleDone(task.id)}
+                      aria-label={done ? "Mark incomplete" : "Mark complete"}
+                    >
+                      {done ? (
+                        <CheckCircle2 className="h-4 w-4 text-orbit-primary" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-text-tertiary" />
+                      )}
+                    </button>
+                    <div className="task-body">
+                      <div className="task-title">{task.title}</div>
+                      <div className="task-meta">
+                        {task.dueDate && (
+                          <span className="task-due">{formatDueDate(task.dueDate)}</span>
+                        )}
+                        <PriorityBadge priority={task.priority} />
+                      </div>
+                    </div>
                   </div>
-                  {a.title && <div className="activity-sub">{a.title}</div>}
-                  <div className="activity-time">{timeAgo(a.occurredAt)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-    </div>
+        {/* 5. Won / Lost summary — 1-col */}
+        <div className="widget">
+          <div className="widget-header">
+            <div className="widget-title">Stage summary</div>
+            <div className="widget-meta flex items-center gap-1">
+              <TrendingUp className="h-3.5 w-3.5" />
+              All time
+            </div>
+          </div>
+          {pipeline.stages.length === 0 ? (
+            <div className="empty-state-inline">No pipeline stages</div>
+          ) : (
+            <div className="stage-list">
+              {pipeline.stages.map((s) => (
+                <div key={s.id} className="stage-row">
+                  <div className="stage-dot" style={{ background: s.color }} />
+                  <div className="stage-name">{s.name}</div>
+                  <div className="stage-count">{s.count}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 6. Recent Activity — 1-col */}
+        <div className="widget">
+          <div className="widget-header">
+            <div className="widget-title">Recent activity</div>
+            <div className="widget-meta flex items-center gap-1">
+              <Activity className="h-3.5 w-3.5" />
+              {rangeLabel}
+            </div>
+          </div>
+          {recentActivity.length === 0 ? (
+            <div className="empty-state-inline">No recent activity {rangeLabel}</div>
+          ) : (
+            <div className="activity-list">
+              {recentActivity.map((a) => (
+                <div key={a.id} className="activity-row">
+                  <div className="activity-dot" />
+                  <div className="activity-body">
+                    <div className="activity-title">
+                      {activityLabel(a.type)}
+                      {a.person ? ` · ${a.person}` : ""}
+                    </div>
+                    {a.title && <div className="activity-sub">{a.title}</div>}
+                    <div className="activity-time">{timeAgo(a.occurredAt)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </>
   );
 }
 

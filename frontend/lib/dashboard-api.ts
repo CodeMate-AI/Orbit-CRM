@@ -66,6 +66,6 @@ export interface DashboardStats {
 }
 
 export const dashboardApi = {
-  stats: (workspaceId: string): Promise<DashboardStats> =>
-    request(`/dashboard/stats?workspaceId=${encodeURIComponent(workspaceId)}`),
+  stats: (workspaceId: string, range: string = "month"): Promise<DashboardStats> =>
+    request(`/dashboard/stats?workspaceId=${encodeURIComponent(workspaceId)}&range=${range}`),
 };

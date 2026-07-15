@@ -15,6 +15,7 @@ import { SettingsModule } from "./modules/settings/settings.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
+import { HealthController } from "./modules/health/health.controller";
 
 @Module({
   imports: [
@@ -38,5 +39,6 @@ import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
     WorkflowsModule,
     WorkspacesModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

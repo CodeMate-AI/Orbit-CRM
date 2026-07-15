@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { MemberRole, Prisma, PrismaClient } from "@prisma/client";
 import { CreateWorkflowDto } from "./dto/create-workflow.dto";
 import { UpdateWorkflowDto } from "./dto/update-workflow.dto";
@@ -12,6 +12,10 @@ export function setWorkflowsPrisma(client: PrismaClient) {
 @Injectable()
 export class WorkflowsService {
   private async assertMembership(userId: string, workspaceId: string) {
+    if (!workspaceId) {
+      throw new BadRequestException("Workspace ID is required.");
+    }
+
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
     });

@@ -13,6 +13,17 @@ import {
   Activity,
   ListChecks,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  PieChart,
+  Pie,
+} from "recharts";
 
 type DashboardRange = "week" | "month" | "quarter" | "year";
 
@@ -231,30 +242,67 @@ function DashboardContent() {
             <div className="widget-title">Pipeline value</div>
             <div className="widget-meta">INR</div>
           </div>
-          <div className="pipeline-total">
+          <div className="pipeline-total mb-4">
             {pipeline.totalValue > 0 ? formatCurrency(pipeline.totalValue) : "₹0"}
           </div>
           {nonTerminalStages.length === 0 ? (
             <div className="empty-state-inline">No active deals yet</div>
           ) : (
-            <div className="pipeline-list">
-              {nonTerminalStages.map((s) => {
-                const pct = pipeline.totalValue > 0 ? (s.value / pipeline.totalValue) * 100 : 0;
-                return (
-                  <div key={s.id} className="pipeline-row">
-                    <div className="pipeline-header">
-                      <span className="pipeline-stage">{s.name}</span>
-                      <span className="pipeline-value">{s.value > 0 ? formatCurrency(s.value) : "—"}</span>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="pipeline-list">
+                {nonTerminalStages.map((s) => {
+                  const pct = pipeline.totalValue > 0 ? (s.value / pipeline.totalValue) * 100 : 0;
+                  return (
+                    <div key={s.id} className="pipeline-row">
+                      <div className="pipeline-header">
+                        <span className="pipeline-stage">{s.name}</span>
+                        <span className="pipeline-value">{s.value > 0 ? formatCurrency(s.value) : "—"}</span>
+                      </div>
+                      <div className="pipeline-bar-bg">
+                        <div
+                          className="pipeline-bar-fill"
+                          style={{ width: `${pct.toFixed(1)}%`, background: s.color }}
+                        />
+                      </div>
                     </div>
-                    <div className="pipeline-bar-bg">
-                      <div
-                        className="pipeline-bar-fill"
-                        style={{ width: `${pct.toFixed(1)}%`, background: s.color }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <div className="h-[200px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={nonTerminalStages} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#6b6b6b" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis
+                      stroke="#6b6b6b"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) => formatCurrency(val)}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(245, 245, 245, 0.03)" }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="rounded-lg border border-border-default bg-bg-secondary p-3 shadow-lg text-xs">
+                              <p className="font-semibold text-text-primary">{data.name}</p>
+                              <p className="mt-1 font-bold text-orbit-primary">{formatCurrency(data.value)}</p>
+                              <p className="text-text-muted">{data.count} deals</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {nonTerminalStages.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color || "#8174f8"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </div>
@@ -276,12 +324,51 @@ function DashboardContent() {
               <div className="deal-stat-label">Lost</div>
             </div>
           </div>
-          {deals.conversionRate !== null ? (
-            <div className="conversion-wrap">
-              <div className="conversion-bar-bg">
-                <div className="conversion-bar-fill" style={{ width: `${deals.conversionRate}%` }} />
+          {deals.conversionRate !== null && (deals.wonThisMonth > 0 || deals.lostThisMonth > 0) ? (
+            <div className="mt-4 flex flex-col items-center">
+              <div className="h-[100px] w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Won", value: deals.wonThisMonth, color: "#32d583" },
+                        { name: "Lost", value: deals.lostThisMonth, color: "#fda29b" },
+                      ].filter((d) => d.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={25}
+                      outerRadius={40}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {[
+                        { name: "Won", value: deals.wonThisMonth, color: "#32d583" },
+                        { name: "Lost", value: deals.lostThisMonth, color: "#fda29b" },
+                      ]
+                        .filter((d) => d.value > 0)
+                        .map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="rounded border border-border-default bg-bg-secondary p-2 shadow text-xs">
+                              <span className="font-semibold" style={{ color: data.color }}>{data.name}</span>: {data.value} deals
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="conversion-label">{deals.conversionRate}% win rate</div>
+              <div className="conversion-label mt-2 text-center text-xs text-text-secondary">
+                {deals.conversionRate}% win rate
+              </div>
             </div>
           ) : (
             <div className="empty-state-inline">No closed deals {rangeLabel}</div>

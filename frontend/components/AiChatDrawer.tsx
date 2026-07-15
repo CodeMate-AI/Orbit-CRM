@@ -1,0 +1,360 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bot, Loader2, Menu, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
+import { aiApi, type ChatMessageRow, type ChatSessionRow } from "@/lib/ai-api";
+import { useWorkspace } from "./AppLayout";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { cn } from "@/lib/utils";
+
+interface AiChatDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const panelVariants = {
+  closed: { x: "100%" },
+  open: { x: 0 },
+};
+
+export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) {
+  const { workspaceId } = useWorkspace();
+  const [sessions, setSessions] = useState<ChatSessionRow[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessageRow[]>([]);
+  const [input, setInput] = useState("");
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [mobileView, setMobileView] = useState<"sessions" | "chat">("chat");
+
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
+    [sessions, activeSessionId],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (window.innerWidth < 768) {
+      setMobileView("chat");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !workspaceId) return;
+
+    let mounted = true;
+    setLoadingSessions(true);
+    aiApi
+      .listSessions(workspaceId)
+      .then((data) => {
+        if (!mounted) return;
+        setSessions(data);
+        const firstSession = data[0] ?? null;
+        if (firstSession) {
+          setActiveSessionId(firstSession.id);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load chat sessions:", error);
+      })
+      .finally(() => {
+        if (mounted) setLoadingSessions(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [open, workspaceId]);
+
+  useEffect(() => {
+    if (!open || !workspaceId || !activeSessionId) {
+      setMessages([]);
+      return;
+    }
+
+    let mounted = true;
+    setLoadingSession(true);
+    aiApi
+      .getSessionDetails(activeSessionId, workspaceId)
+      .then((session) => {
+        if (!mounted) return;
+        setMessages(session.messages ?? []);
+        setSessions((current) => current.map((item) => (item.id === session.id ? { ...item, ...session } : item)));
+      })
+      .catch((error) => {
+        console.error("Failed to load chat history:", error);
+      })
+      .finally(() => {
+        if (mounted) setLoadingSession(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [open, workspaceId, activeSessionId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        void createSession();
+      }
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onOpenChange]);
+
+  async function createSession() {
+    if (!workspaceId) return;
+
+    try {
+      const session = await aiApi.createSession(workspaceId);
+      setSessions((current) => [session, ...current]);
+      setActiveSessionId(session.id);
+      setMessages([]);
+      setMobileView("chat");
+    } catch (error) {
+      console.error("Failed to create session:", error);
+    }
+  }
+
+  async function selectSession(sessionId: string) {
+    setActiveSessionId(sessionId);
+    setMobileView("chat");
+  }
+
+  async function deleteSession(sessionId: string) {
+    if (!workspaceId) return;
+
+    try {
+      await aiApi.deleteSession(sessionId, workspaceId);
+      setSessions((current) => current.filter((session) => session.id !== sessionId));
+      if (activeSessionId === sessionId) {
+        const nextSession = sessions.find((session) => session.id !== sessionId) ?? null;
+        setActiveSessionId(nextSession?.id ?? null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+    }
+  }
+
+  async function handleSend() {
+    if (!workspaceId || !activeSessionId || !input.trim()) return;
+
+    const content = input.trim();
+    setInput("");
+    setSending(true);
+    setMessages((current) => [...current, { id: `draft-${Date.now()}`, role: "user", content, createdAt: new Date().toISOString() }]);
+
+    try {
+      const result = await aiApi.postMessage(activeSessionId, workspaceId, content);
+      setMessages((current) =>
+        current
+          .filter((message) => !message.id.startsWith("draft-"))
+          .concat(result.userMessage, result.assistantMessage),
+      );
+      const refreshed = await aiApi.listSessions(workspaceId);
+      setSessions(refreshed);
+    } catch (error) {
+      console.error("Failed to send AI message:", error);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const isCompact = typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  const showSessionsColumn = !isCompact || mobileView === "sessions";
+  const showChatColumn = !isCompact || mobileView === "chat";
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <>
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => onOpenChange(false)}
+          />
+          <motion.aside
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[940px] flex-col border-l border-border-default bg-bg-secondary/95 shadow-2xl backdrop-blur-xl md:w-[940px]"
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={panelVariants}
+            transition={{ type: "spring", bounce: 0, duration: 0.32 }}
+          >
+            <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3 md:px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orbit-primary/15 text-orbit-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-serif text-lg text-text-primary">AI Assistant</div>
+                  <p className="text-xs text-text-tertiary">Context-aware answers, summaries, and follow-up drafts</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={createSession} className="hidden md:inline-flex">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  New Chat
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border-subtle text-text-tertiary transition hover:bg-surface-hover hover:text-text-primary"
+                  aria-label="Close AI assistant"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+              {showSessionsColumn ? (
+                <aside className="flex w-full flex-col border-b border-border-subtle bg-bg-primary/40 md:w-[180px] md:border-b-0 md:border-r md:border-border-subtle">
+                  <div className="flex items-center justify-between px-4 py-3 md:hidden">
+                    <button type="button" className="inline-flex items-center gap-2 text-sm text-text-secondary" onClick={() => setMobileView("chat")}>
+                      <Menu className="h-4 w-4" /> Chat
+                    </button>
+                    <Button variant="outline" size="sm" onClick={createSession}>
+                      <Plus className="mr-1.5 h-3.5 w-3.5" /> New
+                    </Button>
+                  </div>
+                  <div className="hidden border-b border-border-subtle px-4 py-3 md:block">
+                    <Button variant="outline" size="sm" className="w-full" onClick={createSession}>
+                      <Plus className="mr-1.5 h-3.5 w-3.5" /> New Chat
+                    </Button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                    {loadingSessions ? (
+                      <div className="flex items-center justify-center py-6 text-text-tertiary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : sessions.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border-subtle p-4 text-xs text-text-tertiary">
+                        No chats yet. Start a new thread.
+                      </div>
+                    ) : (
+                      sessions.map((session) => (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => selectSession(session.id)}
+                          className={cn(
+                            "mb-2 flex w-full flex-col rounded-xl border px-3 py-2 text-left transition",
+                            activeSessionId === session.id
+                              ? "border-orbit-primary bg-orbit-primary-muted"
+                              : "border-border-subtle bg-bg-secondary hover:bg-surface-hover",
+                          )}
+                        >
+                          <span className="truncate text-sm text-text-primary">{session.title}</span>
+                          <span className="text-[11px] text-text-tertiary">{session._count?.messages ?? 0} messages</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </aside>
+              ) : null}
+
+              {showChatColumn ? (
+                <section className="flex min-h-0 flex-1 flex-col">
+                  <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3 md:px-6">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="gap-1.5">
+                        <Bot className="h-3.5 w-3.5" />
+                        {activeSession?.title ?? "New Chat"}
+                      </Badge>
+                      <span className="font-mono text-[11px] text-text-tertiary">{messages.length} msgs</span>
+                    </div>
+                    <div className="flex items-center gap-2 md:hidden">
+                      <Button variant="ghost" size="sm" onClick={() => setMobileView("sessions")}>
+                        Sessions
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+                    {loadingSession ? (
+                      <div className="flex items-center justify-center py-12 text-text-tertiary">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading conversation…
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-dashed border-border-subtle bg-bg-primary/40 p-6 text-sm text-text-secondary">
+                        <div className="font-serif text-2xl text-text-primary">Ask anything about your workspace</div>
+                        <ul className="grid gap-2 sm:grid-cols-2">
+                          <li>• Summarize a contact history</li>
+                          <li>• Draft a follow-up template</li>
+                          <li>• Find active deal risks</li>
+                          <li>• Search tasks by assignee</li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {messages.map((message) => (
+                          <MessageBubble key={message.id} message={message} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-border-subtle bg-bg-primary/70 p-4 md:p-6">
+                    <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle bg-bg-secondary/80 p-3 shadow-sm">
+                      <Textarea
+                        value={input}
+                        onChange={(event) => setInput(event.target.value)}
+                        placeholder="Ask about a contact, deal, or draft a follow-up..."
+                        className="min-h-24 resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus-visible:ring-0"
+                        rows={4}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            void handleSend();
+                          }
+                        }}
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-text-tertiary">Press Enter to send · Shift+Enter for newline</p>
+                        <Button onClick={() => void handleSend()} disabled={sending || !input.trim() || !activeSessionId}>
+                          {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                          Send
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          </motion.aside>
+        </>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function MessageBubble({ message }: { message: ChatMessageRow }) {
+  const isUser = message.role === "user";
+
+  return (
+    <div className={cn("flex max-w-[85%] flex-col gap-2 rounded-2xl border px-4 py-3 text-sm leading-6", isUser ? "ml-auto border-orbit-primary/20 bg-orbit-primary/15 text-text-primary" : "border-border-subtle bg-bg-secondary text-text-secondary") }>
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-text-tertiary">
+        <span>{isUser ? "You" : "Orbit AI"}</span>
+      </div>
+      <p className="whitespace-pre-wrap">{message.content}</p>
+    </div>
+  );
+}

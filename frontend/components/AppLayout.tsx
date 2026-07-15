@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { workspacesApi } from "@/lib/workspaces-api";
 import SearchDialog from "./SearchDialog";
+import AiChatDrawer from "./AiChatDrawer";
 import { toast } from "sonner";
 import {
   Users,
@@ -57,6 +58,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [activeFilter, setActiveFilter] = useState("This week");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
 
   useEffect(() => {
     async function loadSessionAndWorkspace() {
@@ -90,22 +92,24 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
       if (event.key === "Escape") {
         setIsMobileMenuOpen(false);
         setIsProfileDropdownOpen(false);
+        setIsSearchOpen(false);
+        setIsAiDrawerOpen(false);
       }
     };
 
-    if (isMobileMenuOpen || isProfileDropdownOpen) {
+    if (isMobileMenuOpen || isProfileDropdownOpen || isSearchOpen || isAiDrawerOpen) {
       window.addEventListener("keydown", handleEscape);
       return () => window.removeEventListener("keydown", handleEscape);
     }
 
     return undefined;
-  }, [isMobileMenuOpen, isProfileDropdownOpen]);
+  }, [isMobileMenuOpen, isProfileDropdownOpen, isSearchOpen, isAiDrawerOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setIsSearchOpen((open) => !open);
+        setIsAiDrawerOpen(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -113,7 +117,8 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   }, []);
 
   useEffect(() => {
-    if (!isMobileMenuOpen) {
+    const anyOpen = isMobileMenuOpen || isAiDrawerOpen;
+    if (!anyOpen) {
       document.body.style.overflow = "";
       return;
     }
@@ -122,7 +127,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, isAiDrawerOpen]);
 
   const handleSignOut = async () => {
     try {
@@ -154,7 +159,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, active: pathname === "/tasks" },
     { href: "#", label: "Automations", icon: GitFork, active: false },
-    { href: "#", label: "AI Assistant", icon: Sparkles, active: false },
   ];
 
   const settingsItem = { href: "/settings", label: "Settings", icon: Settings, active: pathname === "/settings" };
@@ -195,6 +199,15 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               {label}
             </Link>
           ))}
+
+          <button
+            type="button"
+            className="nav-item text-left"
+            onClick={() => setIsAiDrawerOpen(true)}
+          >
+            <Sparkles className="h-[18px] w-[18px]" />
+            AI Assistant
+          </button>
 
           <div className="nav-group-sep"></div>
 
@@ -283,7 +296,15 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
+              <button
+                type="button"
+                className="mobile-menu-trigger"
+                onClick={() => setIsAiDrawerOpen(true)}
+                aria-label="Open AI assistant"
+              >
+                <Sparkles className="h-5 w-5" />
+              </button>
               <button
                 type="button"
                 className="top-avatar focus:outline-none"
@@ -332,6 +353,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
         </div>
       </div>
       <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
+      <AiChatDrawer open={isAiDrawerOpen} onOpenChange={setIsAiDrawerOpen} />
     </WorkspaceContext.Provider>
   );
 }

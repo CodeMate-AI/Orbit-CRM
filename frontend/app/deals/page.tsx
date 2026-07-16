@@ -44,6 +44,19 @@ import {
   normalizeDealCloseDate,
   normalizeDealOptionalString,
 } from "./deal-normalizers";
+import {
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 function AddDealModal({
   workspaceId,
@@ -717,6 +730,146 @@ function DealDetailDrawer({
   );
 }
 
+function DraggableDealCard({
+  deal,
+  stages,
+  movingDealId,
+  handleMoveStage,
+  handleDeleteDeal,
+  formatCurrency,
+  formatDate,
+  router,
+  disabled,
+  onClick,
+}: {
+  deal: DealRow;
+  stages: StageColumn[];
+  movingDealId: string | null;
+  handleMoveStage: (id: string, currentStageId: string, newStageId: string) => Promise<void>;
+  handleDeleteDeal: (id: string, stageId: string) => Promise<void>;
+  formatCurrency: (amount: number | null) => string | null;
+  formatDate: (date: string | null) => string | null;
+  router: any;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: deal.id,
+    disabled,
+    data: {
+      deal,
+      stageId: deal.stageId,
+    },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.3 : 1,
+  };
+
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`group relative cursor-pointer rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm transition-colors hover:border-orbit-primary ${
+        disabled ? "" : "touch-none"
+      }`}
+      onClick={(e) => {
+        if (transform) return; // ignore click if dragged
+        onClick();
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-sm font-medium leading-snug text-text-primary">{deal.name}</h3>
+        <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100" onClick={(e) => e.stopPropagation()}>
+          <label className="relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded border border-border-subtle bg-surface-default text-text-tertiary hover:text-orbit-primary focus-within:text-orbit-primary">
+            <select
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              value={deal.stageId}
+              disabled={movingDealId === deal.id}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                e.stopPropagation();
+                void handleMoveStage(deal.id, deal.stageId, e.target.value);
+              }}
+              aria-label={`Move ${deal.name} to another stage`}
+            >
+              {stages.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
+            </select>
+            {movingDealId === deal.id ? (
+              <Loader2 className="m-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ChevronDown className="m-1.5 h-3.5 w-3.5" />
+            )}
+          </label>
+          <button
+            type="button"
+            className="text-text-tertiary transition-colors duration-200 hover:text-error focus:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleDeleteDeal(deal.id, deal.stageId);
+            }}
+            aria-label={`Delete ${deal.name}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      {deal.company && <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>}
+      <div className="mt-3 flex flex-col gap-1.5">
+        {deal.amount !== null && (
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
+            <span className="font-mono">{formatCurrency(deal.amount)}</span>
+          </div>
+        )}
+        {deal.closeDate && (
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-mono">Close {formatDate(deal.closeDate)}</span>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function DroppableStageColumn({
+  column,
+  activeStageId,
+  children,
+}: {
+  column: StageColumn;
+  activeStageId: string | null;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded border bg-bg-secondary p-4 transition-all duration-200 ${
+        isOver ? "border-orbit-primary bg-bg-tertiary shadow-md" : "border-border-subtle"
+      } ${
+        activeStageId === column.id
+          ? "block w-full min-w-0 flex-shrink-0 sm:min-w-[280px] sm:max-w-[300px]"
+          : "hidden sm:block sm:min-w-[280px] sm:max-w-[300px] sm:flex-shrink-0"
+      }`}
+      style={{ borderTopColor: column.color, borderTopWidth: 2 }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function DealsContent() {
   const router = useRouter();
   const { workspaceId } = useWorkspace();
@@ -737,6 +890,57 @@ function DealsContent() {
 
   const [views, setViews] = useState<ViewRow[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
+
+  // DnD & Responsiveness states
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeDragDeal, setActiveDragDeal] = useState<DealRow | null>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+
+  const sensors = useSensors(pointerSensor, touchSensor);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    if (isMobile) return;
+    const deal = event.active.data.current?.deal as DealRow | undefined;
+    if (deal) {
+      setActiveDragDeal(deal);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragDeal(null);
+    if (isMobile) return;
+    const { active, over } = event;
+    if (!over) return;
+
+    const dealId = active.id as string;
+    const newStageId = over.id as string;
+    const currentStageId = active.data.current?.stageId as string | undefined;
+
+    if (currentStageId && currentStageId !== newStageId) {
+      void handleMoveStage(dealId, currentStageId, newStageId);
+    }
+  };
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -1140,103 +1344,72 @@ function DealsContent() {
       )}
 
       {!loading && !error && stages.length > 0 && (
-        <section ref={boardRef} className="flex gap-4 overflow-x-auto pb-4">
-          {filteredStages.map((column) => (
-            <div
-              key={column.id}
-              className={`rounded border border-border-subtle bg-bg-secondary p-4 transition-all duration-200 ${
-                activeStageId === column.id
-                  ? "block w-full min-w-0 flex-shrink-0 sm:min-w-[280px] sm:max-w-[300px]"
-                  : "hidden sm:block sm:min-w-[280px] sm:max-w-[300px] sm:flex-shrink-0"
-              }`}
-              style={{ borderTopColor: column.color, borderTopWidth: 2 }}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold">{column.name}</h2>
-                  <p className="mt-0.5 text-xs text-text-secondary">
-                    {column.deals.length} deal{column.deals.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <span className="rounded bg-bg-tertiary px-2.5 py-1 font-mono text-xs text-text-secondary">
-                  {column.deals.length}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {column.deals.length === 0 ? (
-                  <div className="rounded border border-dashed border-border-subtle py-6 text-center text-xs text-text-tertiary">
-                    No deals
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <section ref={boardRef} className="flex gap-4 overflow-x-auto pb-4">
+            {filteredStages.map((column) => (
+              <DroppableStageColumn
+                key={column.id}
+                column={column}
+                activeStageId={activeStageId}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold">{column.name}</h2>
+                    <p className="mt-0.5 text-xs text-text-secondary">
+                      {column.deals.length} deal{column.deals.length !== 1 ? "s" : ""}
+                    </p>
                   </div>
-                ) : (
-                  column.deals.map((deal) => (
-                    <article
-                      key={deal.id}
-                      className="group relative cursor-pointer rounded border border-border-subtle bg-bg-tertiary p-4 shadow-sm transition-colors hover:border-orbit-primary"
-                      onClick={() => router.push(`/deals/${deal.id}`)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-sm font-medium leading-snug text-text-primary">{deal.name}</h3>
-                        <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-                          <label className="relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded border border-border-subtle bg-surface-default text-text-tertiary hover:text-orbit-primary focus-within:text-orbit-primary">
-                            <select
-                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                              value={deal.stageId}
-                              disabled={movingDealId === deal.id}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                void handleMoveStage(deal.id, deal.stageId, e.target.value);
-                              }}
-                              aria-label={`Move ${deal.name} to another stage`}
-                            >
-                              {stages.map((stage) => (
-                                <option key={stage.id} value={stage.id}>
-                                  {stage.name}
-                                </option>
-                              ))}
-                            </select>
-                            {movingDealId === deal.id ? (
-                              <Loader2 className="m-1.5 h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <ChevronDown className="m-1.5 h-3.5 w-3.5" />
-                            )}
-                          </label>
-                          <button
-                            type="button"
-                            className="text-text-tertiary transition-colors duration-200 hover:text-error focus:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDeleteDeal(deal.id, deal.stageId);
-                            }}
-                            aria-label={`Delete ${deal.name}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      {deal.company && <p className="mt-1 text-xs text-text-tertiary">{deal.company}</p>}
-                      <div className="mt-3 flex flex-col gap-1.5">
-                        {deal.amount !== null && (
-                          <div className="flex items-center gap-2 text-xs text-text-secondary">
-                            <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
-                            <span className="font-mono">{formatCurrency(deal.amount)}</span>
-                          </div>
-                        )}
-                        {deal.closeDate && (
-                          <div className="flex items-center gap-2 text-xs text-text-secondary">
-                            <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-                            <span className="font-mono">Close {formatDate(deal.closeDate)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  ))
-                )}
+                  <span className="rounded bg-bg-tertiary px-2.5 py-1 font-mono text-xs text-text-secondary">
+                    {column.deals.length}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {column.deals.length === 0 ? (
+                    <div className="rounded border border-dashed border-border-subtle py-6 text-center text-xs text-text-tertiary">
+                      No deals
+                    </div>
+                  ) : (
+                    column.deals.map((deal) => (
+                      <DraggableDealCard
+                        key={deal.id}
+                        deal={deal}
+                        stages={stages}
+                        movingDealId={movingDealId}
+                        handleMoveStage={handleMoveStage}
+                        handleDeleteDeal={handleDeleteDeal}
+                        formatCurrency={formatCurrency}
+                        formatDate={formatDate}
+                        router={router}
+                        disabled={isMobile}
+                        onClick={() => router.push(`/deals/${deal.id}`)}
+                      />
+                    ))
+                  )}
+                </div>
+              </DroppableStageColumn>
+            ))}
+          </section>
+
+          <DragOverlay>
+            {activeDragDeal ? (
+              <div className="rounded border border-orbit-primary bg-bg-tertiary p-4 shadow-lg rotate-2 scale-105 pointer-events-none">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-medium leading-snug text-text-primary">{activeDragDeal.name}</h3>
+                </div>
+                {activeDragDeal.company && <p className="mt-1 text-xs text-text-tertiary">{activeDragDeal.company}</p>}
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {activeDragDeal.amount !== null && (
+                    <div className="flex items-center gap-2 text-xs text-text-secondary">
+                      <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
+                      <span className="font-mono">{formatCurrency(activeDragDeal.amount)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </section>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {showModal && workspaceId && stages.length > 0 && (

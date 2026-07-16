@@ -13,6 +13,7 @@ import { CustomFieldsModule } from "./modules/custom-fields/custom-fields.module
 import { NotesModule } from "./modules/notes/notes.module";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module";
 import { PeopleModule } from "./modules/people/people.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 import { SearchModule } from "./modules/search/search.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { TagsModule } from "./modules/tags/tags.module";
@@ -41,6 +42,7 @@ import { HealthController } from "./modules/health/health.controller";
     NotesModule,
     OpportunitiesModule,
     PeopleModule,
+    ReportsModule,
     SearchModule,
     SettingsModule,
     TagsModule,

@@ -11,6 +11,8 @@ import {
   WorkflowTriggerType,
 } from "@/lib/workflows-api";
 import { toast } from "sonner";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonRow from "@/components/ui/SkeletonRow";
 import {
   AlertTriangle,
   ArrowDown,
@@ -602,9 +604,19 @@ export default function AutomationsPage() {
 
           <div className="mt-5 space-y-3">
             {loading ? (
-              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-5 text-sm text-text-secondary">Loading workflows…</div>
+              <SkeletonRow count={4} widths={["80%", "60%"]} />
             ) : error ? (
               <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-200">{error}</div>
+            ) : workflows.length === 0 ? (
+              <EmptyState
+                icon={<Bot className="h-8 w-8" />}
+                title="No automations yet"
+                description="Create a new workflow to automate repetitive CRM tasks."
+                action={{
+                  label: "New automation",
+                  onClick: createNew,
+                }}
+              />
             ) : (
               workflows.map((workflow) => (
                 <WorkflowCard

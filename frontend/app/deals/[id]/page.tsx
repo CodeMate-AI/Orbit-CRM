@@ -1,43 +1,53 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
-import NoteEditor from "@/components/NoteEditor";
-import { activitiesApi, ActivityRow } from "@/lib/activities-api";
-import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
+import ActivityTimeline from "@/components/ActivityTimeline";
+import AttachmentList from "@/components/AttachmentList";
+import NotesTimeline from "@/components/NotesTimeline";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
-import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
-import { notesApi, NoteRow } from "@/lib/notes-api";
-import { opportunitiesApi, StageColumn, OpportunityDetailRow } from "@/lib/opportunities-api";
+import { opportunitiesApi, OpportunityDetailRow, StageColumn } from "@/lib/opportunities-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
-import { tagsApi, TagRow } from "@/lib/tags-api";
-import { tasksApi, TaskRow } from "@/lib/tasks-api";
+import { formatMoney, buildContactLabel } from "../deal-detail-utils.js";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarDays, CheckSquare, ChevronDown, CircleDollarSign, Loader2, Tag as TagIcon, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  CalendarDays,
+  CircleDollarSign,
+  Loader2,
+  Mail,
+  Phone,
+  Plus,
+  Search,
+  X,
+  ChevronDown,
+  Users,
+  Clock3,
+} from "lucide-react";
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
+function formatDate(value: string | null, options: Intl.DateTimeFormatOptions) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", options);
 }
 
-function ActivityIcon({ type }: { type: ActivityRow["type"] }) {
-  if (type === "DEAL_STAGE_CHANGED") return <TagIcon className="h-4 w-4" />;
-  if (type === "TASK_COMPLETED") return <CheckSquare className="h-4 w-4" />;
-  return <CircleDollarSign className="h-4 w-4" />;
-}
-
-function DealCustomFieldEditor({ field, saving, onSave }: { field: CustomFieldDefinitionRow; saving: boolean; onSave: (value: string) => void }) {
-  const [value, setValue] = useState(String(field.value ?? ""));
-  useEffect(() => setValue(String(field.value ?? "")), [field.value]);
-  return (
-    <div className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
-      <div className="mb-2 text-sm font-medium text-text-primary">{field.label}</div>
-      <div className="flex gap-2">
-        <input className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onSave(value)} />
-        <button type="button" className="btn-primary h-10 justify-center px-3 text-xs" disabled={saving} onClick={() => onSave(value)}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button>
-      </div>
-    </div>
-  );
+function formatDateTime(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 function DealDetailPage() {
@@ -48,218 +58,515 @@ function DealDetailPage() {
 
   const [detail, setDetail] = useState<OpportunityDetailRow | null>(null);
   const [stages, setStages] = useState<StageColumn[]>([]);
-  const [company, setCompany] = useState<CompanyRow | null>(null);
-  const [contacts, setContacts] = useState<PersonRow[]>([]);
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
-  const [notes, setNotes] = useState<NoteRow[]>([]);
-  const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
-  const [tags, setTags] = useState<TagRow[]>([]);
-  const [assignedTags, setAssignedTags] = useState<TagRow[]>([]);
-  const [customFields, setCustomFields] = useState<CustomFieldDefinitionRow[]>([]);
-  const [newTagId, setNewTagId] = useState("");
-  const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState("#22c55e");
-  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
-  const [savingNote, setSavingNote] = useState(false);
-  const [newNoteBody, setNewNoteBody] = useState<any>(null);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [people, setPeople] = useState<PersonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const relatedTasks = useMemo(() => tasks.filter((task) => task.opportunityId === detail?.id), [tasks, detail]);
-  const pipelineStageHistory = useMemo(() => activities.filter((activity) => activity.type === "DEAL_STAGE_CHANGED"), [activities]);
+  const [draftName, setDraftName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [savingStageId, setSavingStageId] = useState<string | null>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
+  const [linkingPersonId, setLinkingPersonId] = useState<string | null>(null);
+  const [unlinkingPersonId, setUnlinkingPersonId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workspaceId || !dealId) return;
+
     setLoading(true);
     setError("");
+
     Promise.all([
       opportunitiesApi.get(dealId),
       opportunitiesApi.list(workspaceId),
       companiesApi.list(workspaceId),
       peopleApi.list(workspaceId),
-      activitiesApi.listForEntity(workspaceId, "opportunity", dealId),
-      notesApi.list(workspaceId, "opportunity", dealId),
-      tasksApi.list(workspaceId),
-      attachmentsApi.list(workspaceId, "opportunity", dealId),
-      tagsApi.list(workspaceId),
-      tagsApi.listForEntity(workspaceId, "opportunity", dealId),
-      customFieldValuesApi.get(workspaceId, "OPPORTUNITY", dealId),
     ])
-      .then(([opp, listResponse, companyRows, peopleResponse, timeline, noteRows, taskRows, fileRows, tagRows, assignedRows, fieldRows]) => {
+      .then(([opp, listResponse, companyRows, peopleResponse]) => {
         setDetail(opp);
+        setDraftName(opp.name);
         setStages(listResponse.stages);
-        setCompany(companyRows.find((entry) => entry.id === opp.companyId) ?? null);
-        setContacts(peopleResponse.data.filter((person) => opp.contacts.some((contact) => contact.id === person.id)));
-        setActivities(timeline);
-        setNotes(noteRows);
-        setTasks(taskRows);
-        setAttachments(fileRows);
-        setTags(tagRows);
-        setAssignedTags(assignedRows);
-        setCustomFields(fieldRows);
+        setCompanies(companyRows);
+        setPeople(peopleResponse.data);
       })
-      .catch((err) => setError(err.message || "Failed to load deal."))
+      .catch((err: any) => {
+        setError(err.message || "Failed to load deal.");
+      })
       .finally(() => setLoading(false));
   }, [workspaceId, dealId]);
 
-  const saveNote = async () => {
-    if (!workspaceId || !detail) return;
-    if (!newNoteBody?.content || newNoteBody.content.length === 0) {
-      toast.error("Note content cannot be empty.");
+  const currentStage = useMemo(() => {
+    if (!detail) return null;
+    return stages.find((stage) => stage.id === detail.stageId) ?? detail.stage ?? null;
+  }, [detail, stages]);
+
+  const company = useMemo(() => {
+    if (!detail?.companyId) return null;
+    return companies.find((entry) => entry.id === detail.companyId) ?? null;
+  }, [companies, detail?.companyId]);
+
+  const linkedContactIds = useMemo(() => new Set(detail?.contacts.map((contact) => contact.id) ?? []), [detail?.contacts]);
+
+  const availableContacts = useMemo(() => {
+    const search = contactSearch.trim().toLowerCase();
+    return people
+      .filter((person) => !linkedContactIds.has(person.id))
+      .filter((person) => {
+        if (!search) return true;
+        const companyName = person.company ?? "";
+        return [person.name, person.email ?? "", person.jobTitle ?? "", companyName]
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [contactSearch, linkedContactIds, people]);
+
+  const handleSaveName = async () => {
+    if (!detail) return;
+
+    const nextName = draftName.trim();
+    if (!nextName) {
+      toast.error("Deal name is required.");
+      setDraftName(detail.name);
       return;
     }
-    setSavingNote(true);
+
+    if (nextName === detail.name) return;
+
+    setSavingName(true);
     try {
-      const created = await notesApi.create({ workspaceId, opportunityId: detail.id, body: newNoteBody });
-      setNotes((current) => [created, ...current]);
-      setNewNoteBody(null);
+      await opportunitiesApi.update(detail.id, { name: nextName });
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
+      setDraftName(refreshed.name);
+      toast.success("Deal name updated.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to save note.");
+      toast.error(err.message || "Failed to update deal name.");
+      setDraftName(detail.name);
     } finally {
-      setSavingNote(false);
+      setSavingName(false);
     }
   };
 
-  const saveField = async (field: CustomFieldDefinitionRow, value: string) => {
-    if (!workspaceId || !detail) return;
-    setSavingFieldId(field.id);
-    try {
-      const updated = await customFieldValuesApi.upsert(workspaceId, { fieldId: field.id, entityType: "OPPORTUNITY", entityId: detail.id, value: value.trim() });
-      setCustomFields((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save custom field.");
-    } finally {
-      setSavingFieldId(null);
-    }
-  };
+  const handleStageChange = async (stageId: string) => {
+    if (!detail || stageId === detail.stageId) return;
 
-  const createTag = async () => {
-    if (!workspaceId || !tagName.trim()) return;
-    try {
-      const created = await tagsApi.create(workspaceId, { name: tagName.trim(), color: tagColor });
-      setTags((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setTagName("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create tag.");
-    }
-  };
+    const previousStageId = detail.stageId;
+    const previousStage = stages.find((stage) => stage.id === previousStageId) ?? detail.stage ?? null;
+    const nextStage = stages.find((stage) => stage.id === stageId) ?? null;
 
-  const assignTag = async () => {
-    if (!workspaceId || !detail || !newTagId) return;
-    try {
-      await tagsApi.assign(workspaceId, { entityType: "opportunity", entityId: detail.id, tagId: newTagId });
-      const tag = tags.find((entry) => entry.id === newTagId);
-      if (tag && !assignedTags.some((entry) => entry.id === tag.id)) setAssignedTags((current) => [...current, tag].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewTagId("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to assign tag.");
-    }
-  };
+    setSavingStageId(stageId);
+    setDetail((current) =>
+      current
+        ? {
+            ...current,
+            stageId,
+            stage: nextStage ?? current.stage,
+          }
+        : current,
+    );
 
-  const removeTag = async (tagId: string) => {
-    if (!workspaceId || !detail) return;
-    try {
-      await tagsApi.remove(workspaceId, { entityType: "opportunity", entityId: detail.id, tagId });
-      setAssignedTags((current) => current.filter((entry) => entry.id !== tagId));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to remove tag.");
-    }
-  };
-
-  const changeStage = async (stageId: string) => {
-    if (!detail) return;
     try {
       const updated = await opportunitiesApi.update(detail.id, { stageId });
-      setDetail((current) => (current ? { ...current, stageId } : current));
-      setActivities((current) => [{ id: `optimistic-${Date.now()}`, type: "DEAL_STAGE_CHANGED", title: "Deal stage changed", body: `Moved to stage ${stageId}.`, metadata: null, occurredAt: new Date().toISOString(), author: null, personId: null, companyId: null, opportunityId: detail.id }, ...current]);
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
       toast.success(updated.stageName ? `Moved to ${updated.stageName}` : "Stage updated");
     } catch (err: any) {
       toast.error(err.message || "Failed to move stage.");
+      setDetail((current) =>
+        current
+          ? {
+              ...current,
+              stageId: previousStageId,
+              stage: previousStage,
+            }
+          : current,
+      );
+    } finally {
+      setSavingStageId(null);
     }
   };
 
-  if (loading) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10"><Loader2 className="h-5 w-5 animate-spin" /> Loading deal…</div>;
-  if (error || !detail) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10"><p>{error || "Deal not found."}</p><button className="btn-primary" onClick={() => router.push("/deals")}>Back to deals</button></div>;
+  const handleLinkContact = async (personId: string) => {
+    if (!detail) return;
+    setLinkingPersonId(personId);
+    try {
+      const updated = await opportunitiesApi.linkContact(detail.id, personId);
+      setDetail(updated);
+      setContactDialogOpen(false);
+      setContactSearch("");
+      toast.success("Contact linked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to link contact.");
+    } finally {
+      setLinkingPersonId(null);
+    }
+  };
+
+  const handleUnlinkContact = async (personId: string) => {
+    if (!detail) return;
+    setUnlinkingPersonId(personId);
+    try {
+      const updated = await opportunitiesApi.unlinkContact(detail.id, personId);
+      setDetail(updated);
+      toast.success("Contact removed.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove contact.");
+    } finally {
+      setUnlinkingPersonId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10 text-text-secondary">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading deal…
+      </div>
+    );
+  }
+
+  if (error || !detail) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+        <p className="text-sm text-text-secondary">{error || "Deal not found."}</p>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+          onClick={() => router.push("/deals")}
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to deals
+        </button>
+      </div>
+    );
+  }
+
+  const stageLabel = currentStage?.name ?? "No stage";
+  const stageProbability = detail.probability ?? currentStage?.probability ?? null;
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary" onClick={() => router.push("/deals")}><ArrowLeft className="h-4 w-4" /> Back</button>
-        <div className="text-right"><p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Deal detail</p><h1 className="text-2xl font-semibold text-text-primary">{detail.name}</h1></div>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+          onClick={() => router.push("/deals")}
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs uppercase tracking-[0.24em] text-text-tertiary">
+          <Clock3 className="h-3.5 w-3.5" /> Deal detail
+        </div>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
-        <aside className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Deal summary</div>
-            <div className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
-              <p className="text-sm text-text-secondary">Amount</p>
-              <p className="mt-1 text-2xl font-semibold text-text-primary">{detail.amount ?? 0 ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(detail.amount ?? 0) : "—"}</p>
+      <section className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,_rgba(129,116,248,0.12),_transparent_32%),linear-gradient(180deg,_var(--bg-secondary),_var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] md:p-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary">
+              <CircleDollarSign className="h-3.5 w-3.5" /> Opportunity workspace
             </div>
-            <div className="flex items-center gap-2 text-sm text-text-secondary"><CalendarDays className="h-4 w-4" /> Close date {detail.closeDate ? new Date(detail.closeDate).toLocaleDateString("en-IN") : "—"}</div>
+
+            <div className="space-y-3">
+              <input
+                value={draftName}
+                onChange={(event) => setDraftName(event.target.value)}
+                onBlur={() => void handleSaveName()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === "Escape") {
+                    setDraftName(detail.name);
+                    event.currentTarget.blur();
+                  }
+                }}
+                disabled={savingName}
+                className="w-full max-w-4xl rounded-3xl border border-border-subtle bg-bg-secondary/70 px-4 py-3 text-2xl font-semibold text-text-primary outline-none transition placeholder:text-text-muted focus:border-orbit-primary disabled:cursor-not-allowed disabled:opacity-70 sm:text-3xl"
+                aria-label="Deal name"
+              />
+              <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
+                  <CircleDollarSign className="h-4 w-4 text-orbit-primary" /> {formatMoney(detail.amount)}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
+                  <CalendarDays className="h-4 w-4 text-orbit-primary" /> Close date {formatDate(detail.closeDate, { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-text-primary"
+                  style={{
+                    borderColor: currentStage?.color ?? "var(--border-subtle)",
+                    backgroundColor: currentStage?.color ? `${currentStage.color}18` : undefined,
+                  }}
+                >
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: currentStage?.color ?? "var(--orbit-primary)" }} />
+                  {stageLabel}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Stage</div>
+          <div className="w-full max-w-md space-y-2 rounded-3xl border border-border-subtle bg-bg-secondary/70 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Quick stage change</h2>
+                <p className="mt-1 text-sm text-text-secondary">Move the deal to a different pipeline stage.</p>
+              </div>
+              {savingStageId ? <Loader2 className="h-4 w-4 animate-spin text-orbit-primary" /> : null}
+            </div>
+
             <label className="relative block">
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-3 py-3 text-sm" value={detail.stageId} onChange={(e) => changeStage(e.target.value)}>
-                {stages.flatMap((stageColumn) => stageColumn.deals.length >= 0 ? stageColumn.deals : []).length === 0 ? null : null}
-                {stages.flatMap((stageColumn) => stageColumn.deals).length >= 0 ? null : null}
-                {stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+              <select
+                value={detail.stageId}
+                onChange={(event) => void handleStageChange(event.target.value)}
+                disabled={Boolean(savingStageId)}
+                className="w-full appearance-none rounded-2xl border border-border-subtle bg-bg-primary/80 px-4 py-3 pr-10 text-sm text-text-primary outline-none transition focus:border-orbit-primary disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {stages.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
             </label>
           </div>
+        </div>
+      </section>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary"><TagIcon className="h-4 w-4" /> Tags</div>
-            <div className="flex flex-wrap gap-2">{assignedTags.length === 0 ? <span className="text-sm text-text-tertiary">No tags</span> : assignedTags.map((tag) => <span key={tag.id} className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: tag.color }}><button type="button" onClick={() => removeTag(tag.id)}><Trash2 className="h-3 w-3" /></button>{tag.name}</span>)}</div>
-            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
-              <select className="rounded-xl border border-border-subtle bg-bg-tertiary px-3 py-2 text-sm" value={newTagId} onChange={(e) => setNewTagId(e.target.value)}>
-                <option value="">Assign tag</option>
-                {tags.filter((tag) => !assignedTags.some((entry) => entry.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-              </select>
-              <button className="btn-primary h-10 justify-center text-xs" onClick={assignTag} disabled={!newTagId}>Add</button>
-            </div>
-            <div className="space-y-2 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
-              <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Create tag</div>
-              <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="Expansion" />
-              <div className="flex gap-2"><input type="color" className="h-10 w-12 rounded-xl border border-border-subtle bg-bg-secondary p-1" value={tagColor} onChange={(e) => setTagColor(e.target.value)} /><button className="btn-primary flex-1 justify-center text-xs" onClick={createTag}>Create</button></div>
-            </div>
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
+        <div className="space-y-6">
+          <div className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            <ActivityTimeline workspaceId={workspaceId} opportunityId={detail.id} />
           </div>
 
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Custom fields</div>
-            {customFields.length === 0 ? <p className="text-sm text-text-tertiary">No custom fields configured.</p> : customFields.map((field) => <DealCustomFieldEditor key={field.id} field={field} saving={savingFieldId === field.id} onSave={(value) => saveField(field, value)} />)}
+          <div className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            {workspaceId ? <NotesTimeline workspaceId={workspaceId} entityType="opportunity" entityId={detail.id} /> : null}
           </div>
-        </aside>
+        </div>
 
-        <main className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
-          <section>
-            <div className="mb-4 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Activity timeline</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{activities.length} events</span></div>
-            <div className="space-y-3">{activities.length === 0 ? <div className="rounded-2xl border border-dashed border-border-subtle py-10 text-center text-sm text-text-tertiary">No activity yet.</div> : activities.map((activity) => <article key={activity.id} className="flex gap-4 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4"><div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orbit-primary/15 text-orbit-primary"><ActivityIcon type={activity.type} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-medium text-text-primary">{activity.title}</h4><span className="text-xs text-text-tertiary">{formatDateTime(activity.occurredAt)}</span></div>{activity.body && <p className="mt-2 text-sm leading-6 text-text-secondary">{activity.body}</p>}</div></article>)}</div>
+        <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Company</h3>
+                <p className="mt-1 text-sm text-text-secondary">Linked account information.</p>
+              </div>
+              <Building2 className="h-5 w-5 text-orbit-primary" />
+            </div>
+
+            {company || detail.company ? (
+              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                <Link
+                  href={detail.companyId ? `/companies/${detail.companyId}` : "#"}
+                  className={`text-lg font-semibold transition ${detail.companyId ? "text-text-primary hover:text-orbit-primary" : "text-text-primary pointer-events-none"}`}
+                >
+                  {company?.name ?? detail.company?.name ?? "Unknown company"}
+                </Link>
+                <div className="mt-3 space-y-2 text-sm text-text-secondary">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-text-tertiary" />
+                    <span>{company?.industry ?? "Industry not set"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-text-tertiary" />
+                    <span>{company?.city ?? "City not set"}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-4 text-sm text-text-tertiary">
+                No company linked to this deal.
+              </div>
+            )}
           </section>
 
-          <section className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Add note</div>
-            <NoteEditor value={newNoteBody} onChange={setNewNoteBody} />
-            <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 px-4 text-xs" disabled={savingNote} onClick={saveNote}>{savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save note"}</button></div>
+          <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Linked contacts</h3>
+                <p className="mt-1 text-sm text-text-secondary">People associated with this opportunity.</p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+                onClick={() => setContactDialogOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" /> Add contact
+              </button>
+            </div>
+
+            {detail.contacts.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-4 text-sm text-text-tertiary">
+                No contacts linked yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {detail.contacts.map((contact) => (
+                  <div key={contact.id} className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link href={`/contacts/${contact.id}`} className="block truncate text-sm font-semibold text-text-primary transition hover:text-orbit-primary">
+                          {contact.name}
+                        </Link>
+                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-tertiary">
+                          {contact.jobTitle || "No job title"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleUnlinkContact(contact.id)}
+                        disabled={unlinkingPersonId === contact.id}
+                        className="inline-flex items-center gap-2 rounded-full border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-red-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {unlinkingPersonId === contact.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3 text-xs text-text-secondary">
+                      {contact.email ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-bg-primary/70 px-3 py-1.5">
+                          <Mail className="h-3.5 w-3.5" /> {contact.email}
+                        </span>
+                      ) : null}
+                      {contact.phone ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-bg-primary/70 px-3 py-1.5">
+                          <Phone className="h-3.5 w-3.5" /> {contact.phone}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
-        </main>
 
-        <aside className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
-          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Contacts</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{contacts.length}</span></div><div className="space-y-2">{contacts.length === 0 ? <p className="text-sm text-text-tertiary">No contacts linked.</p> : contacts.map((person) => <button key={person.id} type="button" className="w-full rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-left text-sm transition hover:border-orbit-primary" onClick={() => router.push(`/contacts/${person.id}`)}><p className="font-medium text-text-primary">{person.name}</p><p className="mt-1 text-xs text-text-tertiary">{person.jobTitle || "No title"}</p></button>)}</div></div>
+          <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Details</h3>
+                <p className="mt-1 text-sm text-text-secondary">Core deal metadata.</p>
+              </div>
+              <Users className="h-5 w-5 text-orbit-primary" />
+            </div>
 
-          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Task history</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{relatedTasks.length}</span></div><div className="space-y-2">{relatedTasks.length === 0 ? <p className="text-sm text-text-tertiary">No tasks linked.</p> : relatedTasks.slice(0, 5).map((task) => <div key={task.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{task.title}</p><p className="mt-1 text-xs text-text-tertiary">{task.status}</p></div>)}</div></div>
+            <div className="grid gap-3 text-sm text-text-secondary sm:grid-cols-2">
+              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Probability</p>
+                <p className="mt-2 text-lg font-semibold text-text-primary">{stageProbability == null ? "—" : `${stageProbability}%`}</p>
+              </div>
+              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Lead source</p>
+                <p className="mt-2 text-lg font-semibold text-text-primary">{detail.source || "—"}</p>
+              </div>
+              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Created</p>
+                <p className="mt-2 text-sm font-medium text-text-primary">{formatDateTime(detail.createdAt)}</p>
+              </div>
+              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Last updated</p>
+                <p className="mt-2 text-sm font-medium text-text-primary">{formatDateTime(detail.updatedAt)}</p>
+              </div>
+            </div>
+          </section>
 
-          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Files</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{attachments.length}</span></div><div className="space-y-2">{attachments.length === 0 ? <p className="text-sm text-text-tertiary">No files uploaded.</p> : attachments.slice(0, 5).map((file) => <div key={file.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{file.name}</p><p className="mt-1 text-xs text-text-tertiary">{file.mimeType}</p></div>)}</div></div>
+          <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Attachments</h3>
+                <p className="mt-1 text-sm text-text-secondary">Files stored against this opportunity.</p>
+              </div>
+              <CircleDollarSign className="h-5 w-5 text-orbit-primary" />
+            </div>
+
+            {workspaceId ? (
+              <AttachmentList workspaceId={workspaceId} entityType="opportunity" entityId={detail.id} />
+            ) : (
+              <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-4 text-sm text-text-tertiary">
+                Workspace is not available.
+              </div>
+            )}
+          </section>
         </aside>
       </section>
+
+      <Dialog
+        open={contactDialogOpen}
+        onOpenChange={(open) => {
+          setContactDialogOpen(open);
+          if (!open) {
+            setContactSearch("");
+            setLinkingPersonId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add contact</DialogTitle>
+            <DialogDescription>Search workspace people and link one to this deal.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+              <input
+                autoFocus
+                value={contactSearch}
+                onChange={(event) => setContactSearch(event.target.value)}
+                placeholder="Search by name, title, email, or company"
+                className="w-full rounded-2xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+              />
+            </label>
+
+            <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+              {availableContacts.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-6 text-center text-sm text-text-tertiary">
+                  No matching people found.
+                </div>
+              ) : (
+                availableContacts.map((person) => (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => void handleLinkContact(person.id)}
+                    disabled={linkingPersonId === person.id}
+                    className="flex w-full items-center justify-between gap-4 rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4 text-left transition hover:border-orbit-primary hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-text-primary">{buildContactLabel(person)}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                        {person.email ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-bg-primary/70 px-2.5 py-1">
+                            <Mail className="h-3 w-3" /> {person.email}
+                          </span>
+                        ) : null}
+                        {person.company ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-bg-primary/70 px-2.5 py-1">
+                            <Building2 className="h-3 w-3" /> {person.company}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <span className="shrink-0 inline-flex items-center gap-2 rounded-full border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary">
+                      {linkingPersonId === person.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Link
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 export default function DealDetailRoute() {
-  return <AppLayout pageTitle="Deal detail"><DealDetailPage /></AppLayout>;
+  return (
+    <AppLayout pageTitle="Deal detail">
+      <DealDetailPage />
+    </AppLayout>
+  );
 }

@@ -17,6 +17,8 @@ import {
   X,
 } from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonRow from "@/components/ui/SkeletonRow";
 import { toast } from "sonner";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { opportunitiesApi } from "@/lib/opportunities-api";
@@ -617,16 +619,20 @@ function TasksContent() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-20 text-text-tertiary"><Loader2 className="h-5 w-5 animate-spin" /><span className="text-sm">Loading tasks…</span></div>
+          <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />
         ) : error ? (
           <div className="py-16 text-center text-sm text-error">{error}</div>
         ) : filteredTasks.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="rounded-full bg-orbit-primary-muted p-4"><AlertCircle className="h-8 w-8 text-orbit-primary" /></div>
-            <div>
-              <p className="font-medium text-text-primary">No matching tasks found</p>
-              <p className="mt-1 text-sm text-text-secondary">Create a task or adjust the active search and filter criteria.</p>
-            </div>
+          <div className="py-16">
+            <EmptyState
+              icon={<AlertCircle className="h-8 w-8" />}
+              title={tasks.length === 0 ? "No tasks yet" : "No matching tasks found"}
+              description={tasks.length === 0 ? "Create a task to track follow-ups and link back to contacts." : `Try refining search or filters for "${query}".`}
+              action={tasks.length === 0 ? {
+                label: "New task",
+                onClick: () => setShowModal(true),
+              } : undefined}
+            />
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-2xl border border-border-subtle">

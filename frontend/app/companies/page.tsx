@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import TagInput from "@/components/ui/TagInput";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonRow from "@/components/ui/SkeletonRow";
+import { tagsApi, type TagRow } from "@/lib/tags-api";
 import {
   ArrowDown,
   ArrowUp,
@@ -157,7 +161,7 @@ function AddCompanyModal({
   onClose: () => void;
   onCreated: (company: CompanyRow) => void;
 }) {
-  const [form, setForm] = useState<CreateCompanyInput>({
+  const [form, setForm] = useState<CreateCompanyInput & { tags: string[] }>({
     name: "",
     domain: "",
     address: "",
@@ -166,6 +170,7 @@ function AddCompanyModal({
     employeeCount: undefined,
     annualRevenue: undefined,
     linkedInUrl: "",
+    tags: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -179,12 +184,25 @@ function AddCompanyModal({
     setSaving(true);
     setError("");
     try {
+      const { tags, ...rest } = form;
       const data = {
-        ...form,
-        employeeCount: form.employeeCount ? Number(form.employeeCount) : undefined,
-        annualRevenue: form.annualRevenue ? Number(form.annualRevenue) : undefined,
+        ...rest,
+        employeeCount: rest.employeeCount ? Number(rest.employeeCount) : undefined,
+        annualRevenue: rest.annualRevenue ? Number(rest.annualRevenue) : undefined,
       };
       const company = await companiesApi.create(workspaceId, data);
+      if (tags.length > 0) {
+        const workspaceTags = await tagsApi.list(workspaceId);
+        await Promise.all(
+          tags.map(async (tagName) => {
+            const tag = workspaceTags.find(
+              (entry) => entry.name.trim().toLowerCase() === tagName.trim().toLowerCase(),
+            );
+            if (!tag) return;
+            await tagsApi.assign(workspaceId, { entityType: "company", entityId: company.id, tagId: tag.id });
+          }),
+        );
+      }
       onCreated(company);
     } catch (err: any) {
       setError(err.message || "Failed to create company.");
@@ -283,6 +301,14 @@ function AddCompanyModal({
               placeholder="https://linkedin.com/company/acme"
               value={form.linkedInUrl ?? ""}
               onChange={(e) => setForm({ ...form, linkedInUrl: e.target.value })}
+            />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Tags</label>
+            <TagInput
+              workspaceId={workspaceId}
+              value={form.tags}
+              onChange={(tags) => setForm({ ...form, tags })}
             />
           </div>
 
@@ -1315,34 +1341,32 @@ function CompaniesContent() {
             </div>
 
             {loading && (
-              <div className="contacts-feedback-state">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Loading companies…</span>
-              </div>
+              <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />
             )}
 
             {!loading && error && <div className="contacts-feedback-state is-error">{error}</div>}
 
             {!loading && !error && companies.length === 0 && (
               <div className="contacts-feedback-state is-empty">
-                <div className="rounded-full bg-orbit-primary-muted p-4 text-orbit-primary">
-                  <Building2 className="h-8 w-8" />
-                </div>
-                <div>
-                  <p className="font-medium text-text-primary">No companies yet</p>
-                  <p className="mt-2 text-sm text-text-secondary">Add your first organization to populate the workspace.</p>
-                </div>
-                <button type="button" className="btn-primary" onClick={() => setShowModal(true)}>
-                  <Plus className="h-4 w-4" />
-                  Add first company
-                </button>
+                <EmptyState
+                  icon={<Building2 className="h-8 w-8" />}
+                  title="No companies yet"
+                  description="Add your first organization to populate the workspace."
+                  action={{
+                    label: "Add first company",
+                    onClick: () => setShowModal(true),
+                  }}
+                />
               </div>
             )}
 
             {!loading && !error && companies.length > 0 && filteredCompanies.length === 0 && (
               <div className="contacts-feedback-state is-empty">
-                <Search className="h-5 w-5" />
-                <span>No companies match &ldquo;{search}&rdquo;</span>
+                <EmptyState
+                  icon={<Search className="h-8 w-8" />}
+                  title="No companies match your search"
+                  description={`Try refining your search terms for "${search}".`}
+                />
               </div>
             )}
 

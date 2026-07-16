@@ -74,6 +74,7 @@ export class OpportunitiesService {
       where: { id: oppId },
       include: {
         company: { select: { id: true, name: true } },
+        stage: { select: { id: true, name: true, probability: true, color: true } },
         contacts: {
           orderBy: [{ person: { firstName: "asc" } }, { person: { lastName: "asc" } }],
           include: {
@@ -94,9 +95,14 @@ export class OpportunitiesService {
       name: opp.name,
       amount: opp.amount ? Number(opp.amount) : null,
       closeDate: opp.closeDate,
+      probability: opp.probability ?? null,
+      source: opp.source,
       stageId: opp.stageId,
+      stage: opp.stage,
       companyId: opp.companyId,
       company: opp.company,
+      createdAt: opp.createdAt,
+      updatedAt: opp.updatedAt,
       contacts: opp.contacts
         .filter((link) => !link.person.deletedAt)
         .map((link) => ({

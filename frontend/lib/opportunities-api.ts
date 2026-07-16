@@ -37,9 +37,14 @@ export interface OpportunityDetailRow {
   name: string;
   amount: number | null;
   closeDate: string | null;
+  probability: number | null;
+  source: string | null;
   stageId: string;
+  stage: { id: string; name: string; probability: number; color: string } | null;
   companyId: string | null;
   company: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
   contacts: Array<{
     id: string;
     firstName: string;

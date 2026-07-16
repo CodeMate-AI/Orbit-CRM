@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import ActivityTimeline from "@/components/ActivityTimeline";
 import NoteEditor from "@/components/NoteEditor";
 import { AttachmentRow, attachmentsApi } from "@/lib/attachments-api";
-import { activitiesApi, ActivityRow } from "@/lib/activities-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
 import { notesApi, NoteRow } from "@/lib/notes-api";
@@ -13,7 +13,7 @@ import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tagsApi, TagRow } from "@/lib/tags-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, Phone, Plus, Tag as TagIcon, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone, Tag as TagIcon, Trash2 } from "lucide-react";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -38,12 +38,6 @@ function normalizeTagColor(color: string) {
   return color?.startsWith("#") ? color : "#6366f1";
 }
 
-function ActivityIcon({ type }: { type: ActivityRow["type"] }) {
-  if (type === "TASK_COMPLETED") return <CheckSquare className="h-4 w-4" />;
-  if (type === "DEAL_STAGE_CHANGED") return <TagIcon className="h-4 w-4" />;
-  return <UserRound className="h-4 w-4" />;
-}
-
 function buildNotePayload(entityId: string, entityType: "person" | "company" | "opportunity", workspaceId: string, body: any) {
   const payload: any = { workspaceId, body };
   if (entityType === "person") payload.personId = entityId;
@@ -62,7 +56,6 @@ function ContactDetailPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [tags, setTags] = useState<TagRow[]>([]);
   const [assignedTags, setAssignedTags] = useState<TagRow[]>([]);
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
@@ -91,18 +84,16 @@ function ContactDetailPage() {
       companiesApi.list(workspaceId),
       tagsApi.list(workspaceId),
       tagsApi.listForEntity(workspaceId, "person", contactId),
-      activitiesApi.listForEntity(workspaceId, "person", contactId),
       notesApi.list(workspaceId, "person", contactId),
       tasksApi.list(workspaceId),
       attachmentsApi.list(workspaceId, "person", contactId),
       customFieldValuesApi.get(workspaceId, "PERSON", contactId),
     ])
-      .then(([person, companyRows, workspaceTags, tagRows, timeline, noteRows, taskRows, fileRows, fieldRows]) => {
+      .then(([person, companyRows, workspaceTags, tagRows, noteRows, taskRows, fileRows, fieldRows]) => {
         setContact(person);
         setCompanies(companyRows);
         setTags(workspaceTags);
         setAssignedTags(tagRows);
-        setActivities(timeline);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
@@ -213,7 +204,7 @@ function ContactDetailPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/contacts")}> 
+        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/contacts")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="text-right">
@@ -292,29 +283,7 @@ function ContactDetailPage() {
         </aside>
 
         <main className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Activity timeline</h3>
-              <span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{activities.length} events</span>
-            </div>
-            <div className="space-y-3">
-              {activities.length === 0 ? <div className="rounded-2xl border border-dashed border-border-subtle py-10 text-center text-sm text-text-tertiary">No activity yet.</div> : activities.map((activity) => (
-                <article key={activity.id} className="flex gap-4 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
-                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orbit-primary/15 text-orbit-primary">
-                    <ActivityIcon type={activity.type} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="font-medium text-text-primary">{activity.title}</h4>
-                      <span className="text-xs text-text-tertiary">{formatDateTime(activity.occurredAt)}</span>
-                    </div>
-                    {activity.body && <p className="mt-2 text-sm leading-6 text-text-secondary">{activity.body}</p>}
-                    <p className="mt-2 text-xs text-text-tertiary">{activity.author?.name || "System"}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+          <ActivityTimeline workspaceId={workspaceId} personId={contact.id} />
 
           <section className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
             <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Add note</div>

@@ -56,8 +56,35 @@ export const activitiesApi = {
     workspaceId: string,
     entityType: ActivityEntityType,
     entityId: string,
-  ): Promise<ActivityRow[]> =>
-    request(
-      `/activities?workspaceId=${encodeURIComponent(workspaceId)}&entityType=${entityType}&entityId=${encodeURIComponent(entityId)}`,
-    ),
+    type?: ActivityType | ActivityType[],
+  ): Promise<ActivityRow[]> => {
+    const params = new URLSearchParams({
+      workspaceId,
+      entityType,
+      entityId,
+    });
+
+    if (type) {
+      params.set("type", Array.isArray(type) ? type.join(",") : type);
+    }
+
+    return request(`/activities?${params.toString()}`);
+  },
+
+  create: (
+    workspaceId: string,
+    data: {
+      type: ActivityType;
+      title?: string;
+      body?: string;
+      metadata?: unknown;
+      personId?: string | null;
+      companyId?: string | null;
+      opportunityId?: string | null;
+    },
+  ): Promise<ActivityRow> =>
+    request("/activities", {
+      method: "POST",
+      body: JSON.stringify({ ...data, workspaceId }),
+    }),
 };

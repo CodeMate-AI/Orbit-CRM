@@ -19,6 +19,9 @@ import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import AttachmentList from "@/components/AttachmentList";
 import CSVImportModal from "@/components/CSVImportModal";
 import NotesTimeline from "@/components/NotesTimeline";
+import TagInput from "@/components/ui/TagInput";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonRow from "@/components/ui/SkeletonRow";
 import ViewBar from "@/components/ViewBar";
 import { peopleApi, PersonRow, CreatePersonInput } from "@/lib/people-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
@@ -59,8 +62,7 @@ type EditableContactField =
   | "jobTitle"
   | "companyId"
   | "leadSource"
-  | "industry"
-  | "tagsString";
+  | "industry";
 
 type ContactDrawerForm = {
   firstName: string;
@@ -71,7 +73,7 @@ type ContactDrawerForm = {
   companyId: string;
   leadSource: string;
   industry: string;
-  tagsString: string;
+  tags: string[];
 };
 
 const LEAD_SOURCE_OPTIONS = ["LinkedIn", "Referral", "Event", "Website", "Email campaign", "Trade show"];
@@ -141,6 +143,13 @@ function parseTags(tagsString: string | null | undefined) {
     .filter(Boolean);
 }
 
+function serializeTags(tags: string[]) {
+  return tags
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
 function decorateContacts(contacts: PersonRow[]): DecoratedContact[] {
   return contacts.map((contact) => {
     const activityIndex = getStableIndex(contact.id, LAST_ACTIVITY_BUCKETS.length);
@@ -206,7 +215,7 @@ function buildDrawerForm(contact: PersonRow): ContactDrawerForm {
     companyId: contact.companyId ?? "",
     leadSource: contact.leadSource ?? "",
     industry: contact.industry ?? "",
-    tagsString: contact.tagsString ?? "",
+    tags: parseTags(contact.tagsString),
   };
 }
 
@@ -327,7 +336,7 @@ function ContactDetailDrawer({
 }) {
   const { workspaceId } = useWorkspace();
   const [form, setForm] = useState<ContactDrawerForm | null>(null);
-  const [savingField, setSavingField] = useState<EditableContactField | null>(null);
+  const [savingField, setSavingField] = useState<EditableContactField | "tagsString" | null>(null);
   const [phoneError, setPhoneError] = useState("");
   const [activeTab, setActiveTab] = useState<"details" | "notes" | "files">("details");
 
@@ -369,8 +378,6 @@ function ContactDetailDrawer({
           return contact.leadSource ?? "";
         case "industry":
           return contact.industry ?? "";
-        case "tagsString":
-          return contact.tagsString ?? "";
       }
     })();
 
@@ -395,6 +402,32 @@ function ContactDetailDrawer({
     try {
       const updated = await peopleApi.update(contact.id, {
         [field]: field === "companyId" ? payloadValue : payloadValue || undefined,
+      });
+      onContactUpdated(updated);
+      setForm(buildDrawerForm(updated));
+      setPhoneError("");
+      toast.success("Contact updated successfully");
+    } catch (err: any) {
+      setForm(buildDrawerForm(contact));
+      setPhoneError("");
+      toast.error(err.message || "Failed to save contact changes.");
+    } finally {
+      setSavingField(null);
+    }
+  };
+
+  const persistTags = async (nextTags: string[]) => {
+    if (!contact || !form) return;
+
+    const nextTagsString = serializeTags(nextTags);
+    if (nextTagsString === (contact.tagsString ?? "").trim()) {
+      return;
+    }
+
+    setSavingField("tagsString");
+    try {
+      const updated = await peopleApi.update(contact.id, {
+        tagsString: nextTagsString || undefined,
       });
       onContactUpdated(updated);
       setForm(buildDrawerForm(updated));
@@ -452,7 +485,7 @@ function ContactDetailDrawer({
                     <span className="inline-flex rounded-full border border-border-subtle bg-bg-secondary px-3 py-2 text-sm text-slate-100">
                       {contact.jobTitle ?? "No title added"}
                     </span>
-                    {parseTags(form.tagsString).map((tag) => (
+                    {form.tags.map((tag) => (
                       <span
                         key={`${contact.id}-${tag}`}
                         className="inline-flex rounded-full border border-border-subtle bg-bg-secondary px-3 py-2 text-sm text-slate-100"
@@ -565,14 +598,17 @@ function ContactDetailDrawer({
                 onChange={(value) => updateFieldValue("industry", value)}
                 onSave={() => persistField("industry")}
               />
-              <DrawerField
-                label="Tags"
-                value={form.tagsString}
-                placeholder="Customer, Hot lead"
-                saving={savingField === "tagsString"}
-                onChange={(value) => updateFieldValue("tagsString", value)}
-                onSave={() => persistField("tagsString")}
-              />
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Tags</label>
+                <TagInput
+                  workspaceId={workspaceId ?? ""}
+                  value={form.tags}
+                  onChange={(tags) => {
+                    setForm((current) => (current ? { ...current, tags } : current));
+                    void persistTags(tags);
+                  }}
+                />
+              </div>
               <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
                 <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Company</label>
                 <select
@@ -630,13 +666,13 @@ function AddContactModal({
   onClose: () => void;
   onCreated: (person: PersonRow) => void;
 }) {
-  const [form, setForm] = useState<CreatePersonInput>({
+  const [form, setForm] = useState<CreatePersonInput & { tags: string[] }>({
     firstName: "",
     lastName: "",
     companyId: "",
     leadSource: "",
     industry: "",
-    tagsString: "",
+    tags: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -654,7 +690,11 @@ function AddContactModal({
     setSaving(true);
     setError("");
     try {
-      const person = await peopleApi.create(workspaceId, form);
+      const { tags, ...rest } = form;
+      const person = await peopleApi.create(workspaceId, {
+        ...rest,
+        tagsString: serializeTags(tags) || undefined,
+      });
       onCreated(person);
     } catch (err: any) {
       setError(err.message || "Failed to create contact.");
@@ -746,11 +786,10 @@ function AddContactModal({
           </div>
           <div className="form-field">
             <label className="form-label">Tags</label>
-            <input
-              className="form-input"
-              placeholder="Customer, Hot lead"
-              value={form.tagsString ?? ""}
-              onChange={(e) => setForm({ ...form, tagsString: e.target.value })}
+            <TagInput
+              workspaceId={workspaceId}
+              value={form.tags}
+              onChange={(tags) => setForm({ ...form, tags })}
             />
           </div>
           <div className="form-field">
@@ -1208,25 +1247,20 @@ function ContactsContent() {
           </div>
 
           {loading && (
-            <div className="contacts-feedback-state">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading contacts…</span>
-            </div>
+            <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />
           )}
 
           {!loading && !error && contacts.length === 0 && (
             <div className="contacts-feedback-state is-empty">
-              <div className="rounded-full bg-orbit-primary-muted p-4 text-orbit-primary">
-                <UserX className="h-8 w-8" />
-              </div>
-              <div>
-                <p className="font-medium text-text-primary">No contacts yet</p>
-                <p className="mt-2 text-sm text-text-secondary">Add your first contact to populate the premium table.</p>
-              </div>
-              <button type="button" className="btn-primary" onClick={() => setShowModal(true)}>
-                <Plus className="h-4 w-4" />
-                Add first contact
-              </button>
+              <EmptyState
+                icon={<UserX className="h-8 w-8" />}
+                title="No contacts yet"
+                description="Add your first contact to populate the premium table."
+                action={{
+                  label: "Add first contact",
+                  onClick: () => setShowModal(true),
+                }}
+              />
             </div>
           )}
 
@@ -1234,8 +1268,11 @@ function ContactsContent() {
 
           {!loading && !error && contacts.length > 0 && filteredContacts.length === 0 && (
             <div className="contacts-feedback-state is-empty">
-              <Search className="h-5 w-5" />
-              <span>No contacts match &ldquo;{search}&rdquo;</span>
+              <EmptyState
+                icon={<Search className="h-8 w-8" />}
+                title="No contacts match your search"
+                description={`Try refining your search terms for "${search}".`}
+              />
             </div>
           )}
 

@@ -1,12 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
 import { authClient } from "@/lib/auth-client";
 import { workspacesApi } from "@/lib/workspaces-api";
-import { notificationsApi, type NotificationRow } from "@/lib/notifications-api";
 import SearchDialog from "./SearchDialog";
 import AiChatDrawer from "./AiChatDrawer";
 import { useWorkspaceEvents } from "@/hooks/useWorkspaceEvents";
@@ -21,13 +19,12 @@ import {
   Sparkles,
   Settings,
   LogOut,
-  Bell,
   Search,
   ChevronDown,
   MoreHorizontal,
   Menu,
   X,
-  AlertCircle,
+  BarChart2,
 } from "lucide-react";
 
 // ── Workspace context ──────────────────────────────────────────────────────
@@ -59,14 +56,9 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("This week");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
-  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
 
   useWorkspaceEvents(workspaceId);
 
@@ -139,59 +131,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     };
   }, [isMobileMenuOpen, isAiDrawerOpen]);
 
-  const refreshNotifications = useCallback(async () => {
-    if (!workspaceId) {
-      setNotifications([]);
-      setNotificationUnreadCount(0);
-      return;
-    }
-
-    setIsNotificationsLoading(true);
-    try {
-      const [items, unreadCount] = await Promise.all([
-        notificationsApi.list(workspaceId),
-        notificationsApi.unreadCount(workspaceId),
-      ]);
-      setNotifications(items);
-      setNotificationUnreadCount(unreadCount);
-    } catch (error) {
-      console.error("Error loading notifications:", error);
-      toast.error("Failed to load notifications");
-    } finally {
-      setIsNotificationsLoading(false);
-    }
-  }, [workspaceId]);
-
-  useEffect(() => {
-    void refreshNotifications();
-  }, [refreshNotifications]);
-
-  useEffect(() => {
-    if (!workspaceId) return;
-
-    const handleWorkspaceEvent = () => {
-      void refreshNotifications();
-    };
-
-    window.addEventListener("crm:update", handleWorkspaceEvent);
-    return () => window.removeEventListener("crm:update", handleWorkspaceEvent);
-  }, [refreshNotifications, workspaceId]);
-
-  useEffect(() => {
-    if (!isNotificationsOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("[data-notifications-panel]")) {
-        return;
-      }
-      setIsNotificationsOpen(false);
-    };
-
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
-  }, [isNotificationsOpen]);
-
   const handleSignOut = async () => {
     try {
       await authClient.signOut();
@@ -211,63 +150,13 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const getNotificationIcon = (type: string) => {
-    const normalized = type.toLowerCase();
-    if (normalized.includes("task")) return CheckSquare;
-    if (normalized.includes("deal") || normalized.includes("opportunity")) return DollarSign;
-    if (normalized.includes("company")) return Briefcase;
-    if (normalized.includes("contact") || normalized.includes("person")) return Users;
-    if (normalized.includes("fail") || normalized.includes("error")) return AlertCircle;
-    return Bell;
-  };
-
-  const formatNotificationTime = (createdAt: string) => {
-    try {
-      return formatDistanceToNow(new Date(createdAt), { addSuffix: true });
-    } catch {
-      return "just now";
-    }
-  };
-
-  const handleNotificationRead = async (notification: NotificationRow) => {
-    if (notification.isRead) {
-      setIsNotificationsOpen(false);
-      return;
-    }
-
-    try {
-      await notificationsApi.markRead(notification.id);
-      setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item)),
-      );
-      setNotificationUnreadCount((current) => Math.max(0, current - 1));
-    } catch (error) {
-      console.error("Failed to mark notification read:", error);
-      toast.error("Failed to mark notification read");
-    } finally {
-      setIsNotificationsOpen(false);
-    }
-  };
-
-  const handleMarkAllNotificationsRead = async () => {
-    if (!workspaceId || notificationUnreadCount === 0) return;
-
-    try {
-      await notificationsApi.markAllRead(workspaceId);
-      setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
-      setNotificationUnreadCount(0);
-    } catch (error) {
-      console.error("Failed to mark all notifications read:", error);
-      toast.error("Failed to mark all notifications read");
-    }
-  };
-
   const userInitials = currentUser ? getInitials(currentUser.name) : "—";
   const userName = currentUser ? currentUser.name : "";
   const userEmail = currentUser ? currentUser.email : "";
 
   const navigationItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutGrid, active: pathname === "/dashboard" },
+    { href: "/reports", label: "Reports", icon: BarChart2, active: pathname === "/reports" },
     { href: "/contacts", label: "Contacts", icon: Users, active: pathname === "/contacts" },
     { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
     { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
@@ -419,89 +308,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               >
                 <Sparkles className="h-5 w-5" />
               </button>
-              <div className="notifications-anchor">
-                <button
-                  type="button"
-                  className="icon-btn notifications-trigger"
-                  onClick={() => setIsNotificationsOpen((value) => !value)}
-                  aria-label={`Open notifications${notificationUnreadCount ? ` (${notificationUnreadCount} unread)` : ""}`}
-                  aria-expanded={isNotificationsOpen}
-                >
-                  <Bell className="h-4 w-4" />
-                  {notificationUnreadCount > 0 && <span className="notification-badge">{notificationUnreadCount > 99 ? "99+" : notificationUnreadCount}</span>}
-                </button>
-                {isNotificationsOpen && (
-                  <div className="notifications-dropdown notifications-dropdown--mobile" data-notifications-panel>
-                    <div className="notifications-dropdown__header">
-                      <div>
-                        <div className="notifications-dropdown__title">Notifications</div>
-                        <div className="notifications-dropdown__subtitle">{notificationUnreadCount} unread</div>
-                      </div>
-                      <button
-                        type="button"
-                        className="notifications-mark-all"
-                        onClick={handleMarkAllNotificationsRead}
-                        disabled={notificationUnreadCount === 0 || isNotificationsLoading}
-                      >
-                        Mark all read
-                      </button>
-                    </div>
-                    <div className="notifications-dropdown__body">
-                      {isNotificationsLoading ? (
-                        <div className="notifications-dropdown__empty">Loading notifications…</div>
-                      ) : notifications.length > 0 ? (
-                        notifications.map((notification) => {
-                          const Icon = getNotificationIcon(notification.type);
-                          const content = (
-                            <>
-                              <div className="notification-row__icon">
-                                <Icon className="h-4 w-4" />
-                              </div>
-                              <div className="notification-row__content">
-                                <div className="notification-row__topline">
-                                  <span className="notification-row__title">{notification.title}</span>
-                                  <span className="notification-row__time">{formatNotificationTime(notification.createdAt)}</span>
-                                </div>
-                                <p className="notification-row__message">{notification.message}</p>
-                              </div>
-                            </>
-                          );
-
-                          if (notification.link) {
-                            return (
-                              <Link
-                                key={notification.id}
-                                href={notification.link}
-                                className={`notification-row ${notification.isRead ? "is-read" : "is-unread"}`}
-                                onClick={() => {
-                                  void handleNotificationRead(notification);
-                                }}
-                              >
-                                {content}
-                              </Link>
-                            );
-                          }
-
-                          return (
-                            <button
-                              key={notification.id}
-                              type="button"
-                              className={`notification-row ${notification.isRead ? "is-read" : "is-unread"}`}
-                              onClick={() => {
-                                void handleNotificationRead(notification);
-                              }}
-                            >
-                              {content}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="notifications-dropdown__empty">No notifications yet.</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
               <button
                 type="button"
                 className="top-avatar focus:outline-none"
@@ -528,105 +334,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
           <header className="top-bar">
             <h1 className="page-title">{pageTitle}</h1>
             <div className="top-bar-actions">
-              <div className="segmented-control">
-                {[
-                  "This week",
-                  "Month",
-                  "Quarter",
-                  "Year",
-                ].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`segment ${activeFilter === filter ? "active" : ""}`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-              <div className="notifications-anchor notifications-anchor--desktop">
-                <button
-                  type="button"
-                  className="icon-btn notifications-trigger"
-                  onClick={() => setIsNotificationsOpen((value) => !value)}
-                  aria-label={`Open notifications${notificationUnreadCount ? ` (${notificationUnreadCount} unread)` : ""}`}
-                  aria-expanded={isNotificationsOpen}
-                >
-                  <Bell className="h-4 w-4" />
-                  {notificationUnreadCount > 0 && <span className="notification-badge">{notificationUnreadCount > 99 ? "99+" : notificationUnreadCount}</span>}
-                </button>
-                {isNotificationsOpen && (
-                  <div className="notifications-dropdown notifications-dropdown--desktop" data-notifications-panel>
-                    <div className="notifications-dropdown__header">
-                      <div>
-                        <div className="notifications-dropdown__title">Notifications</div>
-                        <div className="notifications-dropdown__subtitle">{notificationUnreadCount} unread</div>
-                      </div>
-                      <button
-                        type="button"
-                        className="notifications-mark-all"
-                        onClick={handleMarkAllNotificationsRead}
-                        disabled={notificationUnreadCount === 0 || isNotificationsLoading}
-                      >
-                        Mark all read
-                      </button>
-                    </div>
-                    <div className="notifications-dropdown__body">
-                      {isNotificationsLoading ? (
-                        <div className="notifications-dropdown__empty">Loading notifications…</div>
-                      ) : notifications.length > 0 ? (
-                        notifications.map((notification) => {
-                          const Icon = getNotificationIcon(notification.type);
-                          const content = (
-                            <>
-                              <div className="notification-row__icon">
-                                <Icon className="h-4 w-4" />
-                              </div>
-                              <div className="notification-row__content">
-                                <div className="notification-row__topline">
-                                  <span className="notification-row__title">{notification.title}</span>
-                                  <span className="notification-row__time">{formatNotificationTime(notification.createdAt)}</span>
-                                </div>
-                                <p className="notification-row__message">{notification.message}</p>
-                              </div>
-                            </>
-                          );
-
-                          if (notification.link) {
-                            return (
-                              <Link
-                                key={notification.id}
-                                href={notification.link}
-                                className={`notification-row ${notification.isRead ? "is-read" : "is-unread"}`}
-                                onClick={() => {
-                                  void handleNotificationRead(notification);
-                                }}
-                              >
-                                {content}
-                              </Link>
-                            );
-                          }
-
-                          return (
-                            <button
-                              key={notification.id}
-                              type="button"
-                              className={`notification-row ${notification.isRead ? "is-read" : "is-unread"}`}
-                              onClick={() => {
-                                void handleNotificationRead(notification);
-                              }}
-                            >
-                              {content}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="notifications-dropdown__empty">No notifications yet.</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
               <div className="search-trigger" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-3.5 w-3.5" />
                 ⌘K

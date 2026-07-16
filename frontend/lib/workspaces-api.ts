@@ -6,23 +6,33 @@ async function request(path: string, options: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include", // Essential for forwarding cookie sessions cross-origin
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || "API request failed");
-  }
-
-  const text = await res.text();
-  if (!text || text === "null") return null;
   try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: "include", // Essential for forwarding cookie sessions cross-origin
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "API request failed");
+    }
+
+    const text = await res.text();
+    if (!text || text === "null") return null;
     return JSON.parse(text);
-  } catch {
-    return null;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
+    }
+    throw err;
   }
 }
 

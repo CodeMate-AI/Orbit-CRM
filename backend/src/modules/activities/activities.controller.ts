@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query, UseGuards, BadRequestException } from "@nestjs/common";
 import { ActivityType } from "@prisma/client";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/user.decorator";
@@ -16,6 +16,8 @@ interface CreateActivityDto {
   opportunityId?: string | null;
 }
 
+const VALID_ACTIVITY_TYPES = new Set(Object.values(ActivityType));
+
 @Controller("activities")
 @UseGuards(AuthGuard)
 export class ActivitiesController {
@@ -29,10 +31,19 @@ export class ActivitiesController {
     @Query("entityId") entityId: string,
     @Query("type") type?: string,
   ) {
-    const types = type
-      ?.split(",")
-      .map((entry) => entry.trim())
-      .filter(Boolean) as ActivityType[] | undefined;
+    let types: ActivityType[] | undefined;
+    if (type) {
+      types = type
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean) as ActivityType[];
+
+      for (const t of types) {
+        if (!VALID_ACTIVITY_TYPES.has(t)) {
+          throw new BadRequestException(`Invalid activity type filter: ${t}`);
+        }
+      }
+    }
 
     return this.activitiesService.listForEntity(user.id, workspaceId, entityType, entityId, types);
   }

@@ -101,19 +101,21 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #5ea0d4, #94d0fa)",
   "linear-gradient(135deg, #a05ed4, #d094fa)",
 ];
-const LAST_ACTIVITY_BUCKETS = [
-  { label: "Just now", sort: 0 },
-  { label: "2 hr ago", sort: 2 },
-  { label: "3 hr ago", sort: 3 },
-  { label: "4 hr ago", sort: 4 },
-  { label: "5 hr ago", sort: 5 },
-  { label: "6 hr ago", sort: 6 },
-  { label: "8 hr ago", sort: 8 },
-  { label: "1 day ago", sort: 24 },
-  { label: "2 days ago", sort: 48 },
-];
 const INDIAN_PHONE_ERROR =
   "Phone must be a valid Indian phone number starting with +91 or 91, followed by exactly 10 digits.";
+
+function formatRelativeTime(dateStr: string | Date) {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
 
 function deriveInitials(name: string) {
   return name
@@ -152,15 +154,13 @@ function serializeTags(tags: string[]) {
 
 function decorateContacts(contacts: PersonRow[]): DecoratedContact[] {
   return contacts.map((contact) => {
-    const activityIndex = getStableIndex(contact.id, LAST_ACTIVITY_BUCKETS.length);
     const gradientIndex = getStableIndex(contact.id, AVATAR_GRADIENTS.length);
-    const activity = LAST_ACTIVITY_BUCKETS[activityIndex];
 
     return {
       ...contact,
       displayTags: parseTags(contact.tagsString),
-      lastActivity: activity.label,
-      lastActivitySort: activity.sort,
+      lastActivity: formatRelativeTime(contact.createdAt),
+      lastActivitySort: new Date(contact.createdAt).getTime(),
       leadSource: contact.leadSource ?? "—",
       industry: contact.industry ?? "—",
       initials: deriveInitials(contact.name),
@@ -187,10 +187,6 @@ function validatePhoneNumber(phone: string | null | undefined): boolean {
     return /^91\d{10}$/.test(clean);
   }
   return /^\d{10}$/.test(clean);
-}
-
-function getTagClassName(tag: string) {
-  return "";
 }
 
 function CheckboxIcon({ checked, indeterminate }: { checked: boolean; indeterminate?: boolean }) {
@@ -1354,7 +1350,7 @@ function ContactsContent() {
                           <div className="tags-cell">
                             {contact.displayTags.length > 0 ? (
                               contact.displayTags.map((tag) => (
-                                <span key={`${contact.id}-${tag}`} className={`tag ${getTagClassName(tag)}`}>
+                                <span key={`${contact.id}-${tag}`} className="tag">
                                   {tag}
                                 </span>
                               ))

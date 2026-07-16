@@ -25,6 +25,9 @@ import {
   Pie,
 } from "recharts";
 
+import { tasksApi } from "@/lib/tasks-api";
+import { toast } from "sonner";
+
 type DashboardRange = "week" | "month" | "quarter" | "year";
 
 const RANGE_OPTIONS: Array<{ value: DashboardRange; label: string }> = [
@@ -156,24 +159,63 @@ function DashboardContent() {
     setError("");
     dashboardApi
       .stats(workspaceId, range)
-      .then(setStats)
+      .then((res) => {
+        setStats(res);
+        const doneSet = new Set<string>();
+        res.upcomingTasks.forEach((t: any) => {
+          if (t.status === "DONE") {
+            doneSet.add(t.id);
+          }
+        });
+        setDoneIds(doneSet);
+      })
       .catch((err) => setError(err.message || "Failed to load dashboard."))
       .finally(() => setLoading(false));
   }, [workspaceId, range]);
 
-  const toggleDone = (id: string) => {
+  const toggleDone = async (id: string) => {
+    const isDone = doneIds.has(id);
     setDoneIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (isDone) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
+
+    try {
+      await tasksApi.update(id, { status: isDone ? "TODO" : "DONE" });
+      toast.success(isDone ? "Task marked incomplete" : "Task marked complete");
+    } catch (err: any) {
+      setDoneIds((prev) => {
+        const next = new Set(prev);
+        if (isDone) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+        return next;
+      });
+      toast.error(err.message || "Failed to update task status");
+    }
   };
 
   const handleRetry = () => {
     if (!workspaceId) return;
     setError("");
     setLoading(true);
-    dashboardApi.stats(workspaceId, range).then(setStats).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    dashboardApi.stats(workspaceId, range).then((res) => {
+      setStats(res);
+      const doneSet = new Set<string>();
+      res.upcomingTasks.forEach((t: any) => {
+        if (t.status === "DONE") {
+          doneSet.add(t.id);
+        }
+      });
+      setDoneIds(doneSet);
+    }).catch((e) => setError(e.message)).finally(() => setLoading(false));
   };
 
   const rangeLabel = RANGE_LABELS[range];

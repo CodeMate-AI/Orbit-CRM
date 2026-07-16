@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 
+import { prisma as globalPrisma } from "../../prisma";
+
 export type ReportsDateRange = "week" | "month" | "quarter" | "year";
 
-let prisma = new PrismaClient();
+let prisma = globalPrisma;
 
 export function setReportsPrisma(client: PrismaClient) {
   prisma = client;

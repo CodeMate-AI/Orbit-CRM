@@ -542,7 +542,10 @@ function TasksContent() {
   };
 
   const handleCreated = (task: TaskRow) => {
-    setTasks((current) => [task, ...current]);
+    setTasks((current) => {
+      if (current.some((t) => t.id === task.id)) return current;
+      return [task, ...current];
+    });
     setShowModal(false);
     toast.success("Task created successfully");
   };

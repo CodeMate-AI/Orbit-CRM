@@ -1393,7 +1393,10 @@ function ContactsContent() {
           companies={companies}
           onClose={() => setShowModal(false)}
           onCreated={(person) => {
-            setContacts((prev) => [person, ...prev]);
+            setContacts((prev) => {
+              if (prev.some((c) => c.id === person.id)) return prev;
+              return [person, ...prev];
+            });
             setSelectedIds(new Set());
             setShowModal(false);
           }}

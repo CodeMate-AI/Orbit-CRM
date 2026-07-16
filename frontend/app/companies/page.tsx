@@ -1481,7 +1481,10 @@ function CompaniesContent() {
             workspaceId={workspaceId}
             onClose={() => setShowModal(false)}
             onCreated={(company) => {
-              setCompanies((prev) => [company, ...prev]);
+              setCompanies((prev) => {
+                if (prev.some((c) => c.id === company.id)) return prev;
+                return [company, ...prev];
+              });
               setSelectedIds(new Set());
               setShowModal(false);
             }}

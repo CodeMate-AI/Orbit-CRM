@@ -1151,7 +1151,13 @@ function DealsContent() {
     .reduce((acc, s) => acc + s.deals.reduce((a, d) => a + (d.amount ?? 0), 0), 0);
 
   const handleDealCreated = (deal: DealRow & { stageName: string }) => {
-    setStages((prev) => prev.map((s) => (s.id === deal.stageId ? { ...s, deals: [deal, ...s.deals] } : s)));
+    setStages((prev) =>
+      prev.map((s) => {
+        if (s.id !== deal.stageId) return s;
+        if (s.deals.some((d) => d.id === deal.id)) return s;
+        return { ...s, deals: [deal, ...s.deals] };
+      })
+    );
     setShowModal(false);
   };
 

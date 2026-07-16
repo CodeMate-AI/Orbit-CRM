@@ -53,37 +53,11 @@ export class WorkflowProcessor extends WorkerHost {
   ) {
     switch (step.type) {
       case "send_notification": {
-        const recipients =
-          Array.isArray(step.recipientUserIds) && step.recipientUserIds.length > 0
-            ? step.recipientUserIds
-            : (
-                await prisma.workspaceMember.findMany({
-                  where: { workspaceId },
-                  select: { userId: true },
-                })
-              ).map((member) => member.userId);
-
-        const title = step.title ?? "Workflow notification";
-        const message = step.message ?? step.description ?? "A workflow action completed.";
-        const link = step.link ?? null;
-
-        for (const userId of recipients) {
-          await prisma.notification.create({
-            data: {
-              type: "WORKFLOW_COMPLETED",
-              title,
-              message,
-              link,
-              workspaceId,
-              userId,
-            },
-          });
-        }
-
+        // Notifications feature removed — step is skipped gracefully
         return {
           type: step.type,
-          createdCount: recipients.length,
-          recipientUserIds: recipients,
+          skipped: true,
+          reason: "Notifications feature is not enabled in this build.",
         };
       }
 

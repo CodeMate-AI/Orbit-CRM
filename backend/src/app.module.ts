@@ -11,7 +11,6 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EventsModule } from "./modules/events/events.module";
 import { CustomFieldsModule } from "./modules/custom-fields/custom-fields.module";
 import { NotesModule } from "./modules/notes/notes.module";
-import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module";
 import { PeopleModule } from "./modules/people/people.module";
 import { SearchModule } from "./modules/search/search.module";
@@ -40,7 +39,6 @@ import { HealthController } from "./modules/health/health.controller";
     EventsModule,
     CustomFieldsModule,
     NotesModule,
-    NotificationsModule,
     OpportunitiesModule,
     PeopleModule,
     SearchModule,

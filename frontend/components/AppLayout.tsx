@@ -111,7 +111,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setIsAiDrawerOpen(true);
+        setIsSearchOpen(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);

@@ -12,8 +12,6 @@ import {
 const navLinks = [
   { label: "Product", href: "#product" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Customers", href: "#customers" },
-  { label: "Docs", href: "#docs" },
 ];
 
 function OrbitLogo() {

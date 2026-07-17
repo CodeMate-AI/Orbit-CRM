@@ -34,12 +34,6 @@ export default function FinalCTA() {
           <Button className="bg-orbit-primary font-sans text-sm font-medium text-[#0b0b0b] hover:bg-orbit-primary-hover" asChild>
             <Link href="/signup">Start free trial</Link>
           </Button>
-          <Button
-            variant="outline"
-            className="border-border-default bg-transparent font-sans text-sm font-medium text-text-primary hover:bg-surface-hover hover:text-text-primary"
-          >
-            Book a demo
-          </Button>
         </div>
       </motion.div>
     </section>

@@ -33,14 +33,14 @@ const features = [
     eyebrow: "Pipeline",
     title: "See your pipeline at a glance",
     body: "Drag, drop, and manage deals through every stage. A visual sales process your team will actually use — clean, fast, and designed for momentum.",
-    checks: ["Fully customizable stages", "Deal value and probability tracking", "Win rates and stage duration"],
+    checks: ["Fully customizable stages", "Deal value and probability tracking", "Win rates and deal status tracking"],
     visualType: "kanban",
   },
   {
     eyebrow: "Customization",
     title: "Your business isn't generic. Neither is your CRM.",
     body: "Capture the data that matters to you. Add custom fields, tags, and categories without writing a single line of code. Make Orbit fit your workflow, not the other way around.",
-    checks: ["Text, number, date, and dropdown fields", "Multi-select and conditional logic", "Field validation and required rules"],
+    checks: ["Text, number, date, and dropdown fields", "Multi-select and customizable fields", "Required field enforcement"],
     visualType: "fields",
   },
   {
@@ -54,14 +54,14 @@ const features = [
     eyebrow: "Automation",
     title: "Let the routine handle itself",
     body: "Build rules that trigger actions, send alerts, and move deals forward automatically. Set it up once, let it run forever — so your team can focus on selling, not admin.",
-    checks: ["Trigger-based rules engine", "Email notifications and task creation", "Slack and webhook integrations"],
+    checks: ["Trigger-based rules engine", "Automated emails and task creation", "Webhook integrations"],
     visualType: "automation",
   },
   {
     eyebrow: "Analytics",
     title: "See what's working. Fix what isn't.",
     body: "Real-time dashboards give every team member the metrics they need. From individual performance to company-wide trends — clarity without the complexity of enterprise reporting tools.",
-    checks: ["Custom dashboards per team", "Revenue forecasting", "Conversion funnels and activity reports"],
+    checks: ["Workspace dashboards", "Revenue forecasting", "Stage summaries and activity logs"],
     visualType: "analytics",
   },
 ];

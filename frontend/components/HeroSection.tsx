@@ -67,13 +67,6 @@ export default function HeroSection() {
             >
               <Link href="/signup">Start free trial</Link>
             </Button>
-            <Button
-              id="hero-demo-btn"
-              variant="outline"
-              className="border-border-default bg-transparent font-sans text-sm font-medium tracking-[0.01em] text-text-primary hover:bg-surface-hover hover:text-text-primary"
-            >
-              Book a demo
-            </Button>
           </div>
         </div>
 

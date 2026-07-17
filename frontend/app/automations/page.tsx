@@ -65,7 +65,6 @@ const TRIGGER_OPTIONS: { value: WorkflowTriggerType; label: string }[] = [
 ];
 
 const STEP_OPTIONS: { value: WorkflowStepType; label: string; description: string }[] = [
-  { value: "send_notification", label: "Send Notification", description: "Notify users inside Orbit CRM" },
   { value: "create_task", label: "Create Task", description: "Create a follow-up task" },
   { value: "send_email", label: "Send Email", description: "Send an automated email" },
   { value: "update_field", label: "Update Field", description: "Mutate a record field" },

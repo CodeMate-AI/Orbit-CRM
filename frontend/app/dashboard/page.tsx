@@ -220,15 +220,16 @@ function DashboardContent() {
 
   const rangeLabel = RANGE_LABELS[range];
   const header = (
-    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Dashboard</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-text-primary">Analytics overview</h1>
-        <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-          Switch the date window to refresh all dashboard widgets for the selected period.
-        </p>
+    <div className="px-4 md:px-5 lg:px-8">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary">Analytics overview</h1>
+          <p className="mt-2 max-w-2xl text-sm text-text-secondary">
+            Switch the date window to refresh all dashboard widgets for the selected period.
+          </p>
+        </div>
+        <DashboardRangeSelector range={range} onChange={setRange} />
       </div>
-      <DashboardRangeSelector range={range} onChange={setRange} />
     </div>
   );
 
@@ -312,9 +313,22 @@ function DashboardContent() {
               </div>
               <div className="h-[200px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={nonTerminalStages} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                    <XAxis dataKey="name" stroke="#6b6b6b" fontSize={10} tickLine={false} axisLine={false} />
+                  <BarChart data={nonTerminalStages} margin={{ top: 5, right: 5, left: 20, bottom: 5 }}>
+                    <XAxis
+                      dataKey="name"
+                      stroke="#6b6b6b"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      interval={0}
+                      angle={-20}
+                      textAnchor="end"
+                      height={40}
+                      tickMargin={12}
+                      minTickGap={24}
+                    />
                     <YAxis
+                      width={55}
                       stroke="#6b6b6b"
                       fontSize={10}
                       tickLine={false}
@@ -352,7 +366,7 @@ function DashboardContent() {
         {/* 2. Deals won/lost — 1-col */}
         <div className="widget">
           <div className="widget-header">
-            <div className="widget-title">Deals {rangeLabel}</div>
+            <div className="widget-title">Won vs Lost</div>
             <div className="widget-meta">{rangeLabel}</div>
           </div>
           <div className="deal-stats">
@@ -417,8 +431,8 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* 3. Contacts — 2-col */}
-        <div className="widget widget--2col">
+        {/* 3. Contacts — 1-col */}
+        <div className="widget">
           <div className="widget-header">
             <div className="widget-title">Contacts</div>
             <div className="widget-meta flex items-center gap-1.5">
@@ -499,20 +513,36 @@ function DashboardContent() {
           {pipeline.stages.length === 0 ? (
             <div className="empty-state-inline">No pipeline stages</div>
           ) : (
-            <div className="stage-list">
-              {pipeline.stages.map((s) => (
-                <div key={s.id} className="stage-row">
-                  <div className="stage-dot" style={{ background: s.color }} />
-                  <div className="stage-name">{s.name}</div>
-                  <div className="stage-count">{s.count}</div>
-                </div>
-              ))}
+            <div className="stage-summary-list">
+              {(() => {
+                const stageTotal = pipeline.stages.reduce((sum, stage) => sum + stage.count, 0);
+                return pipeline.stages.map((s) => {
+                  const pct = stageTotal > 0 ? (s.count / stageTotal) * 100 : 0;
+                  return (
+                    <div key={s.id} className="stage-summary-row">
+                      <div className="stage-summary-top">
+                        <div className="stage-summary-label">
+                          <span className="stage-summary-dot" style={{ background: s.color }} />
+                          <span>{s.name}</span>
+                        </div>
+                        <div className="stage-summary-count">{s.count}</div>
+                      </div>
+                      <div className="stage-summary-bar" aria-hidden="true">
+                        <div
+                          className="stage-summary-bar-fill"
+                          style={{ width: `${pct.toFixed(1)}%`, background: s.color }}
+                        />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
 
-        {/* 6. Recent Activity — 1-col */}
-        <div className="widget">
+        {/* 6. Recent Activity — 3-col */}
+        <div className="widget widget--3col">
           <div className="widget-header">
             <div className="widget-title">Recent activity</div>
             <div className="widget-meta flex items-center gap-1">

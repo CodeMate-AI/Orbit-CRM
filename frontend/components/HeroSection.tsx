@@ -47,7 +47,7 @@ const pipelineColumns = [
 export default function HeroSection() {
   return (
     <section className="relative overflow-hidden px-4 pb-16 lg:pb-[140px] pt-[96px] sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-16">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 min-[900px]:grid-cols-[1fr_1.15fr] min-[900px]:gap-16">
         {/* Left column */}
         <div className="flex flex-col gap-7">
           <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
@@ -77,8 +77,8 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Right column — dashboard mockup (hidden on mobile and iPad) */}
-        <div className="relative hidden lg:block">
+        {/* Right column — dashboard mockup (hidden on mobile) */}
+        <div className="relative hidden min-[900px]:block">
           {/* Radial purple glow */}
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"

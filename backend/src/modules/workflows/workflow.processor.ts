@@ -52,14 +52,6 @@ export class WorkflowProcessor extends WorkerHost {
     step: WorkflowStep,
   ) {
     switch (step.type) {
-      case "send_notification": {
-        // Notifications feature removed — step is skipped gracefully
-        return {
-          type: step.type,
-          skipped: true,
-          reason: "Notifications feature is not enabled in this build.",
-        };
-      }
 
       case "create_task": {
         const task = await prisma.task.create({

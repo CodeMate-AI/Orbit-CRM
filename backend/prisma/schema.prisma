@@ -29,7 +29,7 @@ model User {
   views         View[]
   attachments   Attachment[]
   auditLogs     AuditLog[]
-  notifications Notification[]
+
   sessions      Session[]
   accounts      Account[]
   joinRequests  JoinRequest[]
@@ -61,7 +61,7 @@ model Workspace {
   tagAssignments      TagAssignment[]
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
-  notifications       Notification[]
+
   activities          Activity[]
   domainAutoJoin      Boolean          @default(false)
   domainRequestJoin   Boolean          @default(true)
@@ -112,12 +112,6 @@ enum AuditAction {
   RESTORE
 }
 
-enum NotificationType {
-  TASK_ASSIGNED
-  MEMBER_INVITED
-  WORKFLOW_COMPLETED
-  ALERT
-}
 
 model AuditLog {
   id          String       @id @default(cuid())
@@ -131,23 +125,6 @@ model AuditLog {
   workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId      String?
   user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([workspaceId])
-  @@index([userId])
-}
-
-model Notification {
-  id          String            @id @default(cuid())
-  type        NotificationType
-  title       String
-  message     String
-  isRead      Boolean           @default(false)
-  link        String?
-  createdAt   DateTime          @default(now())
-  workspaceId String
-  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
   @@index([userId])

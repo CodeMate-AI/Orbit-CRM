@@ -53,5 +53,5 @@ EXPOSE 3000
 CMD ["concurrently", \
      "sh -c 'cd backend && npx prisma migrate deploy && PORT=4000 node dist/main.js'", \
      "sh -c 'cd backend && PORT=4000 node dist/worker.js'", \
-     "sh -c 'cd frontend && PORT=3000 hostname=0.0.0.0 node server.js'" \
+     "sh -c 'cd frontend && PORT=3000 HOSTNAME=0.0.0.0 node server.js'" \
 ]

@@ -151,7 +151,7 @@ function ReportsContent() {
   const header = (
     <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary">Pre-built CRM reports</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary">CRM reports</h1>
         <p className="mt-2 max-w-2xl text-sm text-text-secondary">
           Switch the date window to refresh all report widgets for the selected period.
         </p>

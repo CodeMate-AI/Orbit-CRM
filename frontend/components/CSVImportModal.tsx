@@ -22,6 +22,9 @@ const OPTIONAL_MAPPING_FIELDS = [
   { key: "phone", label: "Phone Number" },
   { key: "jobTitle", label: "Job Title" },
   { key: "companyName", label: "Company Name" },
+  { key: "leadSource", label: "Lead Source" },
+  { key: "industry", label: "Industry" },
+  { key: "tags", label: "Tags (comma separated)" },
 ];
 
 export default function CSVImportModal({ open, workspaceId, onClose, onImportQueued }: CSVImportModalProps) {
@@ -32,6 +35,22 @@ export default function CSVImportModal({ open, workspaceId, onClose, onImportQue
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [step, setStep] = useState<"upload" | "map" | "confirm">("upload");
   const [loading, setLoading] = useState(false);
+
+  const sampleCsvContent = `First Name,Last Name,Email,Phone,Lead Source,Industry,Tags,Company Name,Job Title
+Rahul,Sharma,rahul@buildright.in,+91 98765 43210,Website,Technology,"hot, prospect",BuildRight Inc,Sales Director
+Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,"partner",DesignOps,Founder`;
+
+  const handleDownloadSample = () => {
+    const blob = new Blob([sampleCsvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "orbit_contacts_sample.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (!open) return null;
 
@@ -117,6 +136,15 @@ export default function CSVImportModal({ open, workspaceId, onClose, onImportQue
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
                 </label>
               )}
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={handleDownloadSample}
+                  className="text-xs text-orbit-primary hover:underline"
+                >
+                  Download a sample CSV template
+                </button>
+              </div>
             </div>
           )}
 

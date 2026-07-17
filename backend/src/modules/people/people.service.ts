@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { PrismaClient } from "@prisma/client";
 import { Queue } from "bullmq";
@@ -299,7 +299,7 @@ export class PeopleService {
         validationErrors,
       };
     } catch (err: any) {
-      throw new Error(`Failed to parse CSV: ${err.message}`);
+      throw new BadRequestException(`Failed to parse CSV: ${err.message}`);
     }
   }
 

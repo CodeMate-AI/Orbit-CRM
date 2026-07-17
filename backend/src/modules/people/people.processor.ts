@@ -25,6 +25,9 @@ export class PeopleProcessor extends WorkerHost {
       const email = record[columnMapping.email]?.trim() || null;
       const phone = record[columnMapping.phone]?.trim() || null;
       const jobTitle = record[columnMapping.jobTitle]?.trim() || null;
+      const leadSource = record[columnMapping.leadSource]?.trim() || null;
+      const industry = record[columnMapping.industry]?.trim() || null;
+      const tagsString = record[columnMapping.tags]?.trim() || null;
       const companyName = record[columnMapping.companyName]?.trim();
 
       if (!firstName || !lastName) {
@@ -57,6 +60,9 @@ export class PeopleProcessor extends WorkerHost {
           email,
           phone,
           jobTitle,
+          leadSource,
+          industry,
+          tagsString,
           companyId,
           workspaceId,
         },

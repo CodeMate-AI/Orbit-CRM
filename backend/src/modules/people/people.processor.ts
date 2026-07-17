@@ -2,11 +2,16 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { Job } from "bullmq";
+import { EventsService } from "../events/events.service";
 
 const prisma = new PrismaClient();
 
 @Processor("people-import")
 export class PeopleProcessor extends WorkerHost {
+  constructor(private readonly eventsService: EventsService) {
+    super();
+  }
+
   async process(job: Job<any, any, string>): Promise<any> {
     const { csvContent, columnMapping, workspaceId } = job.data;
     console.log(`Processing CSV import job ${job.id} for workspace ${workspaceId}...`);
@@ -72,6 +77,7 @@ export class PeopleProcessor extends WorkerHost {
     }
 
     console.log(`Completed CSV import job ${job.id}. Imported ${successCount} contacts.`);
+    this.eventsService.emitToWorkspace(workspaceId, "person.created", { bulk: true });
     return { successCount };
   }
 }

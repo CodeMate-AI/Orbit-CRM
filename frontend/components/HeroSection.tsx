@@ -65,7 +65,7 @@ export default function HeroSection() {
               className="bg-orbit-primary font-sans text-sm font-medium tracking-[0.01em] text-[#0b0b0b] hover:bg-orbit-primary-hover"
               asChild
             >
-              <Link href="/signup">Start free trial</Link>
+              <Link href="/signup">Sign up</Link>
             </Button>
           </div>
         </div>

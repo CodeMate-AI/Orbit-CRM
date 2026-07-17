@@ -27,12 +27,9 @@ export default function FinalCTA() {
           <br />
           out of spreadsheets?
         </h2>
-        <p className="text-lg font-normal leading-[1.55] text-text-tertiary sm:text-[19px]">
-          Start your free 14-day trial today. No credit card required. Cancel anytime.
-        </p>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
           <Button className="bg-orbit-primary font-sans text-sm font-medium text-[#0b0b0b] hover:bg-orbit-primary-hover" asChild>
-            <Link href="/signup">Start free trial</Link>
+            <Link href="/signup">Sign up</Link>
           </Button>
         </div>
       </motion.div>

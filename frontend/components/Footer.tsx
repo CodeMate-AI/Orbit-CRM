@@ -5,8 +5,8 @@ export default function Footer() {
     <footer className="px-4 pt-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-16">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2.5">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex flex-col items-center gap-4">
               <svg
                 width="28"
                 height="28"
@@ -31,13 +31,13 @@ export default function Footer() {
                 Orbit
               </span>
             </div>
-            <p className="max-w-[280px] text-sm leading-[1.6] text-text-tertiary">
+            <p className="max-w-[420px] text-sm leading-[1.6] text-text-tertiary">
               The AI-native CRM for startups and small teams who've outgrown spreadsheets. Fast, beautiful, and priced for growth.
             </p>
           </div>
         </div>
 
-        <div className="mt-20 flex flex-col items-center justify-between gap-4 border-t border-border-default py-8 sm:flex-row">
+        <div className="mt-20 flex flex-col items-center justify-center gap-4 border-t border-border-default py-8 text-center">
           <p className="text-[13px] text-text-tertiary">
             © {new Date().getFullYear()} Orbit CRM. All rights reserved.
           </p>

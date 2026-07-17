@@ -9,10 +9,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-const navLinks = [
-  { label: "Product", href: "#product" },
-  { label: "Pricing", href: "#pricing" },
-];
+const navLinks: Array<{ label: string; href: string }> = [];
 
 function OrbitLogo() {
   return (
@@ -94,7 +91,7 @@ export default function Navbar() {
               className="bg-orbit-primary text-white hover:bg-orbit-primary-hover"
               asChild
             >
-              <Link href="/signup">Start free trial</Link>
+              <Link href="/signup">Sign up</Link>
             </Button>
           </div>
 
@@ -164,7 +161,7 @@ export default function Navbar() {
                   asChild
                 >
                   <Link href="/signup" onClick={() => setOpen(false)}>
-                    Start free trial
+                    Sign up
                   </Link>
                 </Button>
               </div>

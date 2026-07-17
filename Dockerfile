@@ -51,7 +51,7 @@ EXPOSE 3000
 
 # Execute migrations on startup, boot the API backend, start the BullMQ worker, and start the Next.js frontend
 CMD ["concurrently", \
-     "sh -c 'cd backend && npx prisma migrate deploy && node dist/main.js'", \
-     "sh -c 'cd backend && node dist/worker.js'", \
+     "sh -c 'cd backend && npx prisma migrate deploy && PORT=4000 node dist/main.js'", \
+     "sh -c 'cd backend && PORT=4000 node dist/worker.js'", \
      "sh -c 'cd frontend && PORT=3000 hostname=0.0.0.0 node server.js'" \
 ]

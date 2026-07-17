@@ -74,6 +74,54 @@ The backend container is configured to automatically run `npx prisma migrate dep
 
 ---
 
+## Deploying Orbit CRM to Render as a Single Web Service
+
+This repository now includes a root [`Dockerfile`](Dockerfile:1) that builds the backend, frontend, and worker into one container. The frontend serves the UI on port `3000`, and Next.js rewrites `/api/*` requests to the NestJS backend running locally on port `4000`.
+
+### Render service settings
+
+- **Root directory**: `.`
+- **Environment**: Docker
+- **Port**: `3000`
+- **Health check path**: `/`
+
+### Required environment variables
+
+Set the production values in Render's environment settings:
+
+```env
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_TRUSTED_ORIGINS=https://your-render-service.onrender.com
+AWS_REGION=...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_BUCKET_NAME=...
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASSWORD=...
+SMTP_FROM_NAME=Orbit CRM
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=...
+```
+
+The Docker build already inlines these production-safe frontend values:
+
+- `NEXT_PUBLIC_API_URL=/api`
+- `NEXT_PUBLIC_BETTER_AUTH_URL=/api/auth`
+
+### Startup flow inside the container
+
+1. Prisma migrations run with `npx prisma migrate deploy`
+2. NestJS backend starts on `localhost:4000`
+3. BullMQ worker starts in the same backend context
+4. Next.js starts on `0.0.0.0:3000`
+
+---
+
 ## Backup & Recovery
 
 ### 1. Creating Backups (pg_dump)

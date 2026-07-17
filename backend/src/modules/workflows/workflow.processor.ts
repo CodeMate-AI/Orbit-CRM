@@ -64,15 +64,15 @@ export class WorkflowProcessor extends WorkerHost {
       case "create_task": {
         const task = await prisma.task.create({
           data: {
-            title: step.title ?? "Workflow task",
-            description: step.description ?? null,
-            status: step.status ?? TaskStatus.TODO,
-            priority: step.priority ?? Priority.MEDIUM,
-            dueDate: step.dueDate ? new Date(step.dueDate) : null,
-            assigneeId: step.assigneeId ?? null,
-            personId: step.personId ?? null,
-            companyId: step.companyId ?? null,
-            opportunityId: step.opportunityId ?? null,
+            title: step.title ?? step.config?.title ?? "Workflow task",
+            description: step.description ?? step.config?.description ?? null,
+            status: step.status ?? step.config?.status ?? TaskStatus.TODO,
+            priority: step.priority ?? step.config?.priority ?? Priority.MEDIUM,
+            dueDate: (step.dueDate ?? step.config?.dueDate) ? new Date(step.dueDate ?? step.config?.dueDate) : null,
+            assigneeId: step.assigneeId ?? step.config?.assigneeId ?? null,
+            personId: step.personId ?? step.config?.personId ?? null,
+            companyId: step.companyId ?? step.config?.companyId ?? null,
+            opportunityId: step.opportunityId ?? step.config?.opportunityId ?? null,
             workspaceId,
           },
         });
@@ -84,18 +84,19 @@ export class WorkflowProcessor extends WorkerHost {
       }
 
       case "webhook": {
-        if (!step.url) {
+        const url = step.url ?? step.config?.url;
+        if (!url) {
           throw new Error("Webhook step is missing a url.");
         }
 
-        const response = await fetch(step.url, {
-          method: step.method ?? "POST",
+        const response = await fetch(url, {
+          method: step.method ?? step.config?.method ?? "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(step.headers ?? {}),
+            ...(step.headers ?? step.config?.headers ?? {}),
           },
           body: JSON.stringify(
-            step.body ?? {
+            step.body ?? step.config?.body ?? {
               workflowId,
               workspaceId,
               triggerData,

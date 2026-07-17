@@ -35,8 +35,9 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { ReactFlow, Background, Controls, MiniMap, addEdge, type Connection, type Edge, type Node } from "@xyflow/react";
+import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { createDraftWorkflowList, emptyWorkflow, getInitialSelection } from "./automation-state";
 
 type BuilderTab = "builder" | "runs";
 
@@ -79,35 +80,21 @@ function stepLabel(type: WorkflowStepType) {
   return STEP_OPTIONS.find((option) => option.value === type)?.label ?? type;
 }
 
-function emptyWorkflow(): WorkflowRow {
-  return {
-    id: "new",
-    name: "Untitled automation",
-    description: null,
-    isActive: false,
-    trigger: { type: "contact_created" },
-    steps: [
-      {
-        id: crypto.randomUUID(),
-        type: "create_task",
-        label: "Create task",
-        config: { title: "Follow-up call", priority: "MEDIUM" },
-        position: { x: 0, y: 180 },
-      },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    workspaceId: "",
-    runs: [],
-  };
-}
 
-function createNodes(workflow: WorkflowRow): Node[] {
+function createNodes(
+  workflow: WorkflowRow,
+  callbacks: {
+    onTriggerSelect: () => void;
+    onStepSelect: (stepId: string) => void;
+    onStepDelete: (stepId: string) => void;
+    onAddStep: () => void;
+  },
+): Node[] {
   const nodes: Node[] = [
     {
       id: "trigger",
       position: { x: 0, y: 0 },
-      data: { workflow },
+      data: { workflow, onSelect: callbacks.onTriggerSelect },
       type: "trigger",
       draggable: false,
     },
@@ -116,10 +103,24 @@ function createNodes(workflow: WorkflowRow): Node[] {
   workflow.steps.forEach((step, index) => {
     nodes.push({
       id: step.id,
-      position: step.position,
-      data: { step, index },
+      position: { x: 0, y: 140 + index * 160 },
+      data: {
+        step,
+        index,
+        onSelect: () => callbacks.onStepSelect(step.id),
+        onDelete: () => callbacks.onStepDelete(step.id),
+      },
       type: "step",
     });
+  });
+
+  nodes.push({
+    id: "add-step",
+    position: { x: 0, y: workflow.steps.length * 160 + 140 },
+    data: { onAdd: callbacks.onAddStep },
+    type: "addStep",
+    draggable: false,
+    selectable: false,
   });
 
   return nodes;
@@ -137,6 +138,16 @@ function createEdges(workflow: WorkflowRow): Edge[] {
       type: "smoothstep",
     });
   });
+
+  const addStepTarget = workflow.steps.length > 0 ? workflow.steps[workflow.steps.length - 1].id : "trigger";
+  edges.push({
+    id: `${addStepTarget}-add-step`,
+    source: addStepTarget,
+    target: "add-step",
+    animated: true,
+    type: "smoothstep",
+  });
+
   return edges;
 }
 
@@ -173,10 +184,17 @@ function WorkflowCard({
   const lastRun = workflow.runs?.[0];
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className={`w-full rounded-2xl border p-4 text-left transition ${selected ? "border-orbit-primary/60 bg-orbit-primary/10" : "border-border-subtle bg-bg-secondary/40 hover:border-border-strong"}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition ${selected ? "border-orbit-primary/60 bg-orbit-primary/10" : "border-border-subtle bg-bg-secondary/40 hover:border-border-strong"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -201,28 +219,31 @@ function WorkflowCard({
           </button>
         </span>
       </div>
-    </button>
+    </div>
   );
 }
 
 function TriggerNode({ data }: { data: any }) {
   return (
     <div className="w-[280px] rounded-3xl border border-sky-400/30 bg-sky-500/10 p-4 shadow-lg shadow-sky-950/20">
+      <Handle type="source" position={Position.Bottom} className="!h-3 !w-3 !border-2 !border-sky-300 !bg-sky-400" />
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-sky-200">
         <Zap className="h-4 w-4" /> Trigger
       </div>
       <div className="mt-3 text-lg font-semibold text-text-primary">{workflowLabel(data.workflow.trigger.type)}</div>
-      <button type="button" className="mt-4 inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-bg-tertiary px-3 py-2 text-sm text-text-secondary">
+      <button type="button" onClick={data.onSelect} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-bg-tertiary px-3 py-2 text-sm text-text-secondary">
         Edit trigger <ChevronDown className="h-4 w-4" />
       </button>
     </div>
   );
 }
 
-function StepNode({ data, selected, onSelect, onDelete }: { data: any; selected: boolean; onSelect: () => void; onDelete: () => void }) {
+function StepNode({ data, selected }: { data: any; selected: boolean }) {
   const step = data.step as WorkflowStep;
   return (
     <div className={`w-[280px] rounded-3xl border bg-bg-secondary p-4 shadow-lg ${selected ? "border-orbit-primary/60" : "border-border-subtle"}`}>
+      <Handle type="target" position={Position.Top} className="!h-3 !w-3 !border-2 !border-slate-300 !bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!h-3 !w-3 !border-2 !border-slate-300 !bg-slate-400" />
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-text-tertiary">Step {data.index + 1}</div>
@@ -232,10 +253,10 @@ function StepNode({ data, selected, onSelect, onDelete }: { data: any; selected:
       </div>
       <div className="mt-3 text-sm text-text-secondary">{step.label}</div>
       <div className="mt-4 flex gap-2">
-        <button type="button" onClick={onSelect} className="rounded-xl border border-border-subtle px-3 py-2 text-xs text-text-secondary hover:text-text-primary">
+        <button type="button" onClick={data.onSelect} className="rounded-xl border border-border-subtle px-3 py-2 text-xs text-text-secondary hover:text-text-primary">
           Edit ✏
         </button>
-        <button type="button" onClick={onDelete} className="rounded-xl border border-border-subtle px-3 py-2 text-xs text-rose-200 hover:bg-rose-500/10">
+        <button type="button" onClick={data.onDelete} className="rounded-xl border border-border-subtle px-3 py-2 text-xs text-rose-200 hover:bg-rose-500/10">
           Delete 🗑
         </button>
       </div>
@@ -243,12 +264,15 @@ function StepNode({ data, selected, onSelect, onDelete }: { data: any; selected:
   );
 }
 
-function AddStepNode({ onAdd }: { onAdd: () => void }) {
+function AddStepNode({ data }: { data: any }) {
   return (
-    <button type="button" onClick={onAdd} className="w-[280px] rounded-3xl border border-dashed border-border-strong bg-bg-secondary/40 p-5 text-center text-sm text-text-secondary hover:border-orbit-primary hover:text-text-primary">
-      <Plus className="mx-auto h-5 w-5" />
-      <div className="mt-2">Add Step</div>
-    </button>
+    <div className="w-[280px] rounded-3xl border border-dashed border-border-strong bg-bg-secondary/40 p-5 text-center text-sm text-text-secondary hover:border-orbit-primary hover:text-text-primary">
+      <Handle type="target" position={Position.Top} className="!h-3 !w-3 !border-2 !border-slate-300 !bg-slate-400" />
+      <button type="button" onClick={data.onAdd} className="w-full">
+        <Plus className="mx-auto h-5 w-5" />
+        <div className="mt-2">Add Step</div>
+      </button>
+    </div>
   );
 }
 
@@ -288,21 +312,6 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
     setSelectedNodeId("trigger");
   }, [workflow.id]);
 
-  const nodes = useMemo(() => createNodes(workflow), [workflow]);
-  const edges = useMemo(() => createEdges(workflow), [workflow]);
-
-  const addStep = () => {
-    const newStep: WorkflowStep = {
-      id: crypto.randomUUID(),
-      type: "send_notification",
-      label: "New step",
-      config: { message: "" },
-      position: { x: 0, y: workflow.steps.length * 170 + 180 },
-    };
-    onWorkflowChange({ ...workflow, steps: [...workflow.steps, newStep] });
-    setSelectedNodeId(newStep.id);
-  };
-
   const updateTrigger = (type: WorkflowTriggerType) => {
     onWorkflowChange({ ...workflow, trigger: { type } });
   };
@@ -318,6 +327,30 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
     onWorkflowChange({ ...workflow, steps: workflow.steps.filter((step) => step.id !== stepId) });
     setSelectedNodeId("trigger");
   };
+
+  const addStep = () => {
+    const newStep: WorkflowStep = {
+      id: crypto.randomUUID(),
+      type: "create_task",
+      label: "Create task",
+      config: { title: "Follow-up call", priority: "MEDIUM" },
+      position: { x: 0, y: workflow.steps.length * 160 + 140 },
+    };
+    onWorkflowChange({ ...workflow, steps: [...workflow.steps, newStep] });
+    setSelectedNodeId(newStep.id);
+  };
+
+  const nodes = useMemo(
+    () =>
+      createNodes(workflow, {
+        onTriggerSelect: () => setSelectedNodeId("trigger"),
+        onStepSelect: (stepId) => setSelectedNodeId(stepId),
+        onStepDelete: removeStep,
+        onAddStep: addStep,
+      }),
+    [workflow],
+  );
+  const edges = useMemo(() => createEdges(workflow), [workflow]);
 
   const selectedStep = workflow.steps.find((step) => step.id === selectedNodeId) ?? null;
 
@@ -364,10 +397,15 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
         <div className="grid flex-1 gap-0 xl:grid-cols-[1fr_340px]">
           <div className="min-h-[620px] bg-bg-tertiary/30 p-4 lg:p-6">
             <div className="h-[620px] rounded-3xl border border-border-subtle bg-[#0d1220]">
-              <ReactFlow nodes={nodes} edges={edges} fitView nodeTypes={{ trigger: TriggerNode as any, step: StepNode as any, addStep: AddStepNode as any }} onNodeClick={(_, node) => setSelectedNodeId(node.id)} onConnect={() => null}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                fitView
+                nodeTypes={{ trigger: TriggerNode as any, step: StepNode as any, addStep: AddStepNode as any }}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+              >
                 <Background />
                 <Controls />
-                <MiniMap />
               </ReactFlow>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -430,9 +468,24 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Task title</label>
                       <input value={selectedStep.config.title ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, title: e.target.value } })} className="form-input w-full" />
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Priority</label>
-                      <input value={selectedStep.config.priority ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, priority: e.target.value } })} className="form-input w-full" />
+                      <select value={selectedStep.config.priority ?? "MEDIUM"} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, priority: e.target.value } })} className="form-input w-full">
+                        <option value="LOW">LOW</option>
+                        <option value="MEDIUM">MEDIUM</option>
+                        <option value="HIGH">HIGH</option>
+                      </select>
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Assignee</label>
                       <input value={selectedStep.config.assigneeId ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, assigneeId: e.target.value } })} className="form-input w-full" />
+                    </>
+                  ) : null}
+
+                  {selectedStep.type === "send_email" ? (
+                    <>
+                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Subject</label>
+                      <input value={selectedStep.config.subject ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, subject: e.target.value } })} className="form-input w-full" />
+                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Recipient email / variable</label>
+                      <input value={selectedStep.config.recipientEmail ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, recipientEmail: e.target.value } })} className="form-input w-full" />
+                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Body template</label>
+                      <textarea value={selectedStep.config.bodyTemplate ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, bodyTemplate: e.target.value } })} className="form-input min-h-28 w-full" />
                     </>
                   ) : null}
 
@@ -459,7 +512,12 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">URL</label>
                       <input value={selectedStep.config.url ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, url: e.target.value } })} className="form-input w-full" />
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Method</label>
-                      <input value={selectedStep.config.method ?? "POST"} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, method: e.target.value } })} className="form-input w-full" />
+                      <select value={selectedStep.config.method ?? "POST"} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, method: e.target.value } })} className="form-input w-full">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                      </select>
                     </>
                   ) : null}
 
@@ -491,7 +549,7 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
   );
 }
 
-export default function AutomationsPage() {
+function AutomationsContent() {
   const { workspaceId } = useWorkspace();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -506,7 +564,7 @@ export default function AutomationsPage() {
       .list(workspaceId)
       .then((rows) => {
         setWorkflows(rows);
-        setSelectedWorkflow((current) => current ?? rows[0] ?? emptyWorkflow());
+        setSelectedWorkflow((current) => getInitialSelection(current, rows));
       })
       .catch((err: any) => setError(err.message || "Failed to load automations."))
       .finally(() => setLoading(false));
@@ -522,7 +580,7 @@ export default function AutomationsPage() {
   const createNew = () => {
     const draft = emptyWorkflow();
     setSelectedWorkflow(draft);
-    setWorkflows((current) => [draft, ...current]);
+    setWorkflows((current) => createDraftWorkflowList(current, draft));
   };
 
   const persistSelected = async () => {
@@ -581,7 +639,7 @@ export default function AutomationsPage() {
     try {
       await workflowsApi.delete(workspaceId, workflowId);
       setWorkflows((current) => current.filter((workflow) => workflow.id !== workflowId));
-      setSelectedWorkflow((current) => (current?.id === workflowId ? current ?? emptyWorkflow() : current));
+      setSelectedWorkflow((current) => (current?.id === workflowId ? null : current));
       toast.success("Workflow deleted");
     } catch (err: any) {
       toast.error(err.message || "Failed to delete workflow");
@@ -589,25 +647,25 @@ export default function AutomationsPage() {
   };
 
   return (
-    <AppLayout pageTitle="Automations">
-      <div className="flex min-h-[calc(100vh-120px)] flex-col gap-6 lg:flex-row">
-        <aside className="w-full rounded-3xl border border-border-subtle bg-surface-default p-5 lg:max-w-[360px]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-text-primary">Automations</h1>
-              <p className="mt-1 text-sm text-text-tertiary">Build and manage CRM workflows</p>
-            </div>
-            <button type="button" onClick={createNew} className="btn-primary">
-              <Plus className="h-4 w-4" /> New automation
-            </button>
+    <div className="flex min-h-[calc(100vh-120px)] flex-col gap-6 lg:flex-row">
+      <aside className="w-full rounded-3xl border border-border-subtle bg-surface-default p-5 lg:max-w-[360px]">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-text-primary">Automations</h1>
+            <p className="mt-1 text-sm text-text-tertiary">Build and manage CRM workflows</p>
           </div>
+          <button type="button" onClick={createNew} className="btn-primary">
+            <Plus className="h-4 w-4" /> New automation
+          </button>
+        </div>
 
-          <div className="mt-5 space-y-3">
-            {loading ? (
-              <SkeletonRow count={4} widths={["80%", "60%"]} />
-            ) : error ? (
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-200">{error}</div>
-            ) : workflows.length === 0 ? (
+        <div className="mt-5 space-y-3">
+          {loading ? (
+            <SkeletonRow count={4} widths={["80%", "60%"]} />
+          ) : error ? (
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-200">{error}</div>
+          ) : workflows.length === 0 ? (
+            selectedWorkflow ? (
               <EmptyState
                 icon={<Bot className="h-8 w-8" />}
                 title="No automations yet"
@@ -618,35 +676,47 @@ export default function AutomationsPage() {
                 }}
               />
             ) : (
-              workflows.map((workflow) => (
-                <WorkflowCard
-                  key={workflow.id}
-                  workflow={workflow}
-                  selected={selectedId === workflow.id}
-                  onSelect={() => setSelectedWorkflow(workflow)}
-                  onToggle={() => toggleSelected(workflow.id)}
-                  onDelete={() => deleteWorkflow(workflow.id)}
-                />
-              ))
-            )}
-          </div>
-        </aside>
-
-        <main className="min-w-0 flex-1">
-          {selectedWorkflow ? (
-            <WorkflowBuilder
-              workflow={selectedWorkflow}
-              onWorkflowChange={updateSelected}
-              onSave={persistSelected}
-              saving={saving}
-            />
+              <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-5 text-sm text-text-secondary">
+                Start by creating a new automation to see it appear here.
+              </div>
+            )
           ) : (
-            <div className="rounded-3xl border border-border-subtle bg-surface-default p-10 text-center text-text-secondary">
-              Select a workflow or create a new automation to begin.
-            </div>
+            workflows.map((workflow) => (
+              <WorkflowCard
+                key={workflow.id}
+                workflow={workflow}
+                selected={selectedId === workflow.id}
+                onSelect={() => setSelectedWorkflow(workflow)}
+                onToggle={() => toggleSelected(workflow.id)}
+                onDelete={() => deleteWorkflow(workflow.id)}
+              />
+            ))
           )}
-        </main>
-      </div>
+        </div>
+      </aside>
+
+      <main className="min-w-0 flex-1">
+        {selectedWorkflow ? (
+          <WorkflowBuilder
+            workflow={selectedWorkflow}
+            onWorkflowChange={updateSelected}
+            onSave={persistSelected}
+            saving={saving}
+          />
+        ) : (
+          <div className="rounded-3xl border border-border-subtle bg-surface-default p-10 text-center text-text-secondary">
+            Select a workflow or create a new automation to begin.
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default function AutomationsPage() {
+  return (
+    <AppLayout pageTitle="Automations">
+      <AutomationsContent />
     </AppLayout>
   );
 }

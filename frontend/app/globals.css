@@ -676,6 +676,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 240px;
+  min-width: 0;
 }
 .widget--2col {
   grid-column: span 2;
@@ -684,6 +685,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
   flex-shrink: 0;
 }
@@ -695,9 +697,14 @@ body {
   letter-spacing: 0.01em;
 }
 .widget-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-tertiary);
+  min-width: 0;
+  white-space: nowrap;
 }
 
 /* Pipeline Widget */
@@ -789,10 +796,23 @@ body {
   gap: 14px;
   margin-top: 4px;
 }
-.task-item {
+.task-row {
   display: flex;
-  gap: 12px;
   align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: rgba(245, 245, 245, 0.02);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.task-row:hover {
+  background: rgba(245, 245, 245, 0.045);
+  border-color: var(--border-subtle);
+}
+.task-row--done {
+  background: rgba(50, 213, 131, 0.06);
+  border-color: rgba(50, 213, 131, 0.16);
 }
 .task-check {
   width: 18px;
@@ -807,25 +827,24 @@ body {
   flex-shrink: 0;
   cursor: pointer;
 }
-.task-check.done {
-  background: var(--orbit-primary);
-  border-color: var(--orbit-primary);
-}
 .task-body {
   flex: 1;
+  min-width: 0;
 }
 .task-title {
   font-size: 14px;
   line-height: 1.4;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
-.task-title.done {
+.task-row--done .task-title {
   text-decoration: line-through;
   color: var(--text-muted);
 }
 .task-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 6px;
 }
@@ -864,55 +883,42 @@ body {
   flex-direction: column;
   gap: 16px;
 }
-.activity-item {
+.activity-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  padding: 12px 0;
 }
-.activity-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: #fff;
+.activity-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  margin-top: 5px;
   flex-shrink: 0;
+  background: linear-gradient(135deg, var(--orbit-primary), var(--orbit-primary-hover));
+  box-shadow: 0 0 0 4px rgba(129, 116, 248, 0.14);
 }
-.activity-content {
+.activity-body {
   flex: 1;
   min-width: 0;
 }
-.activity-text {
+.activity-title {
   font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.activity-sub {
+  font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.4;
-}
-.activity-text .name {
-  color: var(--text-primary);
+  margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 .activity-time {
   font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 4px;
-}
-.activity-icon-wrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-.activity-icon-wrap svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* Sidebar Drawer Collapsible slide-out overlay */
@@ -1066,8 +1072,16 @@ body {
     gap: 18px;
   }
 
+  .widget--2col {
+    grid-column: span 2;
+  }
+
   .widget {
     min-width: 0;
+  }
+
+  .deal-stats {
+    gap: 18px;
   }
 }
 
@@ -1109,19 +1123,45 @@ body {
   }
 
   .widget {
-    padding: 20px;
+    padding: 18px;
   }
 
   .pipeline-total,
-  .stat-number {
-    font-size: 34px;
+  .stat-number,
+  .contacts-total,
+  .deal-stat-value {
+    font-size: 32px;
   }
 
-  .task-meta,
-  .activity-item,
   .widget-header,
-  .pipeline-header {
+  .pipeline-header,
+  .task-row,
+  .activity-row,
+  .deal-stats {
     flex-wrap: wrap;
+  }
+
+  .task-row {
+    padding: 12px;
+  }
+
+  .task-meta {
+    gap: 8px;
+  }
+
+  .contacts-chips {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deal-stats {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .deal-stat-divider {
+    width: 100%;
+    height: 1px;
   }
 }
 

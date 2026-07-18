@@ -144,20 +144,43 @@ The NestJS server:
 ## Repository structure
 
 ```text
-.
-├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── hooks/
-│   ├── lib/
-│   └── package.json
-├── backend/
-│   ├── src/
-│   ├── prisma/
-│   ├── package.json
-│   └── tsconfig.json
-├── README.md
-└── SELF_HOSTING.md
+c:\Users\biswa\Desktop\Orbit CRM/
+├── frontend/                # Standalone Next.js 16 frontend application
+│   ├── app/                 # Next.js App Router pages and routes
+│   │   ├── automations/     # Workflow management UI
+│   │   ├── companies/       # Company management list & details
+│   │   ├── contacts/        # Contact (people) management list & details
+│   │   ├── dashboard/       # Core analytics & charts
+│   │   ├── deals/           # Kanban board deal pipeline
+│   │   ├── settings/        # SMTP & profile settings
+│   │   ├── signin/ / signup/# Authentication pages
+│   │   └── tasks/           # Workspace task board
+│   ├── components/          # Reusable UI component modules (shadcn/ui-based)
+│   ├── hooks/               # Workspace event hooks & utility hooks
+│   ├── lib/                 # API wrapper functions (contacts, companies, tasks, etc.)
+│   └── package.json         # Frontend dependencies and run scripts
+│
+└── backend/                 # Standalone NestJS backend application
+    ├── src/                 # Application source code
+    │   ├── main.ts          # Gateway entry point and CORS/Prefix setups
+    │   ├── app.module.ts    # Central NestJS AppModule
+    │   ├── prisma.ts        # Prisma Client provider
+    │   ├── worker.ts        # BullMQ background job processor
+    │   ├── common/          # Custom decorators, guards, and middleware
+    │   └── modules/         # Modular feature domains
+    │       ├── auth/        # Better Auth integration
+    │       ├── people/      # Contact (Person) management endpoints & CSV imports
+    │       ├── companies/   # Company CRUD endpoints
+    │       ├── opportunities/# Deal tracking & stage updates
+    │       ├── tasks/       # Task manager endpoints
+    │       ├── workflows/   # Custom trigger-action automation engine
+    │       ├── ai/          # OpenRouter LLM agent with tools
+    │       ├── settings/    # Workspace settings & SMTP configs
+    │       └── dashboard/   # Analytics query controllers
+    ├── prisma/
+    │   └── schema.prisma    # Primary database schema definition
+    └── package.json         # Backend dependencies & scripts
+
 ```
 
 ## Getting started

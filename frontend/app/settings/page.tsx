@@ -55,14 +55,6 @@ import {
 const DEFAULT_TIMEZONE = "Asia/Kolkata";
 const DEFAULT_LOCALE = "en-IN";
 
-const TIMEZONE_OPTIONS = [
-  { value: "Asia/Kolkata", label: "Asia/Kolkata (IST)" },
-];
-
-const LOCALE_OPTIONS = [
-  { value: "en-IN", label: "English (India) - en-IN" },
-];
-
 const ROLE_OPTIONS: Array<{ value: WorkspaceMemberRole; label: string }> = [
   { value: "OWNER", label: "Owner" },
   { value: "ADMIN", label: "Admin" },
@@ -290,11 +282,30 @@ export default function SettingsPage() {
     setProfileSaving(true);
 
     try {
+      await authClient.updateUser({ name: profileForm.name });
       await settingsApi.updateProfile({
-        name: profileForm.name,
         timezone: profileForm.timezone,
         locale: profileForm.locale,
       });
+
+      const session = await authClient.getSession();
+      const sessionUser = session?.data?.user;
+
+      if (sessionUser) {
+        const typedSessionUser = sessionUser as typeof sessionUser & {
+          timezone?: string | null;
+          locale?: string | null;
+        };
+
+        setCurrentUser(typedSessionUser);
+        setProfileForm({
+          name: typedSessionUser.name ?? "",
+          timezone: typedSessionUser.timezone ?? DEFAULT_TIMEZONE,
+          locale: typedSessionUser.locale ?? DEFAULT_LOCALE,
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent("profile-updated"));
       toast.success("Profile updated successfully.");
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile.");
@@ -613,33 +624,23 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-timezone">Timezone</Label>
-                    <NativeSelect
+                    <Input
                       id="profile-timezone"
-                      value={profileForm.timezone}
-                      onChange={(event) =>
-                        setProfileForm((current) => ({ ...current, timezone: event.target.value }))
-                      }
-                    >
-                      {TIMEZONE_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                      value="Asia/Kolkata (IST)"
+                      disabled
+                      readOnly
+                      className="cursor-not-allowed bg-bg-secondary/50"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="profile-locale">Locale</Label>
-                    <NativeSelect
+                    <Input
                       id="profile-locale"
-                      value={profileForm.locale}
-                      onChange={(event) => setProfileForm((current) => ({ ...current, locale: event.target.value }))}
-                    >
-                      {LOCALE_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                      value="English (India) - en-IN"
+                      disabled
+                      readOnly
+                      className="cursor-not-allowed bg-bg-secondary/50"
+                    />
                   </div>
                   <div className="md:col-span-2 mt-2 flex flex-col gap-3">
                     <Button type="submit" className="w-full sm:w-auto" disabled={profileSaving}>

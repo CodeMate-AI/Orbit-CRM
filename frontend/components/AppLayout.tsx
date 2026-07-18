@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -62,27 +62,49 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
   useWorkspaceEvents(workspaceId);
 
+  const refreshSession = useCallback(async (redirectOnMissing = true) => {
+    try {
+      const session = await authClient.getSession();
+      if (!session || !session.data?.user) {
+        if (redirectOnMissing) {
+          router.push("/signin");
+        }
+        return null;
+      }
+
+      setCurrentUser(session.data.user);
+      return session.data.user;
+    } catch (err) {
+      console.error("Error loading session:", err);
+      return null;
+    }
+  }, [router]);
+
   useEffect(() => {
     async function loadSessionAndWorkspace() {
-      try {
-        const session = await authClient.getSession();
-        if (!session || !session.data?.user) {
-          router.push("/signin");
-          return;
-        }
-        setCurrentUser(session.data.user);
+      const user = await refreshSession(true);
+      if (!user) {
+        return;
+      }
 
-        const workspaces = await workspacesApi.listMine();
-        if (workspaces && workspaces.length > 0) {
-          setWorkspaceName(workspaces[0].workspace.name);
-          setWorkspaceId(workspaces[0].workspace.id);
-        }
-      } catch (err) {
-        console.error("Error loading session:", err);
+      const workspaces = await workspacesApi.listMine();
+      if (workspaces && workspaces.length > 0) {
+        setWorkspaceName(workspaces[0].workspace.name);
+        setWorkspaceId(workspaces[0].workspace.id);
       }
     }
+
     loadSessionAndWorkspace();
-  }, [router]);
+  }, [refreshSession]);
+
+  useEffect(() => {
+    const handleProfileUpdated = () => {
+      void refreshSession(false);
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("profile-updated", handleProfileUpdated);
+  }, [refreshSession]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

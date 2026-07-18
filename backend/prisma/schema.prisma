@@ -26,7 +26,6 @@ model User {
   activities    Activity[]
   tasks         Task[]
   notes         Note[]
-  views         View[]
   attachments   Attachment[]
   auditLogs     AuditLog[]
 
@@ -51,7 +50,6 @@ model Workspace {
   pipelineStages      PipelineStage[]
   tasks               Task[]
   notes               Note[]
-  views               View[]
   workflows           Workflow[]
   dashboards          Dashboard[]
   tags                Tag[]
@@ -623,26 +621,3 @@ model Invitation {
   createdAt   DateTime   @default(now())
 }
 
-model View {
-  id          String     @id @default(cuid())
-  name        String
-  entityType  EntityType
-  type        ViewType   @default(TABLE)
-  filters     Json?
-  sorts       Json?
-  isDefault   Boolean    @default(false)
-  position    Int        @default(0)
-  createdAt   DateTime   @default(now())
-
-  workspaceId String
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdById String?
-  createdBy   User?      @relation(fields: [createdById], references: [id])
-
-  @@index([workspaceId, entityType])
-}
-
-enum ViewType {
-  TABLE
-  KANBAN
-}

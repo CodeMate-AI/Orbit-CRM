@@ -18,7 +18,6 @@ import { SearchModule } from "./modules/search/search.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { TagsModule } from "./modules/tags/tags.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
-import { ViewsModule } from "./modules/views/views.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
 import { HealthController } from "./modules/health/health.controller";
@@ -47,7 +46,6 @@ import { HealthController } from "./modules/health/health.controller";
     SettingsModule,
     TagsModule,
     TasksModule,
-    ViewsModule,
     WorkflowsModule,
     WorkspacesModule,
   ],

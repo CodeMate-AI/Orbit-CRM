@@ -28,10 +28,8 @@ import {
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import AttachmentList from "@/components/AttachmentList";
 import NotesTimeline from "@/components/NotesTimeline";
-import ViewBar from "@/components/ViewBar";
 import { companiesApi, CompanyDetailRow, CompanyRow, CreateCompanyInput } from "@/lib/companies-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
-import { viewsApi, ViewRow } from "@/lib/views-api";
 import { downloadCsv } from "@/lib/csv-utils";
 import { toast } from "sonner";
 
@@ -959,121 +957,6 @@ function CompaniesContent() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
 
-  const [views, setViews] = useState<ViewRow[]>([]);
-  const [activeViewId, setActiveViewId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!workspaceId) return;
-    viewsApi.list(workspaceId, "COMPANY")
-      .then((data) => {
-        setViews(data);
-        const defaultView = data.find((v) => v.isDefault);
-        if (defaultView) {
-          setActiveViewId(defaultView.id);
-          const filters = defaultView.filters as any;
-          if (filters?.search !== undefined) setSearch(filters.search);
-          if (defaultView.sorts) setSortConfig(defaultView.sorts as any);
-        }
-      })
-      .catch((err) => console.error("Failed to load views", err));
-  }, [workspaceId]);
-
-  const handleSelectView = (viewId: string | null) => {
-    setActiveViewId(viewId);
-    if (viewId === null) {
-      setSearch("");
-      setSortConfig({ column: "name", direction: "asc" });
-    } else {
-      const view = views.find((v) => v.id === viewId);
-      if (view) {
-        const filters = view.filters as any;
-        setSearch(filters?.search ?? "");
-        if (view.sorts) setSortConfig(view.sorts as any);
-      }
-    }
-  };
-
-  const handleCreateView = async (name: string) => {
-    if (!workspaceId) return;
-    try {
-      const newView = await viewsApi.create({
-        name,
-        entityType: "COMPANY",
-        workspaceId,
-        filters: { search },
-        sorts: sortConfig,
-      });
-      setViews((prev) => [...prev, newView]);
-      setActiveViewId(newView.id);
-      toast.success(`View "${name}" created`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create view");
-    }
-  };
-
-  const handleDeleteView = async (viewId: string) => {
-    if (!workspaceId) return;
-    try {
-      await viewsApi.delete(workspaceId, viewId);
-      setViews((prev) => prev.filter((v) => v.id !== viewId));
-      if (activeViewId === viewId) {
-        handleSelectView(null);
-      }
-      toast.success("View deleted");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete view");
-    }
-  };
-
-  const handleUpdateView = async (viewId: string, updates: { name?: string; filters?: any; sorts?: any }) => {
-    if (!workspaceId) return;
-    try {
-      const updated = await viewsApi.update(workspaceId, viewId, updates);
-      setViews((prev) => prev.map((v) => (v.id === viewId ? updated : v)));
-      toast.success("View updated");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update view");
-    }
-  };
-
-  const handleSetDefaultView = async (viewId: string) => {
-    if (!workspaceId) return;
-    try {
-      await viewsApi.setDefault(workspaceId, viewId);
-      setViews((prev) =>
-        prev.map((v) => ({
-          ...v,
-          isDefault: v.id === viewId,
-        }))
-      );
-      toast.success("Default view set");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to set default view");
-    }
-  };
-
-  const handleSaveChanges = async () => {
-    if (!activeViewId || !workspaceId) return;
-    await handleUpdateView(activeViewId, {
-      filters: { search },
-      sorts: sortConfig,
-    });
-  };
-
-  const hasUnsavedChanges = useMemo(() => {
-    if (!activeViewId) return false;
-    const activeView = views.find((v) => v.id === activeViewId);
-    if (!activeView) return false;
-    const activeFilters = activeView.filters as any;
-    const activeSorts = activeView.sorts as any;
-
-    const filtersChanged = (activeFilters?.search ?? "") !== search;
-    const sortsChanged =
-      (activeSorts?.column ?? "name") !== sortConfig.column || (activeSorts?.direction ?? "asc") !== sortConfig.direction;
-
-    return filtersChanged || sortsChanged;
-  }, [activeViewId, views, search, sortConfig]);
-
   const handleExportCsv = () => {
     if (companies.length === 0) {
       toast.error("No companies to export");
@@ -1302,20 +1185,6 @@ function CompaniesContent() {
               </div>
             </div>
           </header>
-
-          <div className="px-6 py-2">
-            <ViewBar
-              views={views}
-              activeViewId={activeViewId}
-              onSelect={handleSelectView}
-              onCreate={handleCreateView}
-              onDelete={handleDeleteView}
-              onUpdate={handleUpdateView}
-              onSetDefault={handleSetDefaultView}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onSaveChanges={handleSaveChanges}
-            />
-          </div>
 
           {selectedIds.size > 0 && (
             <div className="bulk-bar" role="status" aria-live="polite">

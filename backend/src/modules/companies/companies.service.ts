@@ -3,16 +3,12 @@ import { PrismaClient } from "@prisma/client";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
 import { EventsService } from "../events/events.service";
-import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class CompaniesService {
-  constructor(
-    private readonly eventsService: EventsService,
-    private readonly workflowTriggerService: WorkflowTriggerService,
-  ) {}
+  constructor(private readonly eventsService: EventsService) {}
 
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -129,11 +125,6 @@ export class CompaniesService {
     });
 
     this.eventsService.emitToWorkspace(dto.workspaceId, "company.created", { id: company.id });
-    await this.workflowTriggerService.trigger(dto.workspaceId, "company_created", {
-      id: company.id,
-      name: company.name,
-      domain: company.domain,
-    });
 
     return {
       id: company.id,
@@ -183,11 +174,6 @@ export class CompaniesService {
     });
 
     this.eventsService.emitToWorkspace(company.workspaceId, "company.updated", { id: updated.id });
-    await this.workflowTriggerService.trigger(company.workspaceId, "company_updated", {
-      id: updated.id,
-      name: updated.name,
-      domain: updated.domain,
-    });
 
     return {
       id: updated.id,

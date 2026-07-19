@@ -3,7 +3,6 @@ import { PrismaClient, TaskStatus } from "@prisma/client";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { EventsService } from "../events/events.service";
-import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
 let prisma = new PrismaClient();
 
@@ -13,10 +12,7 @@ export function setTasksPrisma(client: PrismaClient) {
 
 @Injectable()
 export class TasksService {
-  constructor(
-    private readonly eventsService: EventsService,
-    private readonly workflowTriggerService: WorkflowTriggerService,
-  ) {}
+  constructor(private readonly eventsService: EventsService) {}
 
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -175,14 +171,6 @@ export class TasksService {
     });
 
     this.eventsService.emitToWorkspace(dto.workspaceId, "task.created", { id: task.id });
-    await this.workflowTriggerService.trigger(dto.workspaceId, "task_created", {
-      id: task.id,
-      title: task.title,
-      assigneeId: task.assigneeId,
-      personId: task.personId,
-      companyId: task.companyId,
-      opportunityId: task.opportunityId,
-    });
 
     return this.serializeTask(task);
   }
@@ -262,15 +250,6 @@ export class TasksService {
     }
 
     this.eventsService.emitToWorkspace(task.workspaceId, "task.updated", { id: updated.id });
-    await this.workflowTriggerService.trigger(task.workspaceId, "task_completed", {
-      id: updated.id,
-      title: updated.title,
-      assigneeId: updated.assigneeId,
-      personId: updated.personId,
-      companyId: updated.companyId,
-      opportunityId: updated.opportunityId,
-      status: updated.status,
-    });
 
     return this.serializeTask(updated);
   }

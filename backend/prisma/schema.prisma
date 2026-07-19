@@ -50,7 +50,6 @@ model Workspace {
   pipelineStages      PipelineStage[]
   tasks               Task[]
   notes               Note[]
-  workflows           Workflow[]
   dashboards          Dashboard[]
   tags                Tag[]
   customFields        CustomFieldDefinition[]
@@ -520,40 +519,6 @@ model TagAssignment {
   @@unique([tagId, personId])
   @@unique([tagId, companyId])
   @@unique([tagId, opportunityId])
-}
-
-// ─── Workflows ───
-model Workflow {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean       @default(false)
-  trigger     Json
-  steps       Json
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  workspaceId String
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id])
-  runs        WorkflowRun[]
-}
-
-model WorkflowRun {
-  id          String            @id @default(cuid())
-  status      WorkflowRunStatus @default(RUNNING)
-  triggerData Json?
-  stepResults Json?
-  startedAt   DateTime          @default(now())
-  finishedAt  DateTime?
-
-  workflowId  String
-  workflow    Workflow          @relation(fields: [workflowId], references: [id])
-}
-
-enum WorkflowRunStatus {
-  RUNNING
-  SUCCESS
-  FAILED
 }
 
 // ─── Auth-related models managed by Better Auth ───

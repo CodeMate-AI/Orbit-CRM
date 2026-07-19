@@ -15,7 +15,6 @@ import {
   Briefcase,
   DollarSign,
   CheckSquare,
-  GitFork,
   Sparkles,
   Settings,
   LogOut,
@@ -183,7 +182,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
     { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, active: pathname === "/tasks" },
-    { href: "/automations", label: "Automations", icon: GitFork, active: pathname.startsWith("/automations") },
   ];
 
   const settingsItem = { href: "/settings", label: "Settings", icon: Settings, active: pathname === "/settings" };

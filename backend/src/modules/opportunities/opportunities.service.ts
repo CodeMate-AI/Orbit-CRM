@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import { CreateOpportunityDto } from "./dto/create-opportunity.dto";
 import { UpdateOpportunityDto } from "./dto/update-opportunity.dto";
 import { EventsService } from "../events/events.service";
-import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
 let prisma = new PrismaClient();
 
@@ -13,10 +12,7 @@ export function setOpportunitiesPrisma(client: PrismaClient) {
 
 @Injectable()
 export class OpportunitiesService {
-  constructor(
-    private readonly eventsService: EventsService,
-    private readonly workflowTriggerService: WorkflowTriggerService,
-  ) {}
+  constructor(private readonly eventsService: EventsService) {}
 
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -159,13 +155,6 @@ export class OpportunitiesService {
     });
 
     this.eventsService.emitToWorkspace(dto.workspaceId, "opportunity.created", { id: opp.id });
-    await this.workflowTriggerService.trigger(dto.workspaceId, "deal_created", {
-      id: opp.id,
-      name: opp.name,
-      amount: opp.amount ? Number(opp.amount) : null,
-      companyId: opp.companyId,
-      stageId: opp.stageId,
-    });
 
     return {
       id: opp.id,
@@ -208,15 +197,6 @@ export class OpportunitiesService {
           metadata: { fromStageId: previousStageId, toStageId: updated.stageId },
         },
       });
-
-      await this.workflowTriggerService.trigger(opp.workspaceId, "deal_stage_changed", {
-        id: updated.id,
-        name: updated.name,
-        amount: updated.amount ? Number(updated.amount) : null,
-        companyId: updated.companyId,
-        stageId: updated.stageId,
-        fromStageId: previousStageId,
-      });
     } else {
       await prisma.activity.create({
         data: {
@@ -231,13 +211,6 @@ export class OpportunitiesService {
     }
 
     this.eventsService.emitToWorkspace(opp.workspaceId, "opportunity.updated", { id: updated.id });
-    await this.workflowTriggerService.trigger(opp.workspaceId, "deal_updated", {
-      id: updated.id,
-      name: updated.name,
-      amount: updated.amount ? Number(updated.amount) : null,
-      companyId: updated.companyId,
-      stageId: updated.stageId,
-    });
 
     return {
       id: updated.id,

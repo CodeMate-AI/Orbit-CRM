@@ -51,13 +51,6 @@ const features = [
     visualType: "ai",
   },
   {
-    eyebrow: "Automation",
-    title: "Let the routine handle itself",
-    body: "Build rules that trigger actions, send alerts, and move deals forward automatically. Set it up once, let it run forever — so your team can focus on selling, not admin.",
-    checks: ["Trigger-based rules engine", "Automated emails and task creation", "Webhook integrations"],
-    visualType: "automation",
-  },
-  {
     eyebrow: "Analytics",
     title: "See what's working. Fix what isn't.",
     body: "Real-time dashboards give every team member the metrics they need. From individual performance to company-wide trends — clarity without the complexity of enterprise reporting tools.",
@@ -198,37 +191,6 @@ function AiVisual() {
   );
 }
 
-function AutomationVisual() {
-  return (
-    <div className="flex w-full max-w-[320px] flex-col items-center gap-0">
-      {[
-        { text: 'Deal moved to "Won"', type: "trigger" },
-        { text: "Value is greater than ₹10L", type: "default" },
-        { text: "Notify manager on Slack", type: "action" },
-      ].map((node, idx, arr) => (
-        <div key={node.text} className="flex flex-col items-center gap-0">
-          <div
-            className={`w-[160px] rounded border bg-bg-primary px-5 py-3 text-center text-xs text-text-secondary ${
-              node.type === "trigger"
-                ? "border-[rgba(129,116,248,0.4)] text-orbit-primary"
-                : node.type === "action"
-                ? "border-[rgba(176,253,190,0.3)] text-[#b0fdbe]"
-                : "border-border-default"
-            }`}
-          >
-            {node.text}
-          </div>
-          {idx < arr.length - 1 && (
-            <div className="relative h-6 w-px bg-border-default">
-              <div className="absolute bottom-0 left-[-2px] h-[5px] w-[5px] rotate-45 border-b border-r border-border-default" />
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function AnalyticsVisual() {
   const bars = [35, 50, 42, 65, 58, 82];
   return (
@@ -263,8 +225,6 @@ function FeatureVisual({ type }: { type: string }) {
       return <FieldsVisual />;
     case "ai":
       return <AiVisual />;
-    case "automation":
-      return <AutomationVisual />;
     case "analytics":
       return <AnalyticsVisual />;
     default:

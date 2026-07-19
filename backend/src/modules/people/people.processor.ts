@@ -3,12 +3,16 @@ import { PrismaClient } from "@prisma/client";
 import { parse } from "csv-parse/sync";
 import { Job } from "bullmq";
 import { EventsService } from "../events/events.service";
+import { WorkflowTriggerService } from "../workflows/workflow-trigger.service";
 
 const prisma = new PrismaClient();
 
 @Processor("people-import")
 export class PeopleProcessor extends WorkerHost {
-  constructor(private readonly eventsService: EventsService) {
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly workflowTriggerService: WorkflowTriggerService,
+  ) {
     super();
   }
 
@@ -58,7 +62,7 @@ export class PeopleProcessor extends WorkerHost {
         companyId = company.id;
       }
 
-      await prisma.person.create({
+      const person = await prisma.person.create({
         data: {
           firstName,
           lastName,
@@ -71,6 +75,13 @@ export class PeopleProcessor extends WorkerHost {
           companyId,
           workspaceId,
         },
+      });
+
+      await this.workflowTriggerService.trigger(workspaceId, "contact_created", {
+        id: person.id,
+        name: `${person.firstName} ${person.lastName}`,
+        email: person.email,
+        companyId: person.companyId,
       });
 
       successCount++;

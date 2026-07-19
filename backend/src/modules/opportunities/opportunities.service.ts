@@ -208,6 +208,15 @@ export class OpportunitiesService {
           metadata: { fromStageId: previousStageId, toStageId: updated.stageId },
         },
       });
+
+      await this.workflowTriggerService.trigger(opp.workspaceId, "deal_stage_changed", {
+        id: updated.id,
+        name: updated.name,
+        amount: updated.amount ? Number(updated.amount) : null,
+        companyId: updated.companyId,
+        stageId: updated.stageId,
+        fromStageId: previousStageId,
+      });
     } else {
       await prisma.activity.create({
         data: {

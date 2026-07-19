@@ -10,6 +10,7 @@ import {
   WorkflowStepType,
   WorkflowTriggerType,
 } from "@/lib/workflows-api";
+import { workspacesApi, WorkspaceMemberRow } from "@/lib/workspaces-api";
 import { toast } from "sonner";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonRow from "@/components/ui/SkeletonRow";
@@ -41,17 +42,72 @@ import { createDraftWorkflowList, emptyWorkflow, getInitialSelection } from "./a
 
 type BuilderTab = "builder" | "runs";
 
-type StepEditorState = {
-  title?: string;
-  priority?: string;
-  assigneeId?: string;
-  message?: string;
-  entity?: string;
-  field?: string;
-  value?: string;
-  url?: string;
-  method?: string;
+type EntityType = "contact" | "deal" | "company" | "task";
+
+const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
+  { value: "contact", label: "Contact" },
+  { value: "deal", label: "Deal" },
+  { value: "company", label: "Company" },
+  { value: "task", label: "Task" },
+];
+
+const ENTITY_FIELD_OPTIONS: Record<EntityType, { value: string; label: string }[]> = {
+  contact: [
+    { value: "firstName", label: "First name" },
+    { value: "lastName", label: "Last name" },
+    { value: "name", label: "Name" },
+    { value: "email", label: "Email" },
+    { value: "phone", label: "Phone" },
+    { value: "jobTitle", label: "Job title" },
+    { value: "leadSource", label: "Lead source" },
+    { value: "industry", label: "Industry" },
+    { value: "tagsString", label: "Tags" },
+    { value: "companyId", label: "Company" },
+  ],
+  deal: [
+    { value: "name", label: "Name" },
+    { value: "amount", label: "Amount" },
+    { value: "closeDate", label: "Close date" },
+    { value: "probability", label: "Probability" },
+    { value: "source", label: "Source" },
+    { value: "stageId", label: "Stage" },
+    { value: "companyId", label: "Company" },
+  ],
+  company: [
+    { value: "name", label: "Name" },
+    { value: "domain", label: "Domain" },
+    { value: "address", label: "Address" },
+    { value: "city", label: "City" },
+    { value: "industry", label: "Industry" },
+    { value: "employeeCount", label: "Employee count" },
+    { value: "annualRevenue", label: "Annual revenue" },
+    { value: "linkedInUrl", label: "LinkedIn URL" },
+  ],
+  task: [
+    { value: "title", label: "Title" },
+    { value: "description", label: "Description" },
+    { value: "status", label: "Status" },
+    { value: "priority", label: "Priority" },
+    { value: "dueDate", label: "Due date" },
+    { value: "assigneeId", label: "Assignee" },
+    { value: "personId", label: "Contact" },
+    { value: "companyId", label: "Company" },
+    { value: "opportunityId", label: "Deal" },
+  ],
 };
+
+function isEntityType(value: string): value is EntityType {
+  return ENTITY_OPTIONS.some((option) => option.value === value);
+}
+
+function getEntityType(value?: string): EntityType {
+  const candidate = value ?? "";
+  return isEntityType(candidate) ? candidate : "contact";
+}
+
+function getFieldOptions(entity: EntityType) {
+  return ENTITY_FIELD_OPTIONS[entity] ?? ENTITY_FIELD_OPTIONS.contact;
+}
 
 const TRIGGER_OPTIONS: { value: WorkflowTriggerType; label: string }[] = [
   { value: "contact_created", label: "Contact Created" },
@@ -302,7 +358,19 @@ function RunRow({ run }: { run: any }) {
   );
 }
 
-function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workflow: WorkflowRow; onWorkflowChange: (next: WorkflowRow) => void; onSave: () => void; saving: boolean }) {
+function WorkflowBuilder({
+  workflow,
+  onWorkflowChange,
+  onSave,
+  saving,
+  members,
+}: {
+  workflow: WorkflowRow;
+  onWorkflowChange: (next: WorkflowRow) => void;
+  onSave: () => void;
+  saving: boolean;
+  members: WorkspaceMemberRow[];
+}) {
   const [selectedNodeId, setSelectedNodeId] = useState<string>("trigger");
   const [activeTab, setActiveTab] = useState<BuilderTab>("builder");
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -394,8 +462,8 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
 
       {activeTab === "builder" ? (
         <div className="grid flex-1 gap-0 xl:grid-cols-[1fr_340px]">
-          <div className="min-h-[620px] bg-bg-tertiary/30 p-4 lg:p-6">
-            <div className="h-[620px] rounded-3xl border border-border-subtle bg-[#0d1220]">
+          <div className="min-h-[800px] bg-bg-tertiary/30 p-4 lg:p-6">
+            <div className="h-[800px] rounded-3xl border border-border-subtle bg-[#0d1220]">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -454,7 +522,21 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
               ) : selectedStep ? (
                 <div className="mt-5 space-y-4">
                   <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Node type</label>
-                  <select value={selectedStep.type} onChange={(e) => updateStep(selectedStep.id, { type: e.target.value as WorkflowStepType })} className="form-input w-full">
+                  <select
+                    value={selectedStep.type}
+                    onChange={(e) => {
+                      const nextType = e.target.value as WorkflowStepType;
+                      const nextConfig = nextType === "update_field"
+                        ? { entity: "contact", field: "firstName", value: "" }
+                        : nextType === "send_email"
+                        ? { subject: "", recipientEmail: "", bodyTemplate: "" }
+                        : nextType === "create_task"
+                        ? { title: "Follow-up call", priority: "MEDIUM" }
+                        : {};
+                      updateStep(selectedStep.id, { type: nextType, label: stepLabel(nextType), config: nextConfig });
+                    }}
+                    className="form-input w-full"
+                  >
                     {STEP_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
@@ -473,7 +555,18 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
                         <option value="HIGH">HIGH</option>
                       </select>
                       <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Assignee</label>
-                      <input value={selectedStep.config.assigneeId ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, assigneeId: e.target.value } })} className="form-input w-full" />
+                      <select
+                        value={selectedStep.config.assigneeId ?? ""}
+                        onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, assigneeId: e.target.value } })}
+                        className="form-input w-full"
+                      >
+                        <option value="">Unassigned</option>
+                        {members.map((member) => (
+                          <option key={member.userId} value={member.userId}>
+                            {member.user.name || member.user.email}
+                          </option>
+                        ))}
+                      </select>
                     </>
                   ) : null}
 
@@ -495,16 +588,60 @@ function WorkflowBuilder({ workflow, onWorkflowChange, onSave, saving }: { workf
                     </>
                   ) : null}
 
-                  {selectedStep.type === "update_field" ? (
-                    <>
-                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Entity</label>
-                      <input value={selectedStep.config.entity ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, entity: e.target.value } })} className="form-input w-full" />
-                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Field</label>
-                      <input value={selectedStep.config.field ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, field: e.target.value } })} className="form-input w-full" />
-                      <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">New value</label>
-                      <input value={selectedStep.config.value ?? ""} onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, value: e.target.value } })} className="form-input w-full" />
-                    </>
-                  ) : null}
+                  {selectedStep.type === "update_field" ? (() => {
+                    const entity = getEntityType(selectedStep.config.entity);
+                    const fields = getFieldOptions(entity);
+                    const selectedField = fields.some((field) => field.value === selectedStep.config.field)
+                      ? selectedStep.config.field
+                      : fields[0]?.value ?? "";
+
+                    return (
+                      <>
+                        <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Entity</label>
+                        <select
+                          value={entity}
+                          onChange={(e) =>
+                            updateStep(selectedStep.id, {
+                              config: {
+                                ...selectedStep.config,
+                                entity: e.target.value,
+                                field: getFieldOptions(e.target.value as EntityType)[0]?.value ?? "",
+                              },
+                            })
+                          }
+                          className="form-input w-full"
+                        >
+                          {ENTITY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">Field</label>
+                        <select
+                          value={selectedField}
+                          onChange={(e) =>
+                            updateStep(selectedStep.id, {
+                              config: { ...selectedStep.config, field: e.target.value },
+                            })
+                          }
+                          className="form-input w-full"
+                        >
+                          {fields.map((field) => (
+                            <option key={field.value} value={field.value}>
+                              {field.label}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="block text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary">New value</label>
+                        <input
+                          value={selectedStep.config.value ?? ""}
+                          onChange={(e) => updateStep(selectedStep.id, { config: { ...selectedStep.config, value: e.target.value } })}
+                          className="form-input w-full"
+                        />
+                      </>
+                    );
+                  })() : null}
 
                   {selectedStep.type === "webhook" ? (
                     <>
@@ -554,16 +691,20 @@ function AutomationsContent() {
   const [saving, setSaving] = useState(false);
   const [workflows, setWorkflows] = useState<WorkflowRow[]>([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowRow | null>(null);
+  const [members, setMembers] = useState<WorkspaceMemberRow[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
-    workflowsApi
-      .list(workspaceId)
-      .then((rows) => {
+    Promise.all([
+      workflowsApi.list(workspaceId),
+      workspacesApi.listMembers(workspaceId),
+    ])
+      .then(([rows, membersData]) => {
         setWorkflows(rows);
         setSelectedWorkflow((current) => getInitialSelection(current, rows));
+        setMembers(membersData);
       })
       .catch((err: any) => setError(err.message || "Failed to load automations."))
       .finally(() => setLoading(false));
@@ -701,6 +842,7 @@ function AutomationsContent() {
             onWorkflowChange={updateSelected}
             onSave={persistSelected}
             saving={saving}
+            members={members}
           />
         ) : (
           <div className="rounded-3xl border border-border-subtle bg-surface-default p-10 text-center text-text-secondary">

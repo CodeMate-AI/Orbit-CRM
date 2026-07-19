@@ -24,6 +24,7 @@ import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { opportunitiesApi } from "@/lib/opportunities-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { CreateTaskInput, TaskPriority, TaskRow, TaskStatus, tasksApi } from "@/lib/tasks-api";
+import { workspacesApi, WorkspaceMemberRow } from "@/lib/workspaces-api";
 
 type DealOption = {
   id: string;
@@ -147,6 +148,7 @@ function AddTaskModal({
   people,
   companies,
   deals,
+  members,
   onClose,
   onCreated,
 }: {
@@ -154,6 +156,7 @@ function AddTaskModal({
   people: PersonRow[];
   companies: CompanyRow[];
   deals: DealOption[];
+  members: WorkspaceMemberRow[];
   onClose: () => void;
   onCreated: (task: TaskRow) => void;
 }) {
@@ -279,6 +282,20 @@ function AddTaskModal({
               </select>
             </div>
           </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Assignee</label>
+              <select className="form-input" value={form.assigneeId ?? ""} onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}>
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option key={member.userId} value={member.userId}>
+                    {member.user.name || member.user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field" />
+          </div>
           {error ? <p className="form-error">{error}</p> : null}
           <div className="modal-footer">
             <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
@@ -298,6 +315,7 @@ function TaskDetailDrawer({
   people,
   companies,
   deals,
+  members,
   onClose,
   onTaskUpdated,
 }: {
@@ -306,6 +324,7 @@ function TaskDetailDrawer({
   people: PersonRow[];
   companies: CompanyRow[];
   deals: DealOption[];
+  members: WorkspaceMemberRow[];
   onClose: () => void;
   onTaskUpdated: (task: TaskRow) => void;
 }) {
@@ -448,13 +467,22 @@ function TaskDetailDrawer({
               <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId"}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
-            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related deal</label>
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.opportunityId} onChange={(e) => setForm((current) => current ? { ...current, opportunityId: e.target.value } : current)} onBlur={() => void saveField("opportunityId")}>
                 <option value="">No deal</option>
                 {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.name}</option>)}
               </select>
               <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId"}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Assignee</label>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.assigneeId} onChange={(e) => setForm((current) => current ? { ...current, assigneeId: e.target.value } : current)} onBlur={() => void saveField("assigneeId")}>
+                <option value="">Unassigned</option>
+                {members.map((member) => <option key={member.userId} value={member.userId}>{member.user.name || member.user.email}</option>)}
+              </select>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId"}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
           </div>
         </div>
@@ -469,6 +497,7 @@ function TasksContent() {
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [deals, setDeals] = useState<DealOption[]>([]);
+  const [members, setMembers] = useState<WorkspaceMemberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -500,12 +529,14 @@ function TasksContent() {
       peopleApi.list(workspaceId),
       companiesApi.list(workspaceId),
       opportunitiesApi.list(workspaceId),
+      workspacesApi.listMembers(workspaceId),
     ])
-      .then(([taskRows, peopleResponse, companyRows, opportunitiesResponse]) => {
+      .then(([taskRows, peopleResponse, companyRows, opportunitiesResponse, membersData]) => {
         setTasks(taskRows);
         setPeople(peopleResponse.data);
         setCompanies(companyRows);
         setDeals(opportunitiesResponse.stages.flatMap((stage) => stage.deals.map((deal) => ({ id: deal.id, name: deal.name }))));
+        setMembers(membersData);
       })
       .catch((err: any) => setError(err.message || "Failed to load tasks."))
       .finally(() => setLoading(false));
@@ -708,8 +739,8 @@ function TasksContent() {
         )}
       </section>
 
-      {showModal && workspaceId ? <AddTaskModal workspaceId={workspaceId} people={people} companies={companies} deals={deals} onClose={() => setShowModal(false)} onCreated={handleCreated} /> : null}
-      <TaskDetailDrawer open={Boolean(selectedTask)} task={selectedTask} people={people} companies={companies} deals={deals} onClose={() => setSelectedTaskId(null)} onTaskUpdated={applyTaskUpdate} />
+      {showModal && workspaceId ? <AddTaskModal workspaceId={workspaceId} people={people} companies={companies} deals={deals} members={members} onClose={() => setShowModal(false)} onCreated={handleCreated} /> : null}
+      <TaskDetailDrawer open={Boolean(selectedTask)} task={selectedTask} people={people} companies={companies} deals={deals} members={members} onClose={() => setSelectedTaskId(null)} onTaskUpdated={applyTaskUpdate} />
     </div>
   );
 }

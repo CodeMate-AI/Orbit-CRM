@@ -64,6 +64,10 @@ function ContactDetailPage() {
   const recentNotes = useMemo(() => notes.slice(0, 5), [notes]);
 
   useEffect(() => {
+    document.title = contact?.name ? `${contact.name} | Orbit CRM` : "Contact detail | Orbit CRM";
+  }, [contact?.name]);
+
+  useEffect(() => {
     if (!workspaceId || !contactId) return;
 
     setLoading(true);

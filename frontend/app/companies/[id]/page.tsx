@@ -64,6 +64,10 @@ function CompanyDetailPage() {
   const recentPeople = useMemo(() => people.slice(0, 5), [people]);
 
   useEffect(() => {
+    document.title = company?.name ? `${company.name} | Orbit CRM` : "Company detail | Orbit CRM";
+  }, [company?.name]);
+
+  useEffect(() => {
     if (!workspaceId || !companyId) return;
     setLoading(true);
     setError("");

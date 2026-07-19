@@ -80,6 +80,10 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   }, [router]);
 
   useEffect(() => {
+    document.title = pageTitle ? `${pageTitle} | Orbit CRM` : "Orbit CRM";
+  }, [pageTitle]);
+
+  useEffect(() => {
     async function loadSessionAndWorkspace() {
       const user = await refreshSession(true);
       if (!user) {

@@ -30,6 +30,10 @@ export default function OnboardingPage() {
   const [joinRequestSent, setJoinRequestSent] = useState(false);
 
   useEffect(() => {
+    document.title = "Onboarding | Orbit CRM";
+  }, []);
+
+  useEffect(() => {
     async function checkAuthAndDiscovery() {
       try {
         const session = await authClient.getSession();

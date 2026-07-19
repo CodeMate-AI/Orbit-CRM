@@ -17,6 +17,10 @@ function SignUpForm() {
   const emailParam = searchParams.get("email");
   const tokenParam = searchParams.get("token");
 
+  useEffect(() => {
+    document.title = "Sign Up | Orbit CRM";
+  }, []);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

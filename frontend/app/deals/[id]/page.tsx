@@ -71,6 +71,10 @@ function DealDetailPage() {
   const [unlinkingPersonId, setUnlinkingPersonId] = useState<string | null>(null);
 
   useEffect(() => {
+    document.title = detail?.name ? `${detail.name} | Orbit CRM` : "Deal detail | Orbit CRM";
+  }, [detail?.name]);
+
+  useEffect(() => {
     if (!workspaceId || !dealId) return;
 
     setLoading(true);

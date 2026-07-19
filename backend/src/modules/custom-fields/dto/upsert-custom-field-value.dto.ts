@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { EntityType } from "@prisma/client";
 
 export class UpsertCustomFieldValueDto {
@@ -13,5 +13,6 @@ export class UpsertCustomFieldValueDto {
   @IsNotEmpty()
   entityId!: string;
 
-  value!: unknown;
+  @IsOptional()
+  value?: any;
 }

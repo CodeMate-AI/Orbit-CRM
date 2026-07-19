@@ -14,7 +14,7 @@ type FieldValueInput = {
   fieldId: string;
   entityType: EntityType;
   entityId: string;
-  value: unknown;
+  value?: unknown;
 };
 
 @Injectable()
@@ -237,12 +237,12 @@ export class CustomFieldsService {
             ? { fieldId_companyId: { fieldId: dto.fieldId, companyId: dto.entityId } }
             : { fieldId_opportunityId: { fieldId: dto.fieldId, opportunityId: dto.entityId } },
       update: {
-        value: dto.value as any,
+        value: dto.value !== undefined ? (dto.value as any) : null,
       },
       create: {
         workspaceId,
         fieldId: dto.fieldId,
-        value: dto.value as any,
+        value: dto.value !== undefined ? (dto.value as any) : null,
         ...relation,
       },
       include: { field: true },

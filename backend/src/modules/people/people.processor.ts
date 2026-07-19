@@ -32,7 +32,6 @@ export class PeopleProcessor extends WorkerHost {
       const jobTitle = record[columnMapping.jobTitle]?.trim() || null;
       const leadSource = record[columnMapping.leadSource]?.trim() || null;
       const industry = record[columnMapping.industry]?.trim() || null;
-      const tagsString = record[columnMapping.tags]?.trim() || null;
       const companyName = record[columnMapping.companyName]?.trim();
 
       if (!firstName || !lastName) {
@@ -67,7 +66,6 @@ export class PeopleProcessor extends WorkerHost {
           jobTitle,
           leadSource,
           industry,
-          tagsString,
           companyId,
           workspaceId,
         },

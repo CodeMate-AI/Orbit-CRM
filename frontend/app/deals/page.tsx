@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import TagInput from "@/components/ui/TagInput";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonRow from "@/components/ui/SkeletonRow";
-import { tagsApi } from "@/lib/tags-api";
 import {
   Building2,
   CalendarClock,
@@ -67,10 +65,9 @@ function AddDealModal({
   onClose: () => void;
   onCreated: (deal: DealRow & { stageName: string }) => void;
 }) {
-  const [form, setForm] = useState<CreateOpportunityInput & { tags: string[] }>({
+  const [form, setForm] = useState<CreateOpportunityInput>({
     name: "",
     stageId: stages[0]?.id ?? "",
-    tags: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -84,20 +81,7 @@ function AddDealModal({
     setSaving(true);
     setError("");
     try {
-      const { tags, ...rest } = form;
-      const deal = await opportunitiesApi.create(workspaceId, rest);
-      if (tags.length > 0) {
-        const workspaceTags = await tagsApi.list(workspaceId);
-        await Promise.all(
-          tags.map(async (tagName) => {
-            const tag = workspaceTags.find(
-              (entry) => entry.name.trim().toLowerCase() === tagName.trim().toLowerCase(),
-            );
-            if (!tag) return;
-            await tagsApi.assign(workspaceId, { entityType: "opportunity", entityId: deal.id, tagId: tag.id });
-          }),
-        );
-      }
+      const deal = await opportunitiesApi.create(workspaceId, form);
       const stageName = stages.find((s) => s.id === form.stageId)?.name ?? "";
       onCreated({ ...(deal as DealRow), stageName });
     } catch (err: any) {
@@ -162,14 +146,6 @@ function AddDealModal({
               type="date"
               value={form.closeDate ?? ""}
               onChange={(e) => setForm({ ...form, closeDate: e.target.value || undefined })}
-            />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Tags</label>
-            <TagInput
-              workspaceId={workspaceId}
-              value={form.tags}
-              onChange={(tags) => setForm({ ...form, tags })}
             />
           </div>
           {error && <p className="form-error">{error}</p>}

@@ -51,11 +51,9 @@ model Workspace {
   tasks               Task[]
   notes               Note[]
   dashboards          Dashboard[]
-  tags                Tag[]
   customFields        CustomFieldDefinition[]
   attachments         Attachment[]
   customFieldValues   CustomFieldValue[]
-  tagAssignments      TagAssignment[]
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
 
@@ -166,7 +164,6 @@ model Person {
   linkedInUrl       String?
   leadSource        String?
   industry          String?
-  tagsString        String?
   version           Int                @default(1)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -183,7 +180,6 @@ model Person {
   opportunities     OpportunityContact[]
   attachments       Attachment[]
   customFieldValues CustomFieldValue[]
-  tags              TagAssignment[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -216,7 +212,6 @@ model Company {
   notes             Note[]
   attachments       Attachment[]
   customFieldValues CustomFieldValue[]
-  tags              TagAssignment[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -247,7 +242,6 @@ model Opportunity {
   notes             Note[]
   attachments       Attachment[]
   customFieldValues CustomFieldValue[]
-  tags              TagAssignment[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -490,37 +484,6 @@ enum EntityType {
   OPPORTUNITY
 }
 
-// ─── Tags ───
-model Tag {
-  id          String          @id @default(cuid())
-  name        String
-  color       String          @default("#6366f1")
-
-  workspaceId String
-  workspace   Workspace       @relation(fields: [workspaceId], references: [id])
-  assignments TagAssignment[]
-
-  @@unique([workspaceId, name])
-}
-
-model TagAssignment {
-  id            String       @id @default(cuid())
-  tagId         String
-  tag           Tag          @relation(fields: [tagId], references: [id])
-  workspaceId   String
-  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
-  personId      String?
-  person        Person?      @relation(fields: [personId], references: [id])
-  companyId     String?
-  company       Company?     @relation(fields: [companyId], references: [id])
-  opportunityId String?
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
-
-  @@unique([tagId, personId])
-  @@unique([tagId, companyId])
-  @@unique([tagId, opportunityId])
-}
-
 // ─── Auth-related models managed by Better Auth ───
 model Session {
   id                   String    @id
@@ -585,4 +548,8 @@ model Invitation {
   workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
 }
+
+
+
+
 

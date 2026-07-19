@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import TagInput from "@/components/ui/TagInput";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonRow from "@/components/ui/SkeletonRow";
-import { tagsApi, type TagRow } from "@/lib/tags-api";
 import {
   ArrowDown,
   ArrowUp,
@@ -159,7 +157,7 @@ function AddCompanyModal({
   onClose: () => void;
   onCreated: (company: CompanyRow) => void;
 }) {
-  const [form, setForm] = useState<CreateCompanyInput & { tags: string[] }>({
+  const [form, setForm] = useState<CreateCompanyInput>({
     name: "",
     domain: "",
     address: "",
@@ -168,7 +166,6 @@ function AddCompanyModal({
     employeeCount: undefined,
     annualRevenue: undefined,
     linkedInUrl: "",
-    tags: [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -182,25 +179,12 @@ function AddCompanyModal({
     setSaving(true);
     setError("");
     try {
-      const { tags, ...rest } = form;
       const data = {
-        ...rest,
-        employeeCount: rest.employeeCount ? Number(rest.employeeCount) : undefined,
-        annualRevenue: rest.annualRevenue ? Number(rest.annualRevenue) : undefined,
+        ...form,
+        employeeCount: form.employeeCount ? Number(form.employeeCount) : undefined,
+        annualRevenue: form.annualRevenue ? Number(form.annualRevenue) : undefined,
       };
       const company = await companiesApi.create(workspaceId, data);
-      if (tags.length > 0) {
-        const workspaceTags = await tagsApi.list(workspaceId);
-        await Promise.all(
-          tags.map(async (tagName) => {
-            const tag = workspaceTags.find(
-              (entry) => entry.name.trim().toLowerCase() === tagName.trim().toLowerCase(),
-            );
-            if (!tag) return;
-            await tagsApi.assign(workspaceId, { entityType: "company", entityId: company.id, tagId: tag.id });
-          }),
-        );
-      }
       onCreated(company);
     } catch (err: any) {
       setError(err.message || "Failed to create company.");
@@ -301,15 +285,6 @@ function AddCompanyModal({
               onChange={(e) => setForm({ ...form, linkedInUrl: e.target.value })}
             />
           </div>
-          <div className="form-field">
-            <label className="form-label">Tags</label>
-            <TagInput
-              workspaceId={workspaceId}
-              value={form.tags}
-              onChange={(tags) => setForm({ ...form, tags })}
-            />
-          </div>
-
           {error && <p className="form-error">{error}</p>}
           <div className="modal-footer">
             <button type="button" className="btn-ghost" onClick={onClose}>

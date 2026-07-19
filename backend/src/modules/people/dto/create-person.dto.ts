@@ -33,10 +33,6 @@ export class CreatePersonDto {
   @IsString()
   industry?: string;
 
-  @IsOptional()
-  @IsString()
-  tagsString?: string;
-
   @IsString()
   workspaceId!: string;
 

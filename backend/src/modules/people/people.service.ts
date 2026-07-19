@@ -35,7 +35,6 @@ const CSV_HEADERS = [
   "Company",
   "Lead Source",
   "Industry",
-  "Tags",
   "Created At",
 ];
 
@@ -49,7 +48,6 @@ const CSV_COLUMNS = [
   "Company",
   "Lead Source",
   "Industry",
-  "Tags",
   "Created At",
 ];
 
@@ -136,7 +134,6 @@ export class PeopleService {
           person.company?.name ?? null,
           person.leadSource,
           person.industry,
-          person.tagsString,
           person.createdAt.toISOString(),
         ]),
       );
@@ -166,7 +163,6 @@ export class PeopleService {
         jobTitle: p.jobTitle,
         leadSource: p.leadSource,
         industry: p.industry,
-        tagsString: p.tagsString,
         company: p.company?.name ?? null,
         companyId: p.companyId,
         createdAt: p.createdAt,
@@ -186,7 +182,6 @@ export class PeopleService {
         jobTitle: dto.jobTitle,
         leadSource: dto.leadSource,
         industry: dto.industry,
-        tagsString: dto.tagsString,
         workspaceId: dto.workspaceId,
         companyId: dto.companyId || null,
       },
@@ -215,7 +210,6 @@ export class PeopleService {
       jobTitle: person.jobTitle,
       leadSource: person.leadSource,
       industry: person.industry,
-      tagsString: person.tagsString,
       companyId: person.companyId,
       createdAt: person.createdAt,
     };
@@ -328,7 +322,6 @@ export class PeopleService {
       jobTitle: person.jobTitle,
       leadSource: person.leadSource,
       industry: person.industry,
-      tagsString: person.tagsString,
       company: person.company?.name ?? null,
       companyId: person.companyId,
       createdAt: person.createdAt,
@@ -364,7 +357,6 @@ export class PeopleService {
         jobTitle: dto.jobTitle !== undefined ? dto.jobTitle : person.jobTitle,
         leadSource: dto.leadSource !== undefined ? dto.leadSource : person.leadSource,
         industry: dto.industry !== undefined ? dto.industry : person.industry,
-        tagsString: dto.tagsString !== undefined ? dto.tagsString : person.tagsString,
         companyId: dto.companyId === "" ? null : dto.companyId !== undefined ? dto.companyId : person.companyId,
       },
       include: { company: { select: { id: true, name: true } } },
@@ -393,7 +385,6 @@ export class PeopleService {
       jobTitle: updated.jobTitle,
       leadSource: updated.leadSource,
       industry: updated.industry,
-      tagsString: updated.tagsString,
       company: updated.company?.name ?? null,
       companyId: updated.companyId,
       createdAt: updated.createdAt,

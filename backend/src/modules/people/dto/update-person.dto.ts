@@ -34,8 +34,4 @@ export class UpdatePersonDto {
   @IsOptional()
   @IsString()
   industry?: string;
-
-  @IsOptional()
-  @IsString()
-  tagsString?: string;
 }

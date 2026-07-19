@@ -39,7 +39,7 @@ const features = [
   {
     eyebrow: "Customization",
     title: "Your business isn't generic. Neither is your CRM.",
-    body: "Capture the data that matters to you. Add custom fields, tags, and categories without writing a single line of code. Make Orbit fit your workflow, not the other way around.",
+    body: "Capture the data that matters to you. Add custom fields and categories without writing a single line of code. Make Orbit fit your workflow, not the other way around.",
     checks: ["Text, number, date, and dropdown fields", "Multi-select and customizable fields", "Required field enforcement"],
     visualType: "fields",
   },

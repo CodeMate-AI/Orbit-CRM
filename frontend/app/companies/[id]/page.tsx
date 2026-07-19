@@ -10,10 +10,9 @@ import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
-import { tagsApi, TagRow } from "@/lib/tags-api";
 import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Tag as TagIcon, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Users } from "lucide-react";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
@@ -54,15 +53,10 @@ function CompanyDetailPage() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
-  const [tags, setTags] = useState<TagRow[]>([]);
-  const [assignedTags, setAssignedTags] = useState<TagRow[]>([]);
   const [customFields, setCustomFields] = useState<CustomFieldDefinitionRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [savingNote, setSavingNote] = useState(false);
   const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
-  const [newTagId, setNewTagId] = useState("");
-  const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState("#6366f1");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -80,19 +74,15 @@ function CompanyDetailPage() {
       notesApi.list(workspaceId, "company", companyId),
       tasksApi.list(workspaceId),
       attachmentsApi.list(workspaceId, "company", companyId),
-      tagsApi.list(workspaceId),
-      tagsApi.listForEntity(workspaceId, "company", companyId),
       customFieldValuesApi.get(workspaceId, "COMPANY", companyId),
     ])
-      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows, tagRows, assignedRows, fieldRows]) => {
+      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows, fieldRows]) => {
         setCompany(detail);
         setPeople(peopleResponse.data.filter((person) => person.companyId === detail.id));
         setActivities(timeline);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
-        setTags(tagRows);
-        setAssignedTags(assignedRows);
         setCustomFields(fieldRows);
       })
       .catch((err) => setError(err.message || "Failed to load company."))
@@ -130,38 +120,6 @@ function CompanyDetailPage() {
     }
   };
 
-  const handleCreateTag = async () => {
-    if (!workspaceId || !tagName.trim()) return;
-    try {
-      const created = await tagsApi.create(workspaceId, { name: tagName.trim(), color: tagColor });
-      setTags((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setTagName("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create tag.");
-    }
-  };
-
-  const handleAssignTag = async () => {
-    if (!workspaceId || !company || !newTagId) return;
-    try {
-      await tagsApi.assign(workspaceId, { entityType: "company", entityId: company.id, tagId: newTagId });
-      const tag = tags.find((entry) => entry.id === newTagId);
-      if (tag && !assignedTags.some((entry) => entry.id === tag.id)) setAssignedTags((current) => [...current, tag].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewTagId("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to assign tag.");
-    }
-  };
-
-  const handleRemoveTag = async (tagId: string) => {
-    if (!workspaceId || !company) return;
-    try {
-      await tagsApi.remove(workspaceId, { entityType: "company", entityId: company.id, tagId });
-      setAssignedTags((current) => current.filter((entry) => entry.id !== tagId));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to remove tag.");
-    }
-  };
 
   if (loading) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10"><Loader2 className="h-5 w-5 animate-spin" /> Loading company…</div>;
   if (error || !company) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10"><p>{error || "Company not found."}</p><button className="btn-primary" onClick={() => router.push("/companies")}>Back to companies</button></div>;
@@ -191,25 +149,6 @@ function CompanyDetailPage() {
             <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {company.domain || "No domain"}</div>
             <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {company.address || "No address"}</div>
             <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(company.createdAt)}</div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary"><TagIcon className="h-4 w-4" /> Tags</div>
-            <div className="flex flex-wrap gap-2">
-              {assignedTags.length === 0 ? <span className="text-sm text-text-tertiary">No tags</span> : assignedTags.map((tag) => <span key={tag.id} className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: tag.color }}><button type="button" onClick={() => handleRemoveTag(tag.id)}><Trash2 className="h-3 w-3" /></button>{tag.name}</span>)}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
-              <select className="rounded-xl border border-border-subtle bg-bg-tertiary px-3 py-2 text-sm" value={newTagId} onChange={(e) => setNewTagId(e.target.value)}>
-                <option value="">Assign tag</option>
-                {tags.filter((tag) => !assignedTags.some((entry) => entry.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-              </select>
-              <button className="btn-primary h-10 justify-center text-xs" onClick={handleAssignTag} disabled={!newTagId}>Add</button>
-            </div>
-            <div className="space-y-2 rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
-              <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Create tag</div>
-              <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="High Value" />
-              <div className="flex gap-2"><input type="color" className="h-10 w-12 rounded-xl border border-border-subtle bg-bg-secondary p-1" value={tagColor} onChange={(e) => setTagColor(e.target.value)} /><button className="btn-primary flex-1 justify-center text-xs" onClick={handleCreateTag}>Create</button></div>
-            </div>
           </div>
 
           <div className="space-y-3">

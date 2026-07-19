@@ -24,7 +24,6 @@ const OPTIONAL_MAPPING_FIELDS = [
   { key: "companyName", label: "Company Name" },
   { key: "leadSource", label: "Lead Source" },
   { key: "industry", label: "Industry" },
-  { key: "tags", label: "Tags (comma separated)" },
 ];
 
 export default function CSVImportModal({ open, workspaceId, onClose, onImportQueued }: CSVImportModalProps) {
@@ -36,9 +35,9 @@ export default function CSVImportModal({ open, workspaceId, onClose, onImportQue
   const [step, setStep] = useState<"upload" | "map" | "confirm">("upload");
   const [loading, setLoading] = useState(false);
 
-  const sampleCsvContent = `First Name,Last Name,Email,Phone,Lead Source,Industry,Tags,Company Name,Job Title
-Rahul,Sharma,rahul@buildright.in,+91 98765 43210,Website,Technology,"hot, prospect",BuildRight Inc,Sales Director
-Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,"partner",DesignOps,Founder`;
+  const sampleCsvContent = `First Name,Last Name,Email,Phone,Lead Source,Industry,Company Name,Job Title
+Rahul,Sharma,rahul@buildright.in,+91 98765 43210,Website,Technology,BuildRight Inc,Sales Director
+Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Founder`;
 
   const handleDownloadSample = () => {
     const blob = new Blob([sampleCsvContent], { type: "text/csv;charset=utf-8;" });

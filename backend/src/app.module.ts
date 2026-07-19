@@ -16,7 +16,6 @@ import { PeopleModule } from "./modules/people/people.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { SearchModule } from "./modules/search/search.module";
 import { SettingsModule } from "./modules/settings/settings.module";
-import { TagsModule } from "./modules/tags/tags.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
 import { HealthController } from "./modules/health/health.controller";
@@ -43,7 +42,6 @@ import { HealthController } from "./modules/health/health.controller";
     ReportsModule,
     SearchModule,
     SettingsModule,
-    TagsModule,
     TasksModule,
     WorkspacesModule,
   ],

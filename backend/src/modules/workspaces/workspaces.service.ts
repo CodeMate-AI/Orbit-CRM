@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaClient, MemberRole, JoinRequestStatus } from "@prisma/client";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
+import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
 import { InviteMemberDto } from "./dto/invite-member.dto";
 import { EmailService } from "../settings/email.service";
 import * as crypto from "crypto";
@@ -205,6 +206,65 @@ export class WorkspacesService {
     });
   }
 
+  async updateWorkspace(userId: string, workspaceId: string, dto: UpdateWorkspaceDto) {
+    await this.requirePrivilegedMembership(userId, workspaceId);
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        logo: true,
+        createdAt: true,
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace not found.");
+    }
+
+    const data: { name?: string; domain?: string | null } = {};
+
+    if (dto.name !== undefined) {
+      const nextName = dto.name.trim();
+      if (!nextName) {
+        throw new BadRequestException("Workspace name cannot be empty.");
+      }
+      data.name = nextName;
+    }
+
+    if (dto.domain !== undefined) {
+      const nextDomain = dto.domain.trim().toLowerCase() || null;
+      if (nextDomain) {
+        const existing = await prisma.workspace.findUnique({
+          where: { domain: nextDomain },
+          select: { id: true },
+        });
+
+        if (existing && existing.id !== workspaceId) {
+          throw new BadRequestException("An organization with this domain already exists.");
+        }
+      }
+      data.domain = nextDomain;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException("No workspace changes were provided.");
+    }
+
+    return prisma.workspace.update({
+      where: { id: workspaceId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        logo: true,
+        createdAt: true,
+      },
+    });
+  }
 
   async discoverWorkspace(userEmail: string) {
     const domain = this.extractDomain(userEmail);

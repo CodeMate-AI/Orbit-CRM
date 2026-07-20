@@ -166,22 +166,35 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.95), rgba(17, 17, 17, 0.95));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   margin: 0 2px;
   cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.workspace-switcher:hover {
+  border-color: rgba(245, 245, 245, 0.12);
+  background: linear-gradient(180deg, rgba(23, 23, 23, 0.98), rgba(18, 18, 18, 0.98));
+}
+.workspace-switcher-open {
+  border-color: rgba(129, 116, 248, 0.35);
+  box-shadow: 0 0 0 1px rgba(129, 116, 248, 0.08), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 .workspace-name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 .workspace-switcher svg {
   width: 14px;
   height: 14px;
   color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 .sidebar-nav {

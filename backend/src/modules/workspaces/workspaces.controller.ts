@@ -3,6 +3,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/user.decorator";
 import { WorkspacesService } from "./workspaces.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
+import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
 import { InviteMemberDto } from "./dto/invite-member.dto";
 import { UpdateMemberRoleDto } from "./dto/update-member-role.dto";
 
@@ -23,6 +24,16 @@ export class WorkspacesController {
     @Body() dto: CreateWorkspaceDto,
   ) {
     return this.workspacesService.createWorkspace(user.id, user.email, dto);
+  }
+
+  @Patch(":id")
+  @UseGuards(AuthGuard)
+  async updateWorkspace(
+    @CurrentUser() user: any,
+    @Param("id") workspaceId: string,
+    @Body() dto: UpdateWorkspaceDto,
+  ) {
+    return this.workspacesService.updateWorkspace(user.id, workspaceId, dto);
   }
 
   @Get("discover")

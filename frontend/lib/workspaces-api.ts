@@ -77,6 +77,12 @@ export const workspacesApi = {
       body: JSON.stringify({ name, domain }),
     }),
 
+  update: (id: string, name: string, domain?: string) =>
+    request(`/workspaces/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name, domain }),
+    }),
+
   discover: () =>
     request("/workspaces/discover", {
       method: "GET",

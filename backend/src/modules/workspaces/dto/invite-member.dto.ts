@@ -1,7 +1,7 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsIn } from "class-validator";
 import { MemberRole } from "@prisma/client";
 
-const INVITABLE_MEMBER_ROLES: MemberRole[] = [MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.VIEWER];
+const INVITABLE_MEMBER_ROLES: MemberRole[] = [MemberRole.MEMBER];
 
 export class InviteMemberDto {
   @IsEmail()

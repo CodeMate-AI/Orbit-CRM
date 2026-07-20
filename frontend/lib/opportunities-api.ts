@@ -79,7 +79,7 @@ export interface CreateOpportunityInput {
   companyId?: string | null;
 }
 
-export type WorkspaceMemberRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+export type WorkspaceMemberRole = "OWNER" | "MEMBER";
 
 export interface WorkspaceMemberRow {
   id: string;

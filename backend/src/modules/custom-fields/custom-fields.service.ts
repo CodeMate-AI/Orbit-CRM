@@ -35,8 +35,8 @@ export class CustomFieldsService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
-    if (member.role !== "OWNER" && member.role !== "ADMIN") {
-      throw new ForbiddenException("Only owners or admins can manage custom fields.");
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can manage custom fields.");
     }
   }
 

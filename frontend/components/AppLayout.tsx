@@ -59,15 +59,11 @@ interface AppLayoutProps {
 
 const ROLE_LABELS: Record<WorkspaceMemberRole, string> = {
   OWNER: "Owner",
-  ADMIN: "Admin",
   MEMBER: "Member",
-  VIEWER: "Viewer",
 };
 
 const INVITE_ROLE_OPTIONS: Array<{ value: WorkspaceMemberRole; label: string }> = [
-  { value: "ADMIN", label: "Admin" },
   { value: "MEMBER", label: "Member" },
-  { value: "VIEWER", label: "Viewer" },
 ];
 
 export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
@@ -79,7 +75,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<WorkspaceMemberRole>("VIEWER");
+  const [userRole, setUserRole] = useState<WorkspaceMemberRole>("MEMBER");
   const [workspaces, setWorkspaces] = useState<WorkspaceMembershipRow[]>([]);
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -123,7 +119,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     if (nextWorkspaces.length === 0) {
       setWorkspaceId(null);
       setWorkspaceName("");
-      setUserRole("VIEWER");
+      setUserRole("MEMBER");
       return;
     }
 
@@ -258,7 +254,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const userName = currentUser ? currentUser.name : "";
   const userEmail = currentUser ? currentUser.email : "";
   const currentWorkspace = useMemo(() => workspaces.find((membership) => membership.workspaceId === workspaceId) ?? null, [workspaces, workspaceId]);
-  const isPrivilegedRole = userRole === "OWNER" || userRole === "ADMIN";
+  const isPrivilegedRole = userRole === "OWNER";
 
   const navigationItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutGrid, active: pathname === "/dashboard" },

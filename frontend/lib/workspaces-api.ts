@@ -36,7 +36,7 @@ async function request(path: string, options: RequestInit = {}) {
   }
 }
 
-export type WorkspaceMemberRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+export type WorkspaceMemberRole = "OWNER" | "MEMBER";
 
 export interface WorkspaceMembershipRow {
   id: string;

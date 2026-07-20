@@ -24,7 +24,7 @@ async function testInviteMemberRejectsOwnerRole() {
 
   await assert.rejects(
     () => service.inviteMember("user-1", "workspace-1", { email: "teammate@company.com", role: MemberRole.OWNER }),
-    (error: any) => error instanceof Error && error.message === "Invitations can only be sent to admins, members, or viewers.",
+    (error: any) => error instanceof Error && error.message === "Invitations can only be sent to team members.",
   );
 }
 

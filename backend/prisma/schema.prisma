@@ -95,9 +95,7 @@ model WorkspaceMember {
 
 enum MemberRole {
   OWNER
-  ADMIN
   MEMBER
-  VIEWER
 }
 
 enum AuditAction {

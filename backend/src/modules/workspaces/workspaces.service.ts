@@ -28,8 +28,8 @@ const PUBLIC_DOMAINS = new Set([
   "proton.me"
 ]);
 
-const PRIVILEGED_ROLES = new Set<MemberRole>([MemberRole.OWNER, MemberRole.ADMIN]);
-const INVITABLE_MEMBER_ROLES = new Set<MemberRole>([MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.VIEWER]);
+const PRIVILEGED_ROLES = new Set<MemberRole>([MemberRole.OWNER]);
+const INVITABLE_MEMBER_ROLES = new Set<MemberRole>([MemberRole.MEMBER]);
 
 @Injectable()
 export class WorkspacesService {
@@ -59,7 +59,7 @@ export class WorkspacesService {
     }
 
     if (!PRIVILEGED_ROLES.has(member.role as MemberRole)) {
-      throw new ForbiddenException("Only workspace owners or admins can manage members and invitations.");
+      throw new ForbiddenException("Only workspace owners can manage members and invitations.");
     }
 
     return member;
@@ -79,16 +79,16 @@ export class WorkspacesService {
 
     return prisma.workspaceMember.findMany({
       where: { workspaceId },
-      include: {
+      select: {
+        id: true,
+        role: true,
+        userId: true,
         user: {
           select: {
             name: true,
             email: true,
           },
         },
-      },
-      orderBy: {
-        joinedAt: "asc",
       },
     });
   }
@@ -110,10 +110,6 @@ export class WorkspacesService {
 
     if (actor.role !== MemberRole.OWNER && role === MemberRole.OWNER) {
       throw new ForbiddenException("Only workspace owners can assign owner role.");
-    }
-
-    if (target.id === actor.id && actor.role === MemberRole.ADMIN && role === MemberRole.VIEWER) {
-      throw new ForbiddenException("Admins cannot demote themselves to viewer.");
     }
 
     return prisma.workspaceMember.update({
@@ -380,7 +376,7 @@ export class WorkspacesService {
 
     const role = dto.role ?? MemberRole.MEMBER;
     if (!INVITABLE_MEMBER_ROLES.has(role)) {
-      throw new BadRequestException("Invitations can only be sent to admins, members, or viewers.");
+      throw new BadRequestException("Invitations can only be sent to team members.");
     }
 
     const invitation = await prisma.invitation.create({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Loader2, MailPlus, Shield, Trash2, UserMinus, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { ACTIVE_WORKSPACE_STORAGE_KEY, isOwnerRole, resolveActiveMembership } from "@/lib/workspace-context";
 import { workspacesApi, type InvitationRow, type WorkspaceMemberRow } from "@/lib/workspaces-api";
 
 const DEFAULT_TIMEZONE = "Asia/Kolkata";
@@ -47,6 +48,7 @@ function getInvitationUrl(token: string) {
 export default function SettingsPage() {
   const router = useRouter();
   const { workspaceId, workspaceName } = useWorkspace();
+  const mountedRef = useRef(true);
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -64,81 +66,92 @@ export default function SettingsPage() {
     locale: DEFAULT_LOCALE,
   });
 
-  function getActiveWorkspaceId() {
-    return teamWorkspaceId || workspaceId || null;
-  }
-
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    async function initialize() {
-      try {
-        const session = await authClient.getSession();
-        if (!session || !session.data?.user) {
-          router.push("/signin");
+  const getActiveWorkspaceId = () => teamWorkspaceId || workspaceId || null;
+
+  const initialize = useCallback(async () => {
+    try {
+      setLoading(true);
+      const session = await authClient.getSession();
+      if (!session || !session.data?.user) {
+        router.push("/signin");
+        return;
+      }
+
+      if (!mountedRef.current) {
+        return;
+      }
+
+      const sessionUser = session.data.user as typeof session.data.user & {
+        timezone?: string | null;
+        locale?: string | null;
+      };
+
+      setProfileForm({
+        name: sessionUser.name ?? "",
+        email: sessionUser.email ?? "",
+        timezone: sessionUser.timezone ?? DEFAULT_TIMEZONE,
+        locale: sessionUser.locale ?? DEFAULT_LOCALE,
+      });
+
+      const memberships = await workspacesApi.listMine();
+      const savedWorkspaceId = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+      const currentMembership = resolveActiveMembership(memberships, workspaceId, savedWorkspaceId);
+      const workspaceScopeId = currentMembership?.workspaceId ?? null;
+      const ownerRole = isOwnerRole(currentMembership?.role);
+
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setTeamWorkspaceId(workspaceScopeId);
+      setIsOwner(ownerRole);
+
+      if (workspaceScopeId && ownerRole) {
+        const [members, invitations] = await Promise.all([
+          workspacesApi.listMembers(workspaceScopeId),
+          workspacesApi.listInvitations(workspaceScopeId),
+        ]);
+
+        if (!mountedRef.current) {
           return;
         }
 
-        if (!mounted) {
-          return;
-        }
+        setActiveMembers(members);
+        setPendingInvitations(invitations);
+      } else {
+        setActiveMembers([]);
+        setPendingInvitations([]);
+      }
 
-        const sessionUser = session.data.user as typeof session.data.user & {
-          timezone?: string | null;
-          locale?: string | null;
-        };
-
-        setProfileForm({
-          name: sessionUser.name ?? "",
-          email: sessionUser.email ?? "",
-          timezone: sessionUser.timezone ?? DEFAULT_TIMEZONE,
-          locale: sessionUser.locale ?? DEFAULT_LOCALE,
-        });
-
-        const memberships = await workspacesApi.listMine();
-        const currentMembership = memberships.find((membership) => membership.workspaceId === workspaceId) ?? memberships[0] ?? null;
-        const workspaceScopeId = currentMembership?.workspaceId ?? workspaceId ?? null;
-
-        if (!mounted) {
-          return;
-        }
-
-        setTeamWorkspaceId(workspaceScopeId);
-        setIsOwner(currentMembership?.role === "OWNER");
-
-        if (workspaceScopeId) {
-          const [members, invitations] = await Promise.all([
-            workspacesApi.listMembers(workspaceScopeId),
-            workspacesApi.listInvitations(workspaceScopeId),
-          ]);
-
-          if (!mounted) {
-            return;
-          }
-
-          setActiveMembers(members);
-          setPendingInvitations(invitations);
-        } else {
-          setActiveMembers([]);
-          setPendingInvitations([]);
-        }
-
-        window.dispatchEvent(new CustomEvent("profile-updated"));
-      } catch (error: any) {
-        toast.error(error.message || "Failed to load settings.");
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      window.dispatchEvent(new CustomEvent("profile-updated"));
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load settings.");
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
       }
     }
-
-    initialize();
-
-    return () => {
-      mounted = false;
-    };
   }, [router, workspaceId]);
+
+  useEffect(() => {
+    void initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    const handleWorkspaceSwitched = () => {
+      void initialize();
+    };
+
+    window.addEventListener("workspace-switched", handleWorkspaceSwitched);
+    return () => window.removeEventListener("workspace-switched", handleWorkspaceSwitched);
+  }, [initialize]);
 
   async function refreshTeamData() {
     const scopeWorkspaceId = getActiveWorkspaceId();
@@ -355,7 +368,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {teamWorkspaceId ? (
+        {isOwner ? (
           <Card>
             <CardHeader>
               <CardTitle>Team Members & Pending Invitations</CardTitle>
@@ -401,20 +414,18 @@ export default function SettingsPage() {
                               </div>
                             </div>
 
-                            {isOwner ? (
-                              !isOwnerMember ? (
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="sm"
-                                  className="w-full sm:w-auto"
-                                  onClick={() => void handleRemoveMember(member)}
-                                  disabled={memberActionId === member.id}
-                                >
-                                  {memberActionId === member.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
-                                  Remove member
-                                </Button>
-                              ) : null
+                            {!isOwnerMember ? (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="w-full sm:w-auto"
+                                onClick={() => void handleRemoveMember(member)}
+                                disabled={memberActionId === member.id}
+                              >
+                                {memberActionId === member.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+                                Remove member
+                              </Button>
                             ) : null}
                           </div>
                         );
@@ -457,29 +468,27 @@ export default function SettingsPage() {
                               </div>
                             </div>
 
-                            {isOwner ? (
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => void handleCopyInvitationLink(invitation)}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  Copy link
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => void handleRevokeInvitation(invitation)}
-                                  disabled={invitationActionId === invitation.id}
-                                >
-                                  {invitationActionId === invitation.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                  Revoke
-                                </Button>
-                              </div>
-                            ) : null}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleCopyInvitationLink(invitation)}
+                              >
+                                <Copy className="h-4 w-4" />
+                                Copy link
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => void handleRevokeInvitation(invitation)}
+                                disabled={invitationActionId === invitation.id}
+                              >
+                                {invitationActionId === invitation.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                Revoke
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -488,40 +497,38 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {isOwner ? (
-                <div className="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orbit-primary/10 text-orbit-primary">
-                      <MailPlus className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-text-primary">Direct invite form</h3>
-                      <p className="mt-1 text-xs text-text-secondary">Send a new teammate an invitation link directly from settings.</p>
-                    </div>
+              <div className="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orbit-primary/10 text-orbit-primary">
+                    <MailPlus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-text-primary">Direct invite form</h3>
+                    <p className="mt-1 text-xs text-text-secondary">Send a new teammate an invitation link directly from settings.</p>
+                  </div>
+                </div>
+
+                <form className="mt-4 flex flex-col gap-3 lg:flex-row" onSubmit={handleInviteSubmit}>
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="invite-email">Teammate email</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(event) => setInviteEmail(event.target.value)}
+                      placeholder="teammate@company.com"
+                      autoComplete="email"
+                    />
                   </div>
 
-                  <form className="mt-4 flex flex-col gap-3 lg:flex-row" onSubmit={handleInviteSubmit}>
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="invite-email">Teammate email</Label>
-                      <Input
-                        id="invite-email"
-                        type="email"
-                        value={inviteEmail}
-                        onChange={(event) => setInviteEmail(event.target.value)}
-                        placeholder="teammate@company.com"
-                        autoComplete="email"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      <Button type="submit" className="w-full lg:w-auto" disabled={isInviting}>
-                        {isInviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailPlus className="h-4 w-4" />}
-                        Send invitation
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              ) : null}
+                  <div className="flex items-end">
+                    <Button type="submit" className="w-full lg:w-auto" disabled={isInviting}>
+                      {isInviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailPlus className="h-4 w-4" />}
+                      Send invitation
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </CardContent>
           </Card>
         ) : null}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { workspacesApi, type WorkspaceMemberRole, type WorkspaceMembershipRow } from "@/lib/workspaces-api";
+import { ACTIVE_WORKSPACE_STORAGE_KEY, resolveActiveMembership } from "@/lib/workspace-context";
 import SearchDialog from "./SearchDialog";
 import AiChatDrawer from "./AiChatDrawer";
 import { useWorkspaceEvents } from "@/hooks/useWorkspaceEvents";
@@ -123,12 +124,17 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
       return;
     }
 
-    const currentMembership = nextWorkspaces.find((membership) => membership.workspaceId === preferredWorkspaceId)
-      ?? nextWorkspaces[0];
+    const savedWorkspaceId = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+    const currentMembership = resolveActiveMembership(nextWorkspaces, preferredWorkspaceId, savedWorkspaceId);
+
+    if (!currentMembership) {
+      return;
+    }
 
     setWorkspaceId(currentMembership.workspaceId);
     setWorkspaceName(currentMembership.workspace.name);
     setUserRole(currentMembership.role);
+    window.localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, currentMembership.workspaceId);
   }, []);
 
   useEffect(() => {
@@ -278,6 +284,8 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     setWorkspaceId(membership.workspaceId);
     setWorkspaceName(membership.workspace.name);
     setUserRole(membership.role);
+    window.localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, membership.workspaceId);
+    window.dispatchEvent(new CustomEvent("workspace-switched", { detail: membership }));
     setIsWorkspaceDropdownOpen(false);
     toast.success(`Switched to ${membership.workspace.name}`);
   };

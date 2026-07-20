@@ -64,6 +64,10 @@ export default function SettingsPage() {
     locale: DEFAULT_LOCALE,
   });
 
+  function getActiveWorkspaceId() {
+    return teamWorkspaceId || workspaceId || null;
+  }
+
   useEffect(() => {
     let mounted = true;
 
@@ -137,9 +141,9 @@ export default function SettingsPage() {
   }, [router, workspaceId]);
 
   async function refreshTeamData() {
-    const scopeWorkspaceId = teamWorkspaceId ?? workspaceId;
+    const scopeWorkspaceId = getActiveWorkspaceId();
     if (!scopeWorkspaceId) {
-      return;
+      throw new Error("No active workspace selected");
     }
 
     const [members, invitations] = await Promise.all([
@@ -187,7 +191,13 @@ export default function SettingsPage() {
   async function handleInviteSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!workspaceId || !isOwner) {
+    const activeWorkspaceId = getActiveWorkspaceId();
+    if (!activeWorkspaceId) {
+      toast.error("No active workspace selected");
+      return;
+    }
+
+    if (!isOwner) {
       return;
     }
 
@@ -199,7 +209,7 @@ export default function SettingsPage() {
 
     setIsInviting(true);
     try {
-      await workspacesApi.inviteMember(workspaceId, email, "MEMBER");
+      await workspacesApi.inviteMember(activeWorkspaceId, email, "MEMBER");
       setInviteEmail("");
       await refreshTeamData();
       toast.success(`Invitation sent to ${email}.`);
@@ -220,13 +230,19 @@ export default function SettingsPage() {
   }
 
   async function handleRevokeInvitation(invitation: InvitationRow) {
-    if (!workspaceId || !isOwner) {
+    const activeWorkspaceId = getActiveWorkspaceId();
+    if (!activeWorkspaceId) {
+      toast.error("No active workspace selected");
+      return;
+    }
+
+    if (!isOwner) {
       return;
     }
 
     setInvitationActionId(invitation.id);
     try {
-      await workspacesApi.revokeInvitation(workspaceId, invitation.id);
+      await workspacesApi.revokeInvitation(activeWorkspaceId, invitation.id);
       await refreshTeamData();
       toast.success(`Revoked invitation for ${invitation.email}.`);
     } catch (error: any) {
@@ -237,13 +253,19 @@ export default function SettingsPage() {
   }
 
   async function handleRemoveMember(member: WorkspaceMemberRow) {
-    if (!workspaceId || !isOwner) {
+    const activeWorkspaceId = getActiveWorkspaceId();
+    if (!activeWorkspaceId) {
+      toast.error("No active workspace selected");
+      return;
+    }
+
+    if (!isOwner) {
       return;
     }
 
     setMemberActionId(member.id);
     try {
-      await workspacesApi.kickMember(workspaceId, member.id);
+      await workspacesApi.kickMember(activeWorkspaceId, member.id);
       await refreshTeamData();
       toast.success(`Removed ${member.user.name ?? member.user.email} from the workspace.`);
     } catch (error: any) {

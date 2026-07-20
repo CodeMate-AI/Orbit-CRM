@@ -40,6 +40,17 @@ const ACTIVITY_TYPES = [
   "RECORD_UPDATED",
 ] as const;
 
+function formatCurrencyInr(value: unknown): string {
+  const numericValue = toNumber(value);
+  if (numericValue === null) {
+    return "₹0";
+  }
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+  }).format(numericValue)}`;
+}
+
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined) {
     return null;
@@ -259,7 +270,9 @@ export class AiService {
         content:
           "You are Orbit CRM's AI assistant. Answer only from the user's workspace context, summarize records accurately, and draft concise follow-up templates when asked. " +
           "Use the provided tool-calling functions to search contacts (people), companies, opportunities, tasks, notes, and activities inside the user's workspace. " +
-          "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly.",
+          "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly. " +
+          "Always format currency and monetary values in Indian Rupees (₹). Never output dollar signs ($) or USD. " +
+          "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items.",
       },
       ...formattedMessages,
     ];
@@ -779,7 +792,11 @@ export class AiService {
       opportunities: {
         totalCount: opportunitiesTotal,
         totalPipelineValue,
-        byStage: opportunitiesByStage,
+        totalPipelineValueFormatted: formatCurrencyInr(totalPipelineValue),
+        byStage: opportunitiesByStage.map((stage) => ({
+          ...stage,
+          totalValueFormatted: formatCurrencyInr(stage.totalValue),
+        })),
       },
       tasks: {
         totalCount: tasksTotal,

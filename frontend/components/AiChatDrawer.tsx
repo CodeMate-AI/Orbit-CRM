@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
+import { formatAiMessageContent } from "./ai-message-formatting";
 
 interface AiChatDrawerProps {
   open: boolean;
@@ -348,13 +349,19 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
 
 function MessageBubble({ message }: { message: ChatMessageRow }) {
   const isUser = message.role === "user";
+  const sanitizedContent = formatAiMessageContent(message.content);
 
   return (
-    <div className={cn("flex max-w-[85%] flex-col gap-2 rounded-2xl border px-4 py-3 text-sm leading-6", isUser ? "ml-auto border-orbit-primary/20 bg-orbit-primary/15 text-text-primary" : "border-border-subtle bg-bg-secondary text-text-secondary") }>
+    <div
+      className={cn(
+        "flex max-w-[85%] flex-col gap-2 rounded-2xl border px-4 py-3 text-sm leading-7",
+        isUser ? "ml-auto border-orbit-primary/20 bg-orbit-primary/15 text-text-primary" : "border-border-subtle bg-bg-secondary text-text-secondary",
+      )}
+    >
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-text-tertiary">
         <span>{isUser ? "You" : "Orbit AI"}</span>
       </div>
-      <p className="whitespace-pre-wrap">{message.content}</p>
+      <p className="whitespace-pre-wrap">{sanitizedContent}</p>
     </div>
   );
 }

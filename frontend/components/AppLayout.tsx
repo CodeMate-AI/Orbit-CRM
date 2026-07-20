@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { shouldCloseWorkspaceDropdown, toggleWorkspaceDropdown } from "./workspace-dropdown-helpers";
 
 // ── Workspace context ──────────────────────────────────────────────────────
 interface WorkspaceContextValue {
@@ -223,8 +224,16 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     };
 
     window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
+
+  const handleWorkspaceMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWorkspaceDropdownOpen((prev) => !prev);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -461,11 +470,15 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
           ) : null}
         </div>
 
-        <div className="relative pb-3" ref={workspaceMenuRef}>
+        <div className="relative z-50 pb-3" ref={workspaceMenuRef}>
           <button
             type="button"
             className={`workspace-switcher ${isWorkspaceDropdownOpen ? "workspace-switcher-open" : ""}`}
-            onClick={() => setIsWorkspaceDropdownOpen((current) => !current)}
+            onMouseDown={handleWorkspaceMouseDown}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             aria-expanded={isWorkspaceDropdownOpen}
             aria-haspopup="menu"
           >

@@ -238,7 +238,7 @@ function ReportsContent() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stageChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                    <XAxis dataKey="stageName" tickLine={false} axisLine={false} stroke="currentColor" />
+                    <XAxis dataKey="stageName" tickLine={false} axisLine={false} stroke="currentColor" interval={0} fontSize={12} />
                     <YAxis tickLine={false} axisLine={false} stroke="currentColor" tickFormatter={(value) => formatCurrency(Number(value))} />
                     <Tooltip
                       content={({ active, payload }) => {
@@ -253,7 +253,11 @@ function ReportsContent() {
                         );
                       }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#7c3aed" />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#7c3aed">
+                      {stageChartData.map((entry) => (
+                        <Cell key={entry.id || entry.stageName} fill={entry.color || "#7c3aed"} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -277,7 +281,7 @@ function ReportsContent() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={forecastChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} stroke="currentColor" />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} stroke="currentColor" interval={0} fontSize={12} />
                     <YAxis tickLine={false} axisLine={false} stroke="currentColor" tickFormatter={(value) => formatCurrency(Number(value))} />
                     <Tooltip
                       content={({ active, payload }) => {

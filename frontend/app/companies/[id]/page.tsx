@@ -10,7 +10,6 @@ import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
-import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Users } from "lucide-react";
 
@@ -27,20 +26,6 @@ function ActivityIcon({ type }: { type: ActivityRow["type"] }) {
   return <Building2 className="h-4 w-4" />;
 }
 
-function CompanyCustomFieldEditor({ field, saving, onSave }: { field: CustomFieldDefinitionRow; saving: boolean; onSave: (value: string) => void }) {
-  const [value, setValue] = useState(String(field.value ?? ""));
-  useEffect(() => setValue(String(field.value ?? "")), [field.value]);
-  return (
-    <div className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
-      <div className="mb-2 text-sm font-medium text-text-primary">{field.label}</div>
-      <div className="flex gap-2">
-        <input className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onSave(value)} />
-        <button type="button" className="btn-primary h-10 justify-center px-3 text-xs" disabled={saving} onClick={() => onSave(value)}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button>
-      </div>
-    </div>
-  );
-}
-
 function CompanyDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -53,10 +38,8 @@ function CompanyDetailPage() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
-  const [customFields, setCustomFields] = useState<CustomFieldDefinitionRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [savingNote, setSavingNote] = useState(false);
-  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -78,16 +61,14 @@ function CompanyDetailPage() {
       notesApi.list(workspaceId, "company", companyId),
       tasksApi.list(workspaceId),
       attachmentsApi.list(workspaceId, "company", companyId),
-      customFieldValuesApi.get(workspaceId, "COMPANY", companyId),
     ])
-      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows, fieldRows]) => {
+      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows]) => {
         setCompany(detail);
         setPeople(peopleResponse.data.filter((person) => person.companyId === detail.id));
         setActivities(timeline);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
-        setCustomFields(fieldRows);
       })
       .catch((err) => setError(err.message || "Failed to load company."))
       .finally(() => setLoading(false));
@@ -110,20 +91,6 @@ function CompanyDetailPage() {
       setSavingNote(false);
     }
   };
-
-  const handleSaveField = async (field: CustomFieldDefinitionRow, value: string) => {
-    if (!workspaceId || !company) return;
-    setSavingFieldId(field.id);
-    try {
-      const updated = await customFieldValuesApi.upsert(workspaceId, { fieldId: field.id, entityType: "COMPANY", entityId: company.id, value: value.trim() });
-      setCustomFields((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save custom field.");
-    } finally {
-      setSavingFieldId(null);
-    }
-  };
-
 
   if (loading) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10"><Loader2 className="h-5 w-5 animate-spin" /> Loading company…</div>;
   if (error || !company) return <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10"><p>{error || "Company not found."}</p><button className="btn-primary" onClick={() => router.push("/companies")}>Back to companies</button></div>;
@@ -162,11 +129,6 @@ function CompanyDetailPage() {
             <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {company.domain || "No domain"}</div>
             <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {company.address || "No address"}</div>
             <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(company.createdAt)}</div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Custom fields</div>
-            {customFields.length === 0 ? <p className="text-sm text-text-tertiary">No custom fields configured.</p> : customFields.map((field) => <CompanyCustomFieldEditor key={field.id} field={field} saving={savingFieldId === field.id} onSave={(value) => handleSaveField(field, value)} />)}
           </div>
         </aside>
 

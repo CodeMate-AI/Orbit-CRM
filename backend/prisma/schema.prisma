@@ -51,9 +51,7 @@ model Workspace {
   tasks               Task[]
   notes               Note[]
   dashboards          Dashboard[]
-  customFields        CustomFieldDefinition[]
   attachments         Attachment[]
-  customFieldValues   CustomFieldValue[]
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
 
@@ -177,7 +175,6 @@ model Person {
   notes             Note[]
   opportunities     OpportunityContact[]
   attachments       Attachment[]
-  customFieldValues CustomFieldValue[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -209,7 +206,6 @@ model Company {
   tasks             Task[]
   notes             Note[]
   attachments       Attachment[]
-  customFieldValues CustomFieldValue[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -239,7 +235,6 @@ model Opportunity {
   tasks             Task[]
   notes             Note[]
   attachments       Attachment[]
-  customFieldValues CustomFieldValue[]
 
   @@index([workspaceId])
   @@index([deletedAt])
@@ -422,64 +417,6 @@ model Attachment {
   @@index([personId])
   @@index([companyId])
   @@index([opportunityId])
-}
-
-// ─── Custom Fields ───
-model CustomFieldDefinition {
-  id          String             @id @default(cuid())
-  name        String
-  label       String
-  type        FieldType
-  entityType  EntityType
-  options     Json?
-  isRequired  Boolean            @default(false)
-  position    Int                @default(0)
-
-  workspaceId String
-  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
-  values      CustomFieldValue[]
-
-  @@unique([workspaceId, entityType, name])
-}
-
-model CustomFieldValue {
-  id            String                 @id @default(cuid())
-  value         Json
-
-  workspaceId   String
-  workspace     Workspace              @relation(fields: [workspaceId], references: [id])
-  fieldId       String
-  field         CustomFieldDefinition  @relation(fields: [fieldId], references: [id])
-  personId      String?
-  person        Person?                @relation(fields: [personId], references: [id])
-  companyId     String?
-  company       Company?               @relation(fields: [companyId], references: [id])
-  opportunityId String?
-  opportunity   Opportunity?           @relation(fields: [opportunityId], references: [id])
-
-  @@unique([fieldId, personId])
-  @@unique([fieldId, companyId])
-  @@unique([fieldId, opportunityId])
-}
-
-enum FieldType {
-  TEXT
-  NUMBER
-  CURRENCY
-  DATE
-  BOOLEAN
-  EMAIL
-  PHONE
-  URL
-  SELECT
-  MULTI_SELECT
-  RATING
-}
-
-enum EntityType {
-  PERSON
-  COMPANY
-  OPPORTUNITY
 }
 
 // ─── Auth-related models managed by Better Auth ───

@@ -8,7 +8,6 @@ import NoteEditor from "@/components/NoteEditor";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttachmentRow, attachmentsApi } from "@/lib/attachments-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
-import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
@@ -53,11 +52,9 @@ function ContactDetailPage() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
-  const [customFields, setCustomFields] = useState<CustomFieldDefinitionRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
-  const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
@@ -94,15 +91,13 @@ function ContactDetailPage() {
       notesApi.list(workspaceId, "person", contactId),
       tasksApi.list(workspaceId),
       attachmentsApi.list(workspaceId, "person", contactId),
-      customFieldValuesApi.get(workspaceId, "PERSON", contactId),
     ])
-      .then(([person, companyRows, noteRows, taskRows, fileRows, fieldRows]) => {
+      .then(([person, companyRows, noteRows, taskRows, fileRows]) => {
         setContact(person);
         setCompanies(companyRows);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
-        setCustomFields(fieldRows);
       })
       .catch((err) => setError(err.message || "Failed to load contact."))
       .finally(() => setLoading(false));
@@ -125,25 +120,6 @@ function ContactDetailPage() {
       toast.error(err.message || "Failed to save note.");
     } finally {
       setSavingNote(false);
-    }
-  };
-
-  const handleSaveField = async (field: CustomFieldDefinitionRow, value: string) => {
-    if (!workspaceId || !contact) return;
-    setSavingFieldId(field.id);
-    try {
-      const updated = await customFieldValuesApi.upsert(workspaceId, {
-        fieldId: field.id,
-        entityType: "PERSON",
-        entityId: contact.id,
-        value: value.trim(),
-      });
-      setCustomFields((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      toast.success(`${field.label} saved`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save custom field.");
-    } finally {
-      setSavingFieldId(null);
     }
   };
 
@@ -253,22 +229,6 @@ function ContactDetailPage() {
             <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {contact.email || "No email"}</div>
             <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {contact.phone || "No phone"}</div>
             <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(contact.createdAt)}</div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary">Custom fields</div>
-            {customFields.length === 0 ? (
-              <p className="text-sm text-text-tertiary">No custom fields configured.</p>
-            ) : (
-              customFields.map((field) => (
-                <CustomFieldEditor
-                  key={field.id}
-                  field={field}
-                  saving={savingFieldId === field.id}
-                  onSave={(value) => handleSaveField(field, value)}
-                />
-              ))
-            )}
           </div>
         </aside>
 
@@ -391,24 +351,6 @@ function ContactDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function CustomFieldEditor({ field, saving, onSave }: { field: CustomFieldDefinitionRow; saving: boolean; onSave: (value: string) => void }) {
-  const [value, setValue] = useState(String(field.value ?? ""));
-
-  useEffect(() => {
-    setValue(String(field.value ?? ""));
-  }, [field.value]);
-
-  return (
-    <div className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3">
-      <div className="mb-2 text-sm font-medium text-text-primary">{field.label}</div>
-      <div className="flex gap-2">
-        <input className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-secondary px-3 py-2 text-sm" value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => onSave(value)} />
-        <button type="button" className="btn-primary h-10 justify-center px-3 text-xs" disabled={saving} onClick={() => onSave(value)}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button>
-      </div>
     </div>
   );
 }

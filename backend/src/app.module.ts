@@ -9,7 +9,6 @@ import { CompaniesModule } from "./modules/companies/companies.module";
 import { ContactsModule } from "./modules/contacts/contacts.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EventsModule } from "./modules/events/events.module";
-import { CustomFieldsModule } from "./modules/custom-fields/custom-fields.module";
 import { NotesModule } from "./modules/notes/notes.module";
 import { OpportunitiesModule } from "./modules/opportunities/opportunities.module";
 import { PeopleModule } from "./modules/people/people.module";
@@ -42,7 +41,6 @@ import { HealthController } from "./modules/health/health.controller";
     ContactsModule,
     DashboardModule,
     EventsModule,
-    CustomFieldsModule,
     NotesModule,
     OpportunitiesModule,
     PeopleModule,

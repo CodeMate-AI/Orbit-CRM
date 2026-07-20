@@ -271,6 +271,13 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
   const settingsItem = { href: "/settings", label: "Settings", icon: Settings, active: pathname === "/settings" };
 
+  const handleDropdownAction = (actionFn: () => void) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWorkspaceDropdownOpen(false);
+    actionFn();
+  };
+
   const switchWorkspace = (membership: WorkspaceMembershipRow) => {
     setWorkspaceId(membership.workspaceId);
     setWorkspaceName(membership.workspace.name);
@@ -371,7 +378,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                   <button
                     key={membership.id}
                     type="button"
-                    onClick={() => switchWorkspace(membership)}
+                    onMouseDown={handleDropdownAction(() => switchWorkspace(membership))}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${active ? "bg-orbit-primary/12 text-text-primary ring-1 ring-orbit-primary/20" : "text-text-secondary hover:bg-white/5 hover:text-text-primary"}`}
                   >
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${active ? "bg-orbit-primary text-white" : "bg-white/5 text-text-primary"}`}>
@@ -401,7 +408,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               <Button
                 variant="ghost"
                 className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
-                onClick={() => openInviteModal(currentWorkspace ?? undefined)}
+                onMouseDown={handleDropdownAction(() => openInviteModal(currentWorkspace ?? undefined))}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
                   <UserPlus className="h-4 w-4" />
@@ -413,7 +420,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                 <Button
                   variant="ghost"
                   className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
-                  onClick={openRenameModal}
+                  onMouseDown={handleDropdownAction(openRenameModal)}
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
                     <Pencil className="h-4 w-4" />
@@ -421,24 +428,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                   <span className="min-w-0 flex-1">Rename Workspace</span>
                 </Button>
               ) : null}
-
-              <Button
-                variant="ghost"
-                className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
-                onClick={() => router.push("/onboarding")}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
-                  <Plus className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">Create Workspace</span>
-              </Button>
-
-              <Link href="/settings" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-primary transition hover:bg-white/5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
-                  <Settings className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">Workspace Settings</span>
-              </Link>
             </div>
           </div>
         </div>

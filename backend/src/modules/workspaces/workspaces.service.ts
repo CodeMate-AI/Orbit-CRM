@@ -29,6 +29,7 @@ const PUBLIC_DOMAINS = new Set([
 ]);
 
 const PRIVILEGED_ROLES = new Set<MemberRole>([MemberRole.OWNER, MemberRole.ADMIN]);
+const INVITABLE_MEMBER_ROLES = new Set<MemberRole>([MemberRole.ADMIN, MemberRole.MEMBER, MemberRole.VIEWER]);
 
 @Injectable()
 export class WorkspacesService {
@@ -377,10 +378,15 @@ export class WorkspacesService {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const normalizedEmail = dto.email.toLowerCase().trim();
 
+    const role = dto.role ?? MemberRole.MEMBER;
+    if (!INVITABLE_MEMBER_ROLES.has(role)) {
+      throw new BadRequestException("Invitations can only be sent to admins, members, or viewers.");
+    }
+
     const invitation = await prisma.invitation.create({
       data: {
         email: normalizedEmail,
-        role: dto.role || MemberRole.MEMBER,
+        role,
         token,
         expiresAt,
         workspaceId,

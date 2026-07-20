@@ -24,7 +24,13 @@ export class HealthController {
     try {
       const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
       const tempQueue = new Queue("health-check-temp", {
-        connection: { url: redisUrl },
+        connection: {
+          url: redisUrl,
+          maxRetriesPerRequest: null,
+          retryStrategy() {
+            return null;
+          },
+        },
       });
       const client = await tempQueue.client;
       // Use status or check client connection status

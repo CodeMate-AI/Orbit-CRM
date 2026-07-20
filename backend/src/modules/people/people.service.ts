@@ -259,7 +259,8 @@ export class PeopleService {
     };
   }
 
-  async dryRun(dto: DryRunImportDto) {
+  async dryRun(userId: string, dto: DryRunImportDto) {
+    await this.assertMembership(userId, dto.workspaceId);
     try {
       const records = parse(dto.csvContent, {
         columns: true,

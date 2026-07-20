@@ -50,7 +50,6 @@ model Workspace {
   pipelineStages      PipelineStage[]
   tasks               Task[]
   notes               Note[]
-  dashboards          Dashboard[]
   attachments         Attachment[]
   opportunityContacts OpportunityContact[]
   auditLogs           AuditLog[]
@@ -465,12 +464,6 @@ enum JoinRequestStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model Dashboard {
-  id          String    @id @default(cuid())
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {

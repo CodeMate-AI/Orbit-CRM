@@ -42,8 +42,8 @@ export class PeopleController {
   }
 
   @Post("import/dry-run")
-  async dryRun(@Body() dto: DryRunImportDto) {
-    return this.peopleService.dryRun(dto);
+  async dryRun(@CurrentUser() user: any, @Body() dto: DryRunImportDto) {
+    return this.peopleService.dryRun(user.id, dto);
   }
 
   @Post("import")

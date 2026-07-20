@@ -1,3 +1,9 @@
+import * as dotenv from "dotenv";
+import * as path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
 import { Module } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 
@@ -6,7 +12,6 @@ import { AiModule } from "./modules/ai/ai.module";
 import { AttachmentsModule } from "./modules/attachments/attachments.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CompaniesModule } from "./modules/companies/companies.module";
-import { ContactsModule } from "./modules/contacts/contacts.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EventsModule } from "./modules/events/events.module";
 import { NotesModule } from "./modules/notes/notes.module";
@@ -38,7 +43,6 @@ import { HealthController } from "./modules/health/health.controller";
     AttachmentsModule,
     AuthModule,
     CompaniesModule,
-    ContactsModule,
     DashboardModule,
     EventsModule,
     NotesModule,

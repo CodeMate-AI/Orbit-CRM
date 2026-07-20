@@ -1,6 +1,6 @@
 # Orbit CRM
 
-Orbit CRM is an AI-native, self-hostable customer relationship management platform for startups, small teams, and independent operators. The repository is split into two standalone applications:
+Orbit CRM is an AI-native customer relationship management platform for startups, small teams, and independent operators. The repository is split into two standalone applications:
 
 - [`frontend/`](frontend)
 - [`backend/`](backend)
@@ -19,7 +19,6 @@ The product covers contacts, companies, deals, tasks, notes, activities, attachm
 - [Available scripts](#available-scripts)
 - [API surface](#api-surface)
 - [Background processing](#background-processing)
-- [Self-hosting](#self-hosting)
 - [Related docs](#related-docs)
 
 ## Overview
@@ -46,7 +45,6 @@ Orbit CRM/
 │   ├── prisma/               # Prisma schema and migrations
 │   └── package.json          # Backend scripts and dependencies
 ├── README.md
-├── SELF_HOSTING.md
 └── Dockerfile                # Root container build for full-stack deployment
 ```
 
@@ -79,7 +77,6 @@ The backend under [`backend/src/modules/`](backend/src/modules/) is organized in
 - attachments
 - auth
 - companies
-- contacts
 - dashboard
 - events
 - health
@@ -234,10 +231,14 @@ SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
 SMTP_PASS=your-app-password
-SMTP_FROM_NAME=Orbit CRM
-SMTP_FROM_EMAIL=noreply@orbitcrm.com
+SMTP_FROM_NAME="Orbit CRM"
+SMTP_FROM_EMAIL="noreply@orbitcrm.com"
+APP_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
 OPENROUTER_API_KEY=
-OPENROUTER_MODEL=
+OPENROUTER_MODEL=openrouter/free
+OPENROUTER_SITE_URL=http://localhost:3000
+OPENROUTER_APP_TITLE="Orbit CRM"
 ```
 
 ### Frontend (`frontend/.env.local`)
@@ -280,12 +281,11 @@ The backend is organized into feature modules under [`backend/src/modules/`](bac
 - `/api/ai/chat` — AI assistant chat
 - `/api/attachments` — attachment upload helpers
 - `/api/companies` — company CRUD
-- `/api/contacts` — contacts module
 - `/api/dashboard` — dashboard stats
 - `/api/events` — event stream and coordination
 - `/api/notes` — notes CRUD
-- `/api/opportunities` — deals and opportunities
-- `/api/people` — people records and import flow
+- `/api/opportunities` — deals and opportunities (with company & contact linking)
+- `/api/people` — contacts/people records and import flow
 - `/api/reports` — reporting data
 - `/api/search` — global search
 - `/api/settings` — workspace settings and SMTP configuration
@@ -299,20 +299,7 @@ The backend is organized into feature modules under [`backend/src/modules/`](bac
 - The backend includes a worker entrypoint at [`backend/src/worker.ts`](backend/src/worker.ts).
 - Event modules coordinate side effects and activity logging between features.
 
-## Self-hosting
-
-Full Docker-based self-hosting guidance is documented in [`SELF_HOSTING.md`](SELF_HOSTING.md).
-
-That guide covers:
-
-- host prerequisites
-- root `.env` configuration
-- production container deployment
-- update and migration flow
-- backup and recovery
-
 ## Related docs
 
-- [`SELF_HOSTING.md`](SELF_HOSTING.md) — Docker deployment and restore guidance
 - [`problemStatement.md`](problemStatement.md) — original product requirements and scope notes
 - [`server.md`](server.md) — local dev server commands

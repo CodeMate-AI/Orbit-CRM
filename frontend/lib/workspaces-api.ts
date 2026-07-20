@@ -109,7 +109,7 @@ export const workspacesApi = {
       method: "GET",
     }),
 
-  inviteMember: (id: string, email: string, role: WorkspaceMemberRole = "MEMBER") =>
+  inviteMember: (id: string, email: string, role: WorkspaceMemberRole = "MEMBER"): Promise<InvitationRow> =>
     request(`/workspaces/${id}/invitations`, {
       method: "POST",
       body: JSON.stringify({ email, role }),

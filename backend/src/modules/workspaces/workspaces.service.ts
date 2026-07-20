@@ -43,7 +43,7 @@ export class WorkspacesService {
     return PUBLIC_DOMAINS.has(domain) ? null : domain;
   }
 
-  private async requirePrivilegedMembership(userId: string, workspaceId: string) {
+  private async requireWorkspaceMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: { userId, workspaceId },
@@ -57,6 +57,12 @@ export class WorkspacesService {
     if (!member) {
       throw new NotFoundException("Workspace membership not found.");
     }
+
+    return member;
+  }
+
+  private async requirePrivilegedMembership(userId: string, workspaceId: string) {
+    const member = await this.requireWorkspaceMembership(userId, workspaceId);
 
     if (!PRIVILEGED_ROLES.has(member.role as MemberRole)) {
       throw new ForbiddenException("Only workspace owners can manage members and invitations.");
@@ -75,7 +81,7 @@ export class WorkspacesService {
   }
 
   async getMembers(userId: string, workspaceId: string) {
-    await this.requirePrivilegedMembership(userId, workspaceId);
+    await this.requireWorkspaceMembership(userId, workspaceId);
 
     return prisma.workspaceMember.findMany({
       where: { workspaceId },
@@ -440,7 +446,7 @@ export class WorkspacesService {
   }
 
   async getInvitations(userId: string, workspaceId: string) {
-    await this.requirePrivilegedMembership(userId, workspaceId);
+    await this.requireWorkspaceMembership(userId, workspaceId);
 
     return prisma.invitation.findMany({
       where: { workspaceId },

@@ -509,7 +509,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
           <div className="user-avatar">{userInitials}</div>
           <div className="user-info">
             <div className="user-name">{userName}</div>
-            <div className="user-role" title={userEmail}>{ROLE_LABELS[userRole]} · Team Member</div>
+            <div className="user-role" title={userEmail}>{ROLE_LABELS[userRole]}</div>
           </div>
           <button
             type="button"

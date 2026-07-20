@@ -3,6 +3,66 @@ import { MemberRole } from "@prisma/client";
 import { WorkspacesService, setWorkspacesPrisma } from "./workspaces.service";
 import { EmailService } from "../settings/email.service";
 
+async function testMemberCanReadRosterAndInvitations() {
+  const calls: string[] = [];
+  const prismaStub: any = {
+    workspaceMember: {
+      findUnique: async () => ({ id: "member-1", role: MemberRole.MEMBER }),
+      findMany: async () => {
+        calls.push("workspaceMember.findMany");
+        return [
+          {
+            id: "member-1",
+            role: MemberRole.MEMBER,
+            userId: "user-1",
+            user: { name: "Ava Owner", email: "ava@example.com" },
+          },
+        ];
+      },
+    },
+    invitation: {
+      findMany: async () => {
+        calls.push("invitation.findMany");
+        return [
+          {
+            id: "invite-1",
+            email: "teammate@example.com",
+            role: MemberRole.MEMBER,
+            token: "token-1",
+            expiresAt: new Date().toISOString(),
+          },
+        ];
+      },
+    },
+  };
+
+  setWorkspacesPrisma(prismaStub);
+  const emailService = { sendEmail: async () => ({}) } as unknown as EmailService;
+  const service = new WorkspacesService(emailService);
+
+  const members = await service.getMembers("user-1", "workspace-1");
+  const invitations = await service.getInvitations("user-1", "workspace-1");
+
+  assert.deepEqual(members, [
+    {
+      id: "member-1",
+      role: MemberRole.MEMBER,
+      userId: "user-1",
+      user: { name: "Ava Owner", email: "ava@example.com" },
+    },
+  ]);
+  assert.deepEqual(invitations, [
+    {
+      id: "invite-1",
+      email: "teammate@example.com",
+      role: MemberRole.MEMBER,
+      token: "token-1",
+      expiresAt: invitations[0].expiresAt,
+    },
+  ]);
+  assert.deepEqual(calls, ["workspaceMember.findMany", "invitation.findMany"]);
+}
+
 async function testInviteMemberRejectsOwnerRole() {
   const prismaStub: any = {
     workspaceMember: {
@@ -74,6 +134,7 @@ async function testCreateWorkspaceAssignsOwnerRole() {
 }
 
 async function run() {
+  await testMemberCanReadRosterAndInvitations();
   await testInviteMemberRejectsOwnerRole();
   await testCreateWorkspaceAssignsOwnerRole();
   console.log("workspaces.service.runtime-test.ts passed");

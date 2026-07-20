@@ -130,9 +130,18 @@ function CompanyDetailPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary" onClick={() => router.push("/companies")}><ArrowLeft className="h-4 w-4" /> Back</button>
-        <div className="text-right"><p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Company detail</p><h1 className="text-2xl font-semibold text-text-primary">{company.name}</h1></div>
+        <div className="flex flex-col items-start gap-3 text-left sm:items-end sm:text-right">
+          <div><p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Company detail</p><h1 className="text-2xl font-semibold text-text-primary">{company.name}</h1></div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
+            onClick={() => router.push(`/deals?companyId=${company.id}`)}
+          >
+            <Plus className="h-4 w-4" /> Add deal
+          </button>
+        </div>
       </div>
 
       <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_300px]">

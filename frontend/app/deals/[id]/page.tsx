@@ -69,6 +69,9 @@ function DealDetailPage() {
   const [contactSearch, setContactSearch] = useState("");
   const [linkingPersonId, setLinkingPersonId] = useState<string | null>(null);
   const [unlinkingPersonId, setUnlinkingPersonId] = useState<string | null>(null);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = detail?.name ? `${detail.name} | Orbit CRM` : "Deal detail | Orbit CRM";
@@ -106,8 +109,18 @@ function DealDetailPage() {
 
   const company = useMemo(() => {
     if (!detail?.companyId) return null;
-    return companies.find((entry) => entry.id === detail.companyId) ?? null;
-  }, [companies, detail?.companyId]);
+    return companies.find((entry) => entry.id === detail.companyId) ?? detail.company ?? null;
+  }, [companies, detail?.company, detail?.companyId]);
+
+  const availableCompanies = useMemo(() => {
+    const search = companySearch.trim().toLowerCase();
+    return companies
+      .filter((entry) => {
+        if (!search) return true;
+        return [entry.name, entry.domain ?? "", entry.industry ?? "", entry.city ?? ""].join(" ").toLowerCase().includes(search);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [companySearch, companies]);
 
   const linkedContactIds = useMemo(() => new Set(detail?.contacts.map((contact) => contact.id) ?? []), [detail?.contacts]);
 
@@ -219,6 +232,40 @@ function DealDetailPage() {
       toast.error(err.message || "Failed to remove contact.");
     } finally {
       setUnlinkingPersonId(null);
+    }
+  };
+
+  const handleLinkCompany = async (companyId: string) => {
+    if (!detail) return;
+    setLinkingCompanyId(companyId);
+    try {
+      await opportunitiesApi.update(detail.id, { companyId });
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
+      setCompanyDialogOpen(false);
+      setCompanySearch("");
+      toast.success("Company linked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to link company.");
+    } finally {
+      setLinkingCompanyId(null);
+    }
+  };
+
+  const handleUnlinkCompany = async () => {
+    if (!detail) return;
+    setLinkingCompanyId(detail.companyId);
+    try {
+      await opportunitiesApi.update(detail.id, { companyId: "" });
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
+      setCompanyDialogOpen(false);
+      setCompanySearch("");
+      toast.success("Company unlinked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unlink company.");
+    } finally {
+      setLinkingCompanyId(null);
     }
   };
 
@@ -361,26 +408,57 @@ function DealDetailPage() {
 
             {company || detail.company ? (
               <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
-                <Link
-                  href={detail.companyId ? `/companies/${detail.companyId}` : "#"}
-                  className={`text-lg font-semibold transition ${detail.companyId ? "text-text-primary hover:text-orbit-primary" : "text-text-primary pointer-events-none"}`}
-                >
-                  {company?.name ?? detail.company?.name ?? "Unknown company"}
-                </Link>
+                <div className="flex items-start justify-between gap-3">
+                  <Link
+                    href={detail.companyId ? `/companies/${detail.companyId}` : "#"}
+                    className={`text-lg font-semibold transition ${detail.companyId ? "text-text-primary hover:text-orbit-primary" : "text-text-primary pointer-events-none"}`}
+                  >
+                    {company?.name ?? detail.company?.name ?? "Unknown company"}
+                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-primary px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+                      onClick={() => setCompanyDialogOpen(true)}
+                    >
+                      {detail.companyId ? "Change company" : "Link company"}
+                    </button>
+                    {detail.companyId ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-primary px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-red-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-70"
+                        onClick={() => void handleUnlinkCompany()}
+                        disabled={linkingCompanyId === detail.companyId}
+                      >
+                        {linkingCompanyId === detail.companyId ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                        Unlink
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
                 <div className="mt-3 space-y-2 text-sm text-text-secondary">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-text-tertiary" />
-                    <span>{company?.industry ?? "Industry not set"}</span>
+                    <span>{company?.name ?? "Company not set"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-text-tertiary" />
-                    <span>{company?.city ?? "City not set"}</span>
+                    <span>{company?.id ? "Linked account" : "Account not linked"}</span>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-4 text-sm text-text-tertiary">
-                No company linked to this deal.
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span>No company linked to this deal.</span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-primary px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+                    onClick={() => setCompanyDialogOpen(true)}
+                  >
+                    Link company
+                  </button>
+                </div>
               </div>
             )}
           </section>
@@ -494,6 +572,66 @@ function DealDetailPage() {
           </section>
         </aside>
       </section>
+
+      <Dialog
+        open={companyDialogOpen}
+        onOpenChange={(open) => {
+          setCompanyDialogOpen(open);
+          if (!open) {
+            setCompanySearch("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Link company</DialogTitle>
+            <DialogDescription>Search workspace companies and attach one to this deal.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+              <input
+                autoFocus
+                value={companySearch}
+                onChange={(event) => setCompanySearch(event.target.value)}
+                placeholder="Search companies"
+                className="w-full rounded-2xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+              />
+            </label>
+
+            <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+              {availableCompanies.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border-subtle px-4 py-8 text-center text-sm text-text-tertiary">
+                  No companies match your search.
+                </div>
+              ) : (
+                availableCompanies.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-bg-secondary px-4 py-3 text-left transition hover:border-orbit-primary"
+                    onClick={() => void handleLinkCompany(entry.id)}
+                    disabled={linkingCompanyId === entry.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-text-primary">{entry.name}</p>
+                      <p className="mt-1 truncate text-xs text-text-tertiary">
+                        {[entry.domain, entry.industry, entry.city].filter(Boolean).join(" · ") || "No additional details"}
+                      </p>
+                    </div>
+                    {linkingCompanyId === entry.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-orbit-primary" />
+                    ) : (
+                      <Plus className="h-4 w-4 text-orbit-primary" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={contactDialogOpen}

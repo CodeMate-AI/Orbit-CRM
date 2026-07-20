@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import NoteEditor from "@/components/NoteEditor";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttachmentRow, attachmentsApi } from "@/lib/attachments-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { customFieldValuesApi, CustomFieldDefinitionRow } from "@/lib/custom-field-values-api";
@@ -12,7 +13,7 @@ import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone, Plus, Search, X } from "lucide-react";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -58,8 +59,23 @@ function ContactDetailPage() {
   const [savingNote, setSavingNote] = useState(false);
   const [savingFieldId, setSavingFieldId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
 
   const company = useMemo(() => companies.find((entry) => entry.id === contact?.companyId) ?? null, [companies, contact]);
+
+  const availableCompanies = useMemo(() => {
+    const search = companySearch.trim().toLowerCase();
+    return companies
+      .filter((entry) => (contact?.companyId ? entry.id !== contact.companyId : true))
+      .filter((entry) => {
+        if (!search) return true;
+        return [entry.name, entry.domain ?? "", entry.industry ?? "", entry.city ?? ""].join(" ").toLowerCase().includes(search);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [companySearch, companies, contact?.companyId]);
+
   const relatedTasks = useMemo(() => tasks.filter((task) => task.personId === contact?.id), [tasks, contact]);
   const recentNotes = useMemo(() => notes.slice(0, 5), [notes]);
 
@@ -131,6 +147,35 @@ function ContactDetailPage() {
     }
   };
 
+  const handleLinkCompany = async (companyId: string) => {
+    if (!contact) return;
+    setLinkingCompanyId(companyId);
+    try {
+      const updated = await peopleApi.update(contact.id, { companyId });
+      setContact((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
+      setCompanyDialogOpen(false);
+      setCompanySearch("");
+      toast.success("Company linked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to link company.");
+    } finally {
+      setLinkingCompanyId(null);
+    }
+  };
+
+  const handleUnlinkCompany = async () => {
+    if (!contact) return;
+    setLinkingCompanyId(contact.companyId);
+    try {
+      const updated = await peopleApi.update(contact.id, { companyId: "" });
+      setContact((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
+      toast.success("Company unlinked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unlink company.");
+    } finally {
+      setLinkingCompanyId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -155,7 +200,7 @@ function ContactDetailPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/contacts")}>
+        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/contacts")}> 
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="text-right">
@@ -173,9 +218,32 @@ function ContactDetailPage() {
             <div className="min-w-0">
               <h2 className="truncate text-xl font-semibold text-text-primary">{contact.name}</h2>
               <p className="mt-1 text-sm text-text-secondary">{contact.jobTitle || "No job title"}</p>
-              {company && (
-                <button type="button" className="mt-2 inline-flex items-center gap-2 rounded-full bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:text-text-primary" onClick={() => router.push(`/companies/${company.id}`)}>
-                  <Building2 className="h-3.5 w-3.5" /> {company.name}
+              {company ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full bg-bg-tertiary px-3 py-1.5 text-xs text-text-secondary transition hover:text-text-primary"
+                    onClick={() => router.push(`/companies/${company.id}`)}
+                  >
+                    <Building2 className="h-3.5 w-3.5" /> {company.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary transition hover:border-orbit-primary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={() => void handleUnlinkCompany()}
+                    disabled={linkingCompanyId === contact.companyId}
+                  >
+                    {linkingCompanyId === contact.companyId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                    Unlink company
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
+                  onClick={() => setCompanyDialogOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Link company
                 </button>
               )}
             </div>
@@ -263,6 +331,66 @@ function ContactDetailPage() {
           </div>
         </aside>
       </section>
+
+      <Dialog
+        open={companyDialogOpen}
+        onOpenChange={(open) => {
+          setCompanyDialogOpen(open);
+          if (!open) {
+            setCompanySearch("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{contact.companyId ? "Change company" : "Link company"}</DialogTitle>
+            <DialogDescription>Search workspace companies and attach one to this contact.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+              <input
+                autoFocus
+                value={companySearch}
+                onChange={(event) => setCompanySearch(event.target.value)}
+                placeholder="Search companies"
+                className="w-full rounded-2xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
+              />
+            </label>
+
+            <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+              {availableCompanies.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border-subtle px-4 py-8 text-center text-sm text-text-tertiary">
+                  No companies match your search.
+                </div>
+              ) : (
+                availableCompanies.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-bg-secondary px-4 py-3 text-left transition hover:border-orbit-primary"
+                    onClick={() => void handleLinkCompany(entry.id)}
+                    disabled={linkingCompanyId === entry.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-text-primary">{entry.name}</p>
+                      <p className="mt-1 truncate text-xs text-text-tertiary">
+                        {[entry.domain, entry.industry, entry.city].filter(Boolean).join(" · ") || "No additional details"}
+                      </p>
+                    </div>
+                    {linkingCompanyId === entry.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-orbit-primary" />
+                    ) : (
+                      <Plus className="h-4 w-4 text-orbit-primary" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

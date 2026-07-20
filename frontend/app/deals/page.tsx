@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonRow from "@/components/ui/SkeletonRow";
 import {
@@ -57,17 +57,22 @@ import { CSS } from "@dnd-kit/utilities";
 function AddDealModal({
   workspaceId,
   stages,
+  companies,
+  initialCompanyId,
   onClose,
   onCreated,
 }: {
   workspaceId: string;
   stages: StageColumn[];
+  companies: CompanyRow[];
+  initialCompanyId?: string | null;
   onClose: () => void;
-  onCreated: (deal: DealRow & { stageName: string }) => void;
+  onCreated: (deal: DealRow & { stageName: string; companyId?: string | null }) => void;
 }) {
   const [form, setForm] = useState<CreateOpportunityInput>({
     name: "",
     stageId: stages[0]?.id ?? "",
+    companyId: initialCompanyId ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -83,7 +88,7 @@ function AddDealModal({
     try {
       const deal = await opportunitiesApi.create(workspaceId, form);
       const stageName = stages.find((s) => s.id === form.stageId)?.name ?? "";
-      onCreated({ ...(deal as DealRow), stageName });
+      onCreated({ ...(deal as DealRow), stageName, companyId: form.companyId ?? null });
     } catch (err: any) {
       setError(err.message || "Failed to create deal.");
     } finally {
@@ -138,6 +143,21 @@ function AddDealModal({
                 ))}
               </select>
             </div>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Company</label>
+            <select
+              className="form-input"
+              value={form.companyId ?? ""}
+              onChange={(e) => setForm({ ...form, companyId: e.target.value || undefined })}
+            >
+              <option value="">No company</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="form-field">
             <label className="form-label">Expected close date</label>
@@ -846,6 +866,7 @@ function DroppableStageColumn({
 
 function DealsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { workspaceId } = useWorkspace();
   const [stages, setStages] = useState<StageColumn[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -865,6 +886,7 @@ function DealsContent() {
   // DnD & Responsiveness states
   const [isMobile, setIsMobile] = useState(false);
   const [activeDragDeal, setActiveDragDeal] = useState<DealRow | null>(null);
+  const initialCompanyId = searchParams.get("companyId");
 
   useEffect(() => {
     const checkMobile = () => {
@@ -874,6 +896,12 @@ function DealsContent() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (initialCompanyId) {
+      setShowModal(true);
+    }
+  }, [initialCompanyId]);
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: {
@@ -1009,12 +1037,22 @@ function DealsContent() {
     .filter((s) => s.name !== "Won" && s.name !== "Lost")
     .reduce((acc, s) => acc + s.deals.reduce((a, d) => a + (d.amount ?? 0), 0), 0);
 
-  const handleDealCreated = (deal: DealRow & { stageName: string }) => {
+  const handleDealCreated = (deal: DealRow & { stageName: string; companyId?: string | null }) => {
+    const companyName = deal.companyId ? companies.find((company) => company.id === deal.companyId)?.name ?? null : null;
+    const nextDeal: DealRow = {
+      id: deal.id,
+      name: deal.name,
+      amount: deal.amount,
+      closeDate: deal.closeDate,
+      stageId: deal.stageId,
+      company: companyName,
+    };
+
     setStages((prev) =>
       prev.map((s) => {
         if (s.id !== deal.stageId) return s;
         if (s.deals.some((d) => d.id === deal.id)) return s;
-        return { ...s, deals: [deal, ...s.deals] };
+        return { ...s, deals: [nextDeal, ...s.deals] };
       })
     );
     setShowModal(false);
@@ -1267,7 +1305,14 @@ function DealsContent() {
         <AddDealModal
           workspaceId={workspaceId}
           stages={stages}
-          onClose={() => setShowModal(false)}
+          companies={companies}
+          initialCompanyId={initialCompanyId}
+          onClose={() => {
+            setShowModal(false);
+            if (initialCompanyId) {
+              router.replace("/deals");
+            }
+          }}
           onCreated={handleDealCreated}
         />
       )}
@@ -1279,7 +1324,9 @@ function DealsContent() {
 export default function DealsPage() {
   return (
     <AppLayout pageTitle="Deals">
-      <DealsContent />
+      <Suspense fallback={null}>
+        <DealsContent />
+      </Suspense>
     </AppLayout>
   );
 }

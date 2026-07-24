@@ -69,7 +69,7 @@ The frontend under [`frontend/app/`](frontend/app/) includes:
 Shared UI components live in [`frontend/components/`](frontend/components/) and the application uses reusable route shells, dialogs, drawers, and responsive layouts throughout.
 
 
-### Backend
+### Backend updated 
 
 The backend under [`backend/src/modules/`](backend/src/modules/) is organized into feature modules:
 

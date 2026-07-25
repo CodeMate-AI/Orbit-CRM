@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 function parseTrustedOrigins(value: string | undefined) {
-  const defaults = ["http://localhost:3000", "http://localhost:3001"];
+  const defaults = ["http://localhost:3000", "http://localhost:3001", "https://orbit-crm-og.codemate.build"];
 
   if (!value) {
     return defaults;
@@ -27,4 +27,5 @@ export const auth = betterAuth({
     enabled: true,
   },
   trustedOrigins: parseTrustedOrigins(process.env.BETTER_AUTH_TRUSTED_ORIGINS),
+  trustHost: true,
 });

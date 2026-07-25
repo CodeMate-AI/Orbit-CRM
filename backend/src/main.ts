@@ -35,9 +35,12 @@ async function bootstrap() {
     .map((o) => o.trim())
     .filter(Boolean);
 
+  const defaults = ["http://localhost:3000", "http://localhost:3001", "https://orbit-crm-og.codemate.build"];
+  const allowedOrigins = Array.from(new Set([...defaults, ...trustedOrigins]));
+
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || trustedOrigins.length === 0 || trustedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`));

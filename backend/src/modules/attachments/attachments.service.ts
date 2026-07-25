@@ -1,27 +1,18 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Attachment, PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { v2 as cloudinary } from "cloudinary";
 import { GetUploadUrlDto } from "./dto/get-upload-url.dto";
 
 const prisma = new PrismaClient();
 
 @Injectable()
 export class AttachmentsService {
-  private readonly s3: S3Client;
-  private readonly bucketName: string;
-  private readonly region: string;
-
   constructor() {
-    this.region = process.env.AWS_REGION || "us-east-1";
-    this.bucketName = process.env.AWS_BUCKET_NAME || "";
-    this.s3 = new S3Client({
-      region: this.region,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-      },
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
+      api_key: process.env.CLOUDINARY_API_KEY || "",
+      api_secret: process.env.CLOUDINARY_API_SECRET || "",
     });
   }
 
@@ -35,25 +26,43 @@ export class AttachmentsService {
     }
   }
 
-  private buildAttachmentUrl(storageKey: string) {
-    return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${storageKey}`;
+  private getResourceType(mimeType: string): "image" | "video" | "raw" {
+    const mime = mimeType.toLowerCase();
+    if (mime.startsWith("image/")) {
+      return "image";
+    }
+    if (mime.startsWith("video/")) {
+      return "video";
+    }
+    return "raw";
+  }
+
+  private buildAttachmentUrl(storageKey: string, resourceType: string) {
+    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/authenticated/${storageKey}`;
   }
 
   async generateUploadUrl(userId: string, dto: GetUploadUrlDto) {
     await this.assertMembership(userId, dto.workspaceId);
 
     const uuid = randomUUID();
-    const safeFileName = dto.fileName.replace(/[\\/]+/g, "-");
+    const safeFileName = dto.fileName.replace(/[\\/]+/g, "-").replace(/\.[^/.]+$/, "");
     const storageKey = `workspaces/${dto.workspaceId}/attachments/${uuid}-${safeFileName}`;
 
-    const command = new PutObjectCommand({
-      Bucket: this.bucketName,
-      Key: storageKey,
-      ContentType: dto.mimeType,
-    });
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const params = {
+      timestamp,
+      public_id: storageKey,
+      type: "authenticated",
+    };
 
-    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-    const url = this.buildAttachmentUrl(storageKey);
+    const signature = cloudinary.utils.api_sign_request(
+      params,
+      process.env.CLOUDINARY_API_SECRET || "",
+    );
+
+    const resourceType = this.getResourceType(dto.mimeType);
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/auto/upload`;
+    const url = this.buildAttachmentUrl(storageKey, resourceType);
 
     const attachment = await prisma.attachment.create({
       data: {
@@ -72,6 +81,13 @@ export class AttachmentsService {
 
     return {
       uploadUrl,
+      fields: {
+        api_key: process.env.CLOUDINARY_API_KEY || "",
+        timestamp: timestamp.toString(),
+        public_id: storageKey,
+        type: "authenticated",
+        signature,
+      },
       attachment,
     };
   }
@@ -113,12 +129,16 @@ export class AttachmentsService {
 
     await this.assertMembership(userId, attachment.workspaceId);
 
-    const command = new GetObjectCommand({
-      Bucket: this.bucketName,
-      Key: attachment.storageKey,
-    });
+    const timestamp = Math.round(Date.now() / 1000) + 3600;
+    const resourceType = this.getResourceType(attachment.mimeType);
+    const format = attachment.name.split(".").pop() || "";
 
-    const downloadUrl = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
+    const downloadUrl = cloudinary.utils.private_download_url(attachment.storageKey, format, {
+      resource_type: resourceType,
+      type: "authenticated",
+      expires_at: timestamp,
+      attachment: true,
+    });
 
     return { downloadUrl };
   }
@@ -134,6 +154,13 @@ export class AttachmentsService {
 
     await this.assertMembership(userId, attachment.workspaceId);
 
+    const resourceType = this.getResourceType(attachment.mimeType);
+
+    await cloudinary.uploader.destroy(attachment.storageKey, {
+      resource_type: resourceType,
+      type: "authenticated",
+    });
+
     await prisma.attachment.delete({
       where: { id: attachmentId },
     });
@@ -141,3 +168,4 @@ export class AttachmentsService {
     return { success: true };
   }
 }
+

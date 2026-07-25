@@ -49,7 +49,7 @@ export const attachmentsApi = {
     personId?: string;
     companyId?: string;
     opportunityId?: string;
-  }): Promise<{ uploadUrl: string; attachment: AttachmentRow }> =>
+  }): Promise<{ uploadUrl: string; attachment: AttachmentRow; fields?: Record<string, string> }> =>
     request("/attachments/presigned-url", {
       method: "POST",
       body: JSON.stringify(data),

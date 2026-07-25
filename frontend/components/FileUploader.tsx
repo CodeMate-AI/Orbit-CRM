@@ -44,15 +44,29 @@ export default function FileUploader({ workspaceId, entityType, entityId, onUplo
       if (entityType === "company") payload.companyId = entityId;
       if (entityType === "opportunity") payload.opportunityId = entityId;
 
-      const { uploadUrl } = await attachmentsApi.getPresignedUrl(payload);
+      const { uploadUrl, fields } = await attachmentsApi.getPresignedUrl(payload);
 
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-      });
+      let uploadRes;
+      if (fields) {
+        const formData = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
+        formData.append("file", file);
+
+        uploadRes = await fetch(uploadUrl, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+          },
+        });
+      }
 
       if (!uploadRes.ok) {
         throw new Error("Failed to upload file payload directly to storage.");

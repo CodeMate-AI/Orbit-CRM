@@ -15,6 +15,7 @@ export default function NoteEditor({ value, onChange, placeholder }: NoteEditorP
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getJSON());
     },

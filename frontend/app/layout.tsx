@@ -61,6 +61,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} dark`}
+      data-scroll-behavior="smooth"
     >
       <body className="bg-primary text-primary font-sans antialiased">
         <Providers>{children}</Providers>

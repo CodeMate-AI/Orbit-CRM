@@ -14,6 +14,7 @@ function ReadOnlyNoteContent({ content }: { content: any }) {
     extensions: [StarterKit],
     content,
     editable: false,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: "prose prose-invert prose-sm max-w-none text-text-primary leading-relaxed",

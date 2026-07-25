@@ -18,6 +18,7 @@ import {
   Building2,
   CalendarDays,
   CircleDollarSign,
+  Paperclip,
   Loader2,
   Mail,
   Phone,
@@ -559,7 +560,7 @@ function DealDetailPage() {
                 <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Attachments</h3>
                 <p className="mt-1 text-sm text-text-secondary">Files stored against this opportunity.</p>
               </div>
-              <CircleDollarSign className="h-5 w-5 text-orbit-primary" />
+              <Paperclip className="h-5 w-5 text-orbit-primary" />
             </div>
 
             {workspaceId ? (

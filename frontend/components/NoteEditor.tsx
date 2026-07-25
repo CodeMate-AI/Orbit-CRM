@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 interface NoteEditorProps {
   value: any;
@@ -12,9 +12,20 @@ interface NoteEditorProps {
 }
 
 export default function NoteEditor({ value, onChange, placeholder }: NoteEditorProps) {
+  const parsedValue = useMemo(() => {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }, [value]);
+
   const editor = useEditor({
     extensions: [StarterKit],
-    content: value,
+    content: parsedValue,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getJSON());
@@ -27,10 +38,14 @@ export default function NoteEditor({ value, onChange, placeholder }: NoteEditorP
   });
 
   useEffect(() => {
-    if (editor && value === null) {
-      editor.commands.setContent("");
+    if (editor) {
+      if (value === null) {
+        editor.commands.setContent("");
+      } else if (value) {
+        editor.commands.setContent(parsedValue);
+      }
     }
-  }, [value, editor]);
+  }, [value, parsedValue, editor]);
 
   if (!editor) return null;
 

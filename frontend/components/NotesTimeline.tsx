@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import NoteEditor from "./NoteEditor";
 import { toast } from "sonner";
@@ -10,9 +10,20 @@ import StarterKit from "@tiptap/starter-kit";
 
 // Read-only editor helper to render logged rich text JSON content
 function ReadOnlyNoteContent({ content }: { content: any }) {
+  const parsedContent = useMemo(() => {
+    if (typeof content === "string") {
+      try {
+        return JSON.parse(content);
+      } catch {
+        return content;
+      }
+    }
+    return content;
+  }, [content]);
+
   const editor = useEditor({
     extensions: [StarterKit],
-    content,
+    content: parsedContent,
     editable: false,
     immediatelyRender: false,
     editorProps: {
@@ -24,9 +35,9 @@ function ReadOnlyNoteContent({ content }: { content: any }) {
 
   useEffect(() => {
     if (editor) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(parsedContent);
     }
-  }, [content, editor]);
+  }, [parsedContent, editor]);
 
   if (!editor) return null;
   return <EditorContent editor={editor} />;

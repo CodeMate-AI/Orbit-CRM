@@ -85,6 +85,8 @@ const INDUSTRY_OPTIONS = [
   "Education",
   "Food and Beverages",
 ];
+const CUSTOM_LEAD_SOURCES_STORAGE_KEY = "orbit-crm:custom-lead-sources";
+const CUSTOM_INDUSTRIES_STORAGE_KEY = "orbit-crm:custom-industries";
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #6b5ed4, #a094fa)",
   "linear-gradient(135deg, #d46b5e, #faa094)",
@@ -587,11 +589,21 @@ function LeadDetailDrawer({
 function AddLeadModal({
   workspaceId,
   companies,
+  leadSources,
+  industries,
+  onAddLeadSource,
+  onAddIndustry,
+  onAddCompany,
   onClose,
   onCreated,
 }: {
   workspaceId: string;
   companies: CompanyRow[];
+  leadSources: string[];
+  industries: string[];
+  onAddLeadSource: (source: string) => void;
+  onAddIndustry: (industry: string) => void;
+  onAddCompany: (company: CompanyRow) => void;
   onClose: () => void;
   onCreated: (person: PersonRow) => void;
 }) {
@@ -604,6 +616,13 @@ function AddLeadModal({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showLeadSourceInput, setShowLeadSourceInput] = useState(false);
+  const [showIndustryInput, setShowIndustryInput] = useState(false);
+  const [showCompanyInput, setShowCompanyInput] = useState(false);
+  const [newLeadSource, setNewLeadSource] = useState("");
+  const [newIndustry, setNewIndustry] = useState("");
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -618,12 +637,59 @@ function AddLeadModal({
     setSaving(true);
     setError("");
     try {
-      const person = await peopleApi.create(workspaceId, form);
+      const person = await peopleApi.create(workspaceId, {
+        ...form,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email?.trim() || undefined,
+        phone: form.phone?.trim() || undefined,
+        jobTitle: form.jobTitle?.trim() || undefined,
+        leadSource: form.leadSource?.trim() || undefined,
+        industry: form.industry?.trim() || undefined,
+        companyId: form.companyId || undefined,
+      });
       onCreated(person);
     } catch (err: any) {
       setError(err.message || "Failed to create Lead.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddNewLeadSource = () => {
+    const value = newLeadSource.trim();
+    if (!value) return;
+    onAddLeadSource(value);
+    setForm((current) => ({ ...current, leadSource: value }));
+    setNewLeadSource("");
+    setShowLeadSourceInput(false);
+  };
+
+  const handleAddNewIndustry = () => {
+    const value = newIndustry.trim();
+    if (!value) return;
+    onAddIndustry(value);
+    setForm((current) => ({ ...current, industry: value }));
+    setNewIndustry("");
+    setShowIndustryInput(false);
+  };
+
+  const handleAddNewCompany = async () => {
+    const value = newCompanyName.trim();
+    if (!value) return;
+    setCreatingCompany(true);
+    setError("");
+    try {
+      const company = await companiesApi.create(workspaceId, { name: value });
+      onAddCompany(company);
+      setForm((current) => ({ ...current, companyId: company.id }));
+      setNewCompanyName("");
+      setShowCompanyInput(false);
+      toast.success("Company created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create company.");
+    } finally {
+      setCreatingCompany(false);
     }
   };
 
@@ -679,49 +745,169 @@ function AddLeadModal({
           <div className="form-row">
             <div className="form-field">
               <label className="form-label">Lead source</label>
-              <select
-                className="form-input"
-                value={form.leadSource ?? ""}
-                onChange={(e) => setForm({ ...form, leadSource: e.target.value || undefined })}
-              >
-                <option value="">Select a lead source...</option>
-                {LEAD_SOURCE_OPTIONS.map((leadSource) => (
-                  <option key={leadSource} value={leadSource}>
-                    {leadSource}
-                  </option>
-                ))}
-              </select>
+              {showLeadSourceInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Enter lead source"
+                    value={newLeadSource}
+                    onChange={(e) => setNewLeadSource(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddNewLeadSource();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewLeadSource}>
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowLeadSourceInput(false);
+                        setNewLeadSource("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.leadSource ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "__add_new__") {
+                      setShowLeadSourceInput(true);
+                      return;
+                    }
+                    setForm({ ...form, leadSource: value || undefined });
+                  }}
+                >
+                  <option value="">Select a lead source...</option>
+                  {leadSources.map((leadSource) => (
+                    <option key={leadSource} value={leadSource}>
+                      {leadSource}
+                    </option>
+                  ))}
+                  <option value="__add_new__">+ Add new lead source...</option>
+                </select>
+              )}
             </div>
             <div className="form-field">
               <label className="form-label">Industry</label>
-              <select
-                className="form-input"
-                value={form.industry ?? ""}
-                onChange={(e) => setForm({ ...form, industry: e.target.value || undefined })}
-              >
-                <option value="">Select an industry...</option>
-                {INDUSTRY_OPTIONS.map((industry) => (
-                  <option key={industry} value={industry}>
-                    {industry}
-                  </option>
-                ))}
-              </select>
+              {showIndustryInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Enter industry"
+                    value={newIndustry}
+                    onChange={(e) => setNewIndustry(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddNewIndustry();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewIndustry}>
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowIndustryInput(false);
+                        setNewIndustry("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.industry ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "__add_new__") {
+                      setShowIndustryInput(true);
+                      return;
+                    }
+                    setForm({ ...form, industry: value || undefined });
+                  }}
+                >
+                  <option value="">Select an industry...</option>
+                  {industries.map((industry) => (
+                    <option key={industry} value={industry}>
+                      {industry}
+                    </option>
+                  ))}
+                  <option value="__add_new__">+ Add new industry...</option>
+                </select>
+              )}
             </div>
           </div>
           <div className="form-field">
             <label className="form-label">Company</label>
-            <select
-              className="form-input"
-              value={form.companyId ?? ""}
-              onChange={(e) => setForm({ ...form, companyId: e.target.value || undefined })}
-            >
-              <option value="">Select a company...</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+            {showCompanyInput ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  className="form-input"
+                  placeholder="Biswajit Corp"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleAddNewCompany();
+                    }
+                  }}
+                />
+                <div className="flex items-center gap-2">
+                  <button type="button" className="btn-primary" onClick={handleAddNewCompany} disabled={creatingCompany}>
+                    {creatingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setShowCompanyInput(false);
+                      setNewCompanyName("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                className="form-input"
+                value={form.companyId ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "__add_new__") {
+                    setShowCompanyInput(true);
+                    return;
+                  }
+                  setForm({ ...form, companyId: value || undefined });
+                }}
+              >
+                <option value="">Select a company...</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+                <option value="__add_new__">+ Add new company...</option>
+              </select>
+            )}
           </div>
           <div className="form-field">
             <label className="form-label">Job title</label>
@@ -752,6 +938,8 @@ function LeadsContent() {
   const { workspaceId } = useWorkspace();
   const [Leads, setLeads] = useState<PersonRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [customLeadSources, setCustomLeadSources] = useState<string[]>([]);
+  const [customIndustries, setCustomIndustries] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -763,6 +951,49 @@ function LeadsContent() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const storedLeadSources = window.localStorage.getItem(CUSTOM_LEAD_SOURCES_STORAGE_KEY);
+      const storedIndustries = window.localStorage.getItem(CUSTOM_INDUSTRIES_STORAGE_KEY);
+      if (storedLeadSources) setCustomLeadSources(JSON.parse(storedLeadSources));
+      if (storedIndustries) setCustomIndustries(JSON.parse(storedIndustries));
+    } catch {
+      setCustomLeadSources([]);
+      setCustomIndustries([]);
+    }
+  }, []);
+
+  const dynamicLeadSources = useMemo(
+    () => Array.from(new Set([...LEAD_SOURCE_OPTIONS, ...customLeadSources, ...Leads.map((lead) => lead.leadSource).filter((value): value is string => Boolean(value))])),
+    [customLeadSources, Leads]
+  );
+
+  const dynamicIndustries = useMemo(
+    () => Array.from(new Set([...INDUSTRY_OPTIONS, ...customIndustries, ...Leads.map((lead) => lead.industry).filter((value): value is string => Boolean(value))])),
+    [customIndustries, Leads]
+  );
+
+  const addCustomLeadSource = (source: string) => {
+    setCustomLeadSources((current) => {
+      const next = current.includes(source) ? current : [...current, source];
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(CUSTOM_LEAD_SOURCES_STORAGE_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const addCustomIndustry = (industry: string) => {
+    setCustomIndustries((current) => {
+      const next = current.includes(industry) ? current : [...current, industry];
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(CUSTOM_INDUSTRIES_STORAGE_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -1157,6 +1388,13 @@ function LeadsContent() {
         <AddLeadModal
           workspaceId={workspaceId}
           companies={companies}
+          leadSources={dynamicLeadSources}
+          industries={dynamicIndustries}
+          onAddLeadSource={addCustomLeadSource}
+          onAddIndustry={addCustomIndustry}
+          onAddCompany={(newCompany) => {
+            setCompanies((prev) => [...prev, newCompany]);
+          }}
           onClose={() => setShowModal(false)}
           onCreated={(person) => {
             setLeads((prev) => {

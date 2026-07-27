@@ -12,9 +12,64 @@ import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
+import { workspacesApi } from "@/lib/workspaces-api";
+import { WorkspaceMemberRow } from "@/lib/opportunities-api";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone, Plus, Search, X } from "lucide-react";
 import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
+
+const leadFieldLabels: Array<[keyof PersonRow, string]> = [
+  ["firstName", "First Name"],
+  ["lastName", "Last Name"],
+  ["email", "Email"],
+  ["phone", "Phone"],
+  ["jobTitle", "Job Title"],
+  ["leadSource", "Lead Source"],
+  ["industry", "Industry"],
+  ["companyId", "Company"],
+  ["mobile", "Mobile"],
+  ["annualRevenue", "Annual Revenue"],
+  ["fax", "Fax"],
+  ["website", "Website"],
+  ["leadStatus", "Lead Status"],
+  ["employeeCount", "Employee Count"],
+  ["skypeId", "Skype ID"],
+  ["secondaryEmail", "Secondary Email"],
+  ["twitter", "Twitter"],
+  ["address", "Address"],
+  ["description", "Description"],
+];
+
+const leadFieldKeys = leadFieldLabels.map(([key]) => key);
+
+const LEAD_SOURCE_OPTIONS = ["LinkedIn", "Referral", "Event", "Website", "Email campaign", "Trade show"];
+const INDUSTRY_OPTIONS = [
+  "Manufacturing",
+  "Logistics",
+  "Technology",
+  "Retail",
+  "Finance",
+  "Creative",
+  "Construction",
+  "Healthcare",
+  "SaaS",
+  "Education",
+  "Food and Beverages",
+];
+
+const INDIAN_PHONE_ERROR = "Phone number must be a valid Indian phone number starting with +91 or 91, followed by exactly 10 digits.";
+
+function validatePhoneNumber(value?: string) {
+  if (!value) return true;
+  const clean = value.replace(/\s+/g, "");
+  if (clean.startsWith("+")) {
+    return /^\+91\d{10}$/.test(clean);
+  }
+  if (clean.length === 12 && clean.startsWith("91")) {
+    return /^91\d{10}$/.test(clean);
+  }
+  return /^\d{10}$/.test(clean);
+}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -50,6 +105,7 @@ function LeadDetailPage() {
   const { workspaceId } = useWorkspace();
 
   const [lead, setLead] = useState<PersonRow | null>(null);
+  const [leadDraft, setLeadDraft] = useState<Record<string, string | number | boolean>>({});
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -57,11 +113,39 @@ function LeadDetailPage() {
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
+  const [savingLead, setSavingLead] = useState(false);
   const [error, setError] = useState("");
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<NoteRow | null>(null);
+  const [members, setMembers] = useState<WorkspaceMemberRow[]>([]);
+  const [customLeadSources, setCustomLeadSources] = useState<string[]>([]);
+  const [customIndustries, setCustomIndustries] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const storedLeadSources = window.localStorage.getItem("orbit-crm:custom-lead-sources");
+      const storedIndustries = window.localStorage.getItem("orbit-crm:custom-industries");
+      if (storedLeadSources) setCustomLeadSources(JSON.parse(storedLeadSources));
+      if (storedIndustries) setCustomIndustries(JSON.parse(storedIndustries));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const dynamicLeadSources = useMemo(
+    () => Array.from(new Set([...LEAD_SOURCE_OPTIONS, ...customLeadSources, lead?.leadSource].filter((v): v is string => Boolean(v)))),
+    [customLeadSources, lead?.leadSource]
+  );
+
+  const dynamicIndustries = useMemo(
+    () => Array.from(new Set([...INDUSTRY_OPTIONS, ...customIndustries, lead?.industry].filter((v): v is string => Boolean(v)))),
+    [customIndustries, lead?.industry]
+  );
+
+  const fields = useMemo(() => leadFieldLabels.map(([key, label]) => ({ key, label, value: leadDraft[key] ?? "" })), [leadDraft]);
 
   const company = useMemo(() => companies.find((entry) => entry.id === lead?.companyId) ?? null, [companies, lead]);
 
@@ -94,13 +178,37 @@ function LeadDetailPage() {
       notesApi.list(workspaceId, "person", leadId),
       tasksApi.list(workspaceId),
       attachmentsApi.list(workspaceId, "person", leadId),
+      workspacesApi.listMembers(workspaceId),
     ])
-      .then(([person, companyRows, noteRows, taskRows, fileRows]) => {
+      .then(([person, companyRows, noteRows, taskRows, fileRows, memberRows]) => {
         setLead(person);
+        setLeadDraft({
+          firstName: person.firstName ?? "",
+          lastName: person.lastName ?? "",
+          email: person.email ?? "",
+          phone: person.phone ?? "",
+          jobTitle: person.jobTitle ?? "",
+          leadSource: person.leadSource ?? "",
+          industry: person.industry ?? "",
+          companyId: person.companyId ?? "",
+          mobile: person.mobile ?? "",
+          annualRevenue: person.annualRevenue ?? "",
+          fax: person.fax ?? "",
+          website: person.website ?? "",
+          leadStatus: person.leadStatus ?? "",
+          employeeCount: person.employeeCount ?? "",
+          skypeId: person.skypeId ?? "",
+          secondaryEmail: person.secondaryEmail ?? "",
+          twitter: person.twitter ?? "",
+          address: person.address ?? "",
+          description: person.description ?? "",
+          leadOwnerId: person.leadOwnerId ?? "",
+        } as Record<string, string | number | boolean>);
         setCompanies(companyRows);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
+        setMembers(memberRows);
       })
       .catch((err) => setError(err.message || "Failed to load lead."))
       .finally(() => setLoading(false));
@@ -123,6 +231,72 @@ function LeadDetailPage() {
       toast.error(err.message || "Failed to save note.");
     } finally {
       setSavingNote(false);
+    }
+  };
+
+  const handleLeadChange = (key: keyof PersonRow, value: string | boolean) => {
+    setLeadDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSaveLead = async () => {
+    if (!lead) return;
+    if (leadDraft.phone && !validatePhoneNumber(String(leadDraft.phone))) {
+      toast.error(INDIAN_PHONE_ERROR);
+      return;
+    }
+    setSavingLead(true);
+    try {
+      const payload = {
+        firstName: (leadDraft.firstName as string) || undefined,
+        lastName: (leadDraft.lastName as string) || undefined,
+        email: (leadDraft.email as string) || undefined,
+        phone: (leadDraft.phone as string) || undefined,
+        jobTitle: (leadDraft.jobTitle as string) || undefined,
+        leadSource: (leadDraft.leadSource as string) || undefined,
+        industry: (leadDraft.industry as string) || undefined,
+        companyId: leadDraft.companyId === "" ? "" : (leadDraft.companyId as string) || undefined,
+        mobile: (leadDraft.mobile as string) || undefined,
+        annualRevenue: leadDraft.annualRevenue === "" ? undefined : Number(leadDraft.annualRevenue),
+        fax: (leadDraft.fax as string) || undefined,
+        website: (leadDraft.website as string) || undefined,
+        leadStatus: (leadDraft.leadStatus as string) || undefined,
+        employeeCount: leadDraft.employeeCount === "" ? undefined : parseInt(String(leadDraft.employeeCount), 10),
+        skypeId: (leadDraft.skypeId as string) || undefined,
+        secondaryEmail: (leadDraft.secondaryEmail as string) || undefined,
+        twitter: (leadDraft.twitter as string) || undefined,
+        address: (leadDraft.address as string) || undefined,
+        description: (leadDraft.description as string) || undefined,
+        leadOwnerId: (leadDraft.leadOwnerId as string) || undefined,
+      };
+      const updated = await peopleApi.update(lead.id, payload);
+      setLead(updated);
+      setLeadDraft({
+        firstName: updated.firstName ?? "",
+        lastName: updated.lastName ?? "",
+        email: updated.email ?? "",
+        phone: updated.phone ?? "",
+        jobTitle: updated.jobTitle ?? "",
+        leadSource: updated.leadSource ?? "",
+        industry: updated.industry ?? "",
+        companyId: updated.companyId ?? "",
+        mobile: updated.mobile ?? "",
+        annualRevenue: updated.annualRevenue ?? "",
+        fax: updated.fax ?? "",
+        website: updated.website ?? "",
+        leadStatus: updated.leadStatus ?? "",
+        employeeCount: updated.employeeCount ?? "",
+        skypeId: updated.skypeId ?? "",
+        secondaryEmail: updated.secondaryEmail ?? "",
+        twitter: updated.twitter ?? "",
+        address: updated.address ?? "",
+        description: updated.description ?? "",
+        leadOwnerId: updated.leadOwnerId ?? "",
+      });
+      toast.success("Lead updated successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update lead.");
+    } finally {
+      setSavingLead(false);
     }
   };
 
@@ -243,6 +417,279 @@ function LeadDetailPage() {
             <NoteEditor value={newNoteBody} onChange={setNewNoteBody} />
             <div className="mt-3 flex justify-end">
               <button type="button" className="btn-primary h-9 px-4 text-xs" disabled={savingNote} onClick={handleSaveNote}>{savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save note"}</button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-5 space-y-6">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary mb-4">Lead Information</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="First name"
+                    value={String(leadDraft.firstName ?? "")}
+                    onChange={(e) => handleLeadChange("firstName", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Last Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="Last name"
+                    value={String(leadDraft.lastName ?? "")}
+                    onChange={(e) => handleLeadChange("lastName", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="email@example.com"
+                    value={String(leadDraft.email ?? "")}
+                    onChange={(e) => handleLeadChange("email", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Phone (Indian format: +91 XXXXX XXXXX)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="+91 98765 43210"
+                    value={String(leadDraft.phone ?? "")}
+                    onChange={(e) => handleLeadChange("phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Title (Job Title)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Job title"
+                    value={String(leadDraft.jobTitle ?? "")}
+                    onChange={(e) => handleLeadChange("jobTitle", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Company</label>
+                  <select
+                    className="form-input"
+                    value={String(leadDraft.companyId ?? "")}
+                    onChange={(e) => handleLeadChange("companyId", e.target.value)}
+                  >
+                    <option value="">Select company...</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Lead Owner</label>
+                  <select
+                    className="form-input"
+                    value={String(leadDraft.leadOwnerId ?? "")}
+                    onChange={(e) => handleLeadChange("leadOwnerId", e.target.value)}
+                  >
+                    <option value="">Select owner...</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.userId}>
+                        {member.user.name || member.user.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Mobile</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="+91 XXXXX XXXXX"
+                    value={String(leadDraft.mobile ?? "")}
+                    onChange={(e) => handleLeadChange("mobile", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Annual Revenue (INR)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="e.g. 5000000"
+                    value={String(leadDraft.annualRevenue ?? "")}
+                    onChange={(e) => handleLeadChange("annualRevenue", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Lead Source</label>
+                  <select
+                    className="form-input"
+                    value={String(leadDraft.leadSource ?? "")}
+                    onChange={(e) => handleLeadChange("leadSource", e.target.value)}
+                  >
+                    <option value="">Select lead source...</option>
+                    {dynamicLeadSources.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Industry</label>
+                  <select
+                    className="form-input"
+                    value={String(leadDraft.industry ?? "")}
+                    onChange={(e) => handleLeadChange("industry", e.target.value)}
+                  >
+                    <option value="">Select industry...</option>
+                    {dynamicIndustries.map((ind) => (
+                      <option key={ind} value={ind}>
+                        {ind}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Fax</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Fax number"
+                    value={String(leadDraft.fax ?? "")}
+                    onChange={(e) => handleLeadChange("fax", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Website</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://example.com"
+                    value={String(leadDraft.website ?? "")}
+                    onChange={(e) => handleLeadChange("website", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Lead Status</label>
+                  <select
+                    className="form-input"
+                    value={String(leadDraft.leadStatus ?? "")}
+                    onChange={(e) => handleLeadChange("leadStatus", e.target.value)}
+                  >
+                    <option value="">Select status...</option>
+                    <option value="New">New</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Unqualified">Unqualified</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">No. of Employees</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="e.g. 50"
+                    value={String(leadDraft.employeeCount ?? "")}
+                    onChange={(e) => handleLeadChange("employeeCount", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Skype ID</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Skype username"
+                    value={String(leadDraft.skypeId ?? "")}
+                    onChange={(e) => handleLeadChange("skypeId", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Secondary Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="alternative@example.com"
+                    value={String(leadDraft.secondaryEmail ?? "")}
+                    onChange={(e) => handleLeadChange("secondaryEmail", e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary">Twitter</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Twitter handle"
+                    value={String(leadDraft.twitter ?? "")}
+                    onChange={(e) => handleLeadChange("twitter", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-border-subtle" />
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary mb-3">Address Information</h3>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">Address</label>
+                <textarea
+                  className="form-input min-h-[80px] py-2"
+                  placeholder="Street, City, State, ZIP, Country"
+                  value={String(leadDraft.address ?? "")}
+                  onChange={(e) => handleLeadChange("address", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <hr className="border-border-subtle" />
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary mb-3">Description Information</h3>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-secondary">Description</label>
+                <textarea
+                  className="form-input min-h-[100px] py-2"
+                  placeholder="Additional background, requirements, or profile summary..."
+                  value={String(leadDraft.description ?? "")}
+                  onChange={(e) => handleLeadChange("description", e.target.value)}
+                />
+              </div>
+            </div>
+
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                className="btn-primary h-9 px-4 text-xs"
+                disabled={savingLead}
+                onClick={handleSaveLead}
+              >
+                {savingLead ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save details"}
+              </button>
             </div>
           </section>
         </main>

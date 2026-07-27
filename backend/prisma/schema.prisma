@@ -28,6 +28,9 @@ model User {
   notes         Note[]
   attachments   Attachment[]
   auditLogs     AuditLog[]
+  ownedLeads    Person[]  @relation("LeadOwner")
+  createdLeads  Person[]  @relation("LeadCreatedBy")
+  modifiedLeads Person[]  @relation("LeadModifiedBy")
 
   sessions      Session[]
   accounts      Account[]
@@ -153,12 +156,23 @@ model Person {
   lastName          String
   email             String?
   phone             String?
+  mobile            String?
   jobTitle          String?
   city              String?
   avatarUrl         String?
   linkedInUrl       String?
   leadSource        String?
   industry          String?
+  annualRevenue     Decimal?           @db.Decimal(15, 2)
+    fax               String?
+  website           String?
+  leadStatus        String?
+  employeeCount     Int?
+  skypeId           String?
+  secondaryEmail    String?
+  twitter           String?
+  address           String?
+  description       String?
   version           Int                @default(1)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -168,6 +182,12 @@ model Person {
   workspace         Workspace          @relation(fields: [workspaceId], references: [id])
   companyId         String?
   company           Company?           @relation(fields: [companyId], references: [id])
+  leadOwnerId       String?
+  leadOwner         User?              @relation("LeadOwner", fields: [leadOwnerId], references: [id], onDelete: SetNull)
+  createdById       String?
+  createdBy         User?              @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  modifiedById      String?
+  modifiedBy        User?              @relation("LeadModifiedBy", fields: [modifiedById], references: [id], onDelete: SetNull)
 
   activities        Activity[]
   tasks             Task[]

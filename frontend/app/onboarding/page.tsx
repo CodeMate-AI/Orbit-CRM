@@ -59,10 +59,10 @@ export default function OnboardingPage() {
         } else {
           setShowCreationForm(true);
         }
+        setIsLoading(false);
       } catch (err: any) {
         console.error(err);
         setShowCreationForm(true);
-      } finally {
         setIsLoading(false);
       }
     }

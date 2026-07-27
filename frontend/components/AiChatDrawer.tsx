@@ -153,7 +153,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   }
 
   async function handleSend() {
-    if (!workspaceId || !activeSessionId || !input.trim()) return;
+    if (!workspaceId || !activeSessionId || !input.trim() || sending) return;
 
     const content = input.trim();
     setInput("");
@@ -330,7 +330,11 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                       />
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-text-tertiary">Press Enter to send · Shift+Enter for newline</p>
-                        <Button onClick={() => void handleSend()} disabled={sending || !input.trim() || !activeSessionId}>
+                        <Button 
+                          onClick={() => void handleSend()} 
+                          disabled={sending || !input.trim() || !activeSessionId}
+                          className="bg-orbit-primary text-white hover:bg-white hover:text-black transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+                        >
                           {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                           Send
                         </Button>

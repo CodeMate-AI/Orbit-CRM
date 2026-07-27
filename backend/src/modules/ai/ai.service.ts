@@ -270,6 +270,7 @@ export class AiService {
         content:
           "You are Orbit CRM's AI assistant. Answer only from the user's workspace context, summarize records accurately, and draft concise follow-up templates when asked. " +
           "Use the provided tool-calling functions to search contacts (people), companies, opportunities, tasks, notes, and activities inside the user's workspace. " +
+          "If a search in one category (e.g. notes) returns empty, proactively check other relevant categories (e.g. companies, people, or tasks) before giving a final answer. " +
           "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly. " +
           "Always format currency and monetary values in Indian Rupees (₹). Never output dollar signs ($) or USD. " +
           "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items.",
@@ -392,85 +393,114 @@ export class AiService {
     ];
 
     let loopCount = 0;
-    const maxLoops = 3;
+    const maxLoops = 5;
+    const calledTools = new Set<string>();
 
     while (loopCount < maxLoops) {
-      const response = await fetch(`${this.openRouterBaseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3000",
-          "X-Title": process.env.OPENROUTER_APP_TITLE || "Orbit CRM",
-        },
-        body: JSON.stringify({
-          model: process.env.OPENROUTER_MODEL || this.fallbackModel,
-          messages: apiMessages,
-          tools,
-          tool_choice: "auto",
-          stream: false,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
 
-      if (!response.ok) {
-        const body = await response.text();
-        return `OpenRouter request failed: ${response.status} ${response.statusText}${body ? ` — ${body}` : ""}`;
-      }
+      try {
+        const response = await fetch(`${this.openRouterBaseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3000",
+            "X-Title": process.env.OPENROUTER_APP_TITLE || "Orbit CRM",
+          },
+          body: JSON.stringify({
+            model: process.env.OPENROUTER_MODEL || this.fallbackModel,
+            messages: apiMessages,
+            tools,
+            tool_choice: "auto",
+            stream: false,
+          }),
+          signal: controller.signal,
+        });
 
-      const data = (await response.json()) as any;
-      const choice = data?.choices?.[0];
-      const replyMessage = choice?.message;
+        clearTimeout(timeoutId);
 
-      if (!replyMessage) {
-        return "I couldn't generate a response.";
-      }
-
-      if (replyMessage.tool_calls && replyMessage.tool_calls.length > 0) {
-        apiMessages.push(replyMessage);
-
-        for (const toolCall of replyMessage.tool_calls) {
-          const { name, arguments: argsString } = toolCall.function;
-          let args: any = {};
-          try {
-            args = JSON.parse(argsString);
-          } catch (error) {
-            console.error("Failed to parse tool arguments:", argsString);
-          }
-
-          let toolResult: any;
-          try {
-            if (name === "listWorkspacePeople") {
-              toolResult = await this.listWorkspacePeople(options.userId, options.workspaceId, args.searchQuery || "");
-            } else if (name === "listWorkspaceCompanies") {
-              toolResult = await this.listWorkspaceCompanies(options.userId, options.workspaceId, args.searchQuery || "");
-            } else if (name === "listWorkspaceOpportunities") {
-              toolResult = await this.listWorkspaceOpportunities(options.userId, options.workspaceId, args.searchQuery || "");
-            } else if (name === "listWorkspaceTasks") {
-              toolResult = await this.listWorkspaceTasks(options.userId, options.workspaceId, args.searchQuery || "");
-            } else if (name === "getWorkspaceSummary") {
-              toolResult = await this.getWorkspaceSummary(options.userId, options.workspaceId);
-            } else if (name === "listWorkspaceNotes") {
-              toolResult = await this.listWorkspaceNotes(options.userId, options.workspaceId, args.searchQuery || "");
-            } else if (name === "listWorkspaceActivities") {
-              toolResult = await this.listWorkspaceActivities(options.userId, options.workspaceId, args.searchQuery || "", args.type || "");
-            } else {
-              toolResult = { error: `Tool ${name} not found.` };
-            }
-          } catch (err: any) {
-            toolResult = { error: err.message || "Failed to execute tool." };
-          }
-
-          apiMessages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            name,
-            content: JSON.stringify(toolResult),
-          });
+        if (!response.ok) {
+          const body = await response.text();
+          return `OpenRouter request failed: ${response.status} ${response.statusText}${body ? ` — ${body}` : ""}`;
         }
 
-        loopCount++;
-      } else {
-        return replyMessage.content?.trim() || "";
+        const data = (await response.json()) as any;
+        const choice = data?.choices?.[0];
+        const replyMessage = choice?.message;
+
+        if (!replyMessage) {
+          return "I couldn't generate a response.";
+        }
+
+        if (replyMessage.tool_calls && replyMessage.tool_calls.length > 0) {
+          apiMessages.push(replyMessage);
+
+          let hasNewCall = false;
+
+          for (const toolCall of replyMessage.tool_calls) {
+            const { name, arguments: argsString } = toolCall.function;
+            let args: any = {};
+            try {
+              args = JSON.parse(argsString);
+            } catch (error) {
+              console.error("Failed to parse tool arguments:", argsString);
+            }
+
+            const callKey = `${name}:${JSON.stringify(args)}`;
+            if (calledTools.has(callKey)) {
+              console.warn(`Model repeated tool call: ${callKey}`);
+              continue;
+            }
+            calledTools.add(callKey);
+            hasNewCall = true;
+
+            let toolResult: any;
+            try {
+              if (name === "listWorkspacePeople") {
+                toolResult = await this.listWorkspacePeople(options.userId, options.workspaceId, args.searchQuery || "");
+              } else if (name === "listWorkspaceCompanies") {
+                toolResult = await this.listWorkspaceCompanies(options.userId, options.workspaceId, args.searchQuery || "");
+              } else if (name === "listWorkspaceOpportunities") {
+                toolResult = await this.listWorkspaceOpportunities(options.userId, options.workspaceId, args.searchQuery || "");
+              } else if (name === "listWorkspaceTasks") {
+                toolResult = await this.listWorkspaceTasks(options.userId, options.workspaceId, args.searchQuery || "");
+              } else if (name === "getWorkspaceSummary") {
+                toolResult = await this.getWorkspaceSummary(options.userId, options.workspaceId);
+              } else if (name === "listWorkspaceNotes") {
+                toolResult = await this.listWorkspaceNotes(options.userId, options.workspaceId, args.searchQuery || "");
+              } else if (name === "listWorkspaceActivities") {
+                toolResult = await this.listWorkspaceActivities(options.userId, options.workspaceId, args.searchQuery || "", args.type || "");
+              } else {
+                toolResult = { error: `Tool ${name} not found.` };
+              }
+            } catch (err: any) {
+              toolResult = { error: err.message || "Failed to execute tool." };
+            }
+
+            apiMessages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              name,
+              content: JSON.stringify(toolResult),
+            });
+          }
+
+          if (!hasNewCall) {
+            return replyMessage.content?.trim() || "I couldn't find any relevant records in your workspace.";
+          }
+
+          loopCount++;
+        } else {
+          return replyMessage.content?.trim() || "I couldn't generate a response.";
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === "AbortError") {
+          return "The AI assistant request timed out. Please try again.";
+        }
+        throw err;
       }
     }
 

@@ -1,4 +1,5 @@
 import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from "class-validator";
+import { Transform } from "class-transformer";
 
 export class CreateCompanyDto {
   @IsString()
@@ -30,8 +31,9 @@ export class CreateCompanyDto {
   annualRevenue?: number;
 
   @IsOptional()
+  @Transform(({ value }) => value === "" ? null : value)
   @IsUrl()
-  linkedInUrl?: string;
+  linkedInUrl?: string | null;
 
   @IsString()
   @IsNotEmpty()

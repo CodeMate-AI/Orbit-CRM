@@ -1,4 +1,5 @@
 import { IsInt, IsNumber, IsOptional, IsString, IsUrl } from "class-validator";
+import { Transform } from "class-transformer";
 
 export class UpdateCompanyDto {
   @IsOptional()
@@ -30,6 +31,7 @@ export class UpdateCompanyDto {
   annualRevenue?: number;
 
   @IsOptional()
+  @Transform(({ value }) => value === "" ? null : value)
   @IsUrl()
-  linkedInUrl?: string;
+  linkedInUrl?: string | null;
 }

@@ -183,6 +183,7 @@ function AddCompanyModal({
         ...form,
         employeeCount: form.employeeCount ? Number(form.employeeCount) : undefined,
         annualRevenue: form.annualRevenue ? Number(form.annualRevenue) : undefined,
+        linkedInUrl: form.linkedInUrl?.trim() || undefined,
       };
       const company = await companiesApi.create(workspaceId, data);
       onCreated(company);
@@ -437,7 +438,7 @@ function CompanyDetailDrawer({
         case "domain":
           return form.domain.trim();
         case "linkedInUrl":
-          return form.linkedInUrl.trim();
+          return form.linkedInUrl.trim() || null;
         case "industry":
           return form.industry.trim();
         case "city":

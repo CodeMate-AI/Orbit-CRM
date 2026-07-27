@@ -63,7 +63,7 @@ export interface CreateCompanyInput {
   industry?: string;
   employeeCount?: number;
   annualRevenue?: number;
-  linkedInUrl?: string;
+  linkedInUrl?: string | null;
 }
 
 export const companiesApi = {

@@ -65,25 +65,25 @@ export interface PeopleListResponse {
 export interface CreatePersonInput {
   firstName: string;
   lastName: string;
-  email?: string;
-  phone?: string;
-  mobile?: string;
-  jobTitle?: string;
-  city?: string;
-  annualRevenue?: number;
-  fax?: string;
-  website?: string;
-  leadSource?: string;
-  industry?: string;
-  leadStatus?: string;
-  employeeCount?: number;
-  skypeId?: string;
-  secondaryEmail?: string;
-  twitter?: string;
-  address?: string;
-  description?: string;
-  companyId?: string;
-  leadOwnerId?: string;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  jobTitle?: string | null;
+  city?: string | null;
+  annualRevenue?: number | null;
+  fax?: string | null;
+  website?: string | null;
+  leadSource?: string | null;
+  industry?: string | null;
+  leadStatus?: string | null;
+  employeeCount?: number | null;
+  skypeId?: string | null;
+  secondaryEmail?: string | null;
+  twitter?: string | null;
+  address?: string | null;
+  description?: string | null;
+  companyId?: string | null;
+  leadOwnerId?: string | null;
 }
 
 export const peopleApi = {

@@ -240,6 +240,10 @@ function LeadDetailPage() {
 
   const handleSaveLead = async () => {
     if (!lead) return;
+    if (!String(leadDraft.firstName ?? "").trim() || !String(leadDraft.lastName ?? "").trim()) {
+      toast.error("First name and last name are required.");
+      return;
+    }
     if (leadDraft.phone && !validatePhoneNumber(String(leadDraft.phone))) {
       toast.error(INDIAN_PHONE_ERROR);
       return;
@@ -247,26 +251,26 @@ function LeadDetailPage() {
     setSavingLead(true);
     try {
       const payload = {
-        firstName: (leadDraft.firstName as string) || undefined,
-        lastName: (leadDraft.lastName as string) || undefined,
-        email: (leadDraft.email as string) || undefined,
-        phone: (leadDraft.phone as string) || undefined,
-        jobTitle: (leadDraft.jobTitle as string) || undefined,
-        leadSource: (leadDraft.leadSource as string) || undefined,
-        industry: (leadDraft.industry as string) || undefined,
-        companyId: leadDraft.companyId === "" ? "" : (leadDraft.companyId as string) || undefined,
-        mobile: (leadDraft.mobile as string) || undefined,
-        annualRevenue: leadDraft.annualRevenue === "" ? undefined : Number(leadDraft.annualRevenue),
-        fax: (leadDraft.fax as string) || undefined,
-        website: (leadDraft.website as string) || undefined,
-        leadStatus: (leadDraft.leadStatus as string) || undefined,
-        employeeCount: leadDraft.employeeCount === "" ? undefined : parseInt(String(leadDraft.employeeCount), 10),
-        skypeId: (leadDraft.skypeId as string) || undefined,
-        secondaryEmail: (leadDraft.secondaryEmail as string) || undefined,
-        twitter: (leadDraft.twitter as string) || undefined,
-        address: (leadDraft.address as string) || undefined,
-        description: (leadDraft.description as string) || undefined,
-        leadOwnerId: (leadDraft.leadOwnerId as string) || undefined,
+        firstName: String(leadDraft.firstName ?? "").trim(),
+        lastName: String(leadDraft.lastName ?? "").trim(),
+        email: String(leadDraft.email ?? "").trim() || null,
+        phone: String(leadDraft.phone ?? "").trim() || null,
+        jobTitle: String(leadDraft.jobTitle ?? "").trim() || null,
+        leadSource: String(leadDraft.leadSource ?? "").trim() || null,
+        industry: String(leadDraft.industry ?? "").trim() || null,
+        companyId: leadDraft.companyId === "" ? null : (leadDraft.companyId as string) || null,
+        mobile: String(leadDraft.mobile ?? "").trim() || null,
+        annualRevenue: leadDraft.annualRevenue === "" ? null : Number(leadDraft.annualRevenue),
+        fax: String(leadDraft.fax ?? "").trim() || null,
+        website: String(leadDraft.website ?? "").trim() || null,
+        leadStatus: String(leadDraft.leadStatus ?? "").trim() || null,
+        employeeCount: leadDraft.employeeCount === "" ? null : parseInt(String(leadDraft.employeeCount), 10),
+        skypeId: String(leadDraft.skypeId ?? "").trim() || null,
+        secondaryEmail: String(leadDraft.secondaryEmail ?? "").trim() || null,
+        twitter: String(leadDraft.twitter ?? "").trim() || null,
+        address: String(leadDraft.address ?? "").trim() || null,
+        description: String(leadDraft.description ?? "").trim() || null,
+        leadOwnerId: leadDraft.leadOwnerId === "" ? null : (leadDraft.leadOwnerId as string) || null,
       };
       const updated = await peopleApi.update(lead.id, payload);
       setLead(updated);

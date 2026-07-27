@@ -175,6 +175,10 @@ function DashboardContent() {
 
   const toggleDone = async (id: string) => {
     const isDone = doneIds.has(id);
+    const task = stats?.upcomingTasks.find((t) => t.id === id);
+    const originalStatus = (task?.status as "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED" | undefined) || "TODO";
+    const nextStatus = isDone ? (originalStatus === "DONE" ? "TODO" : originalStatus) : "DONE";
+
     setDoneIds((prev) => {
       const next = new Set(prev);
       if (isDone) {
@@ -186,7 +190,7 @@ function DashboardContent() {
     });
 
     try {
-      await tasksApi.update(id, { status: isDone ? "TODO" : "DONE" });
+      await tasksApi.update(id, { status: nextStatus });
       toast.success(isDone ? "Task marked incomplete" : "Task marked complete");
     } catch (err: any) {
       setDoneIds((prev) => {

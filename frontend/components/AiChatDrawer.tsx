@@ -298,7 +298,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                       <div className="mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-dashed border-border-subtle bg-bg-primary/40 p-6 text-sm text-text-secondary">
                         <div className="font-serif text-2xl text-text-primary">Ask anything about your workspace</div>
                         <ul className="grid gap-2 sm:grid-cols-2">
-                          <li>• Summarize a contact history</li>
+                          <li>• Summarize a lead history</li>
                           <li>• Draft a follow-up template</li>
                           <li>• Find active deal risks</li>
                           <li>• Search tasks by assignee</li>
@@ -318,7 +318,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                       <Textarea
                         value={input}
                         onChange={(event) => setInput(event.target.value)}
-                        placeholder="Ask about a contact, deal, or draft a follow-up..."
+                        placeholder="Ask about a lead, deal, or draft a follow-up..."
                         className="min-h-24 resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus-visible:ring-0"
                         rows={4}
                         onKeyDown={(event) => {

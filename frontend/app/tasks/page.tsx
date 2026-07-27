@@ -253,9 +253,9 @@ function AddTaskModal({
               <input className="form-input" type="date" value={form.dueDate ?? ""} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
             </div>
             <div className="form-field">
-              <label className="form-label">Related contact</label>
+              <label className="form-label">Related lead</label>
               <select className="form-input" value={form.personId ?? ""} onChange={(e) => setForm({ ...form, personId: e.target.value })}>
-                <option value="">No contact</option>
+                <option value="">No lead</option>
                 {people.map((person) => (
                   <option key={person.id} value={person.id}>{person.name}</option>
                 ))}
@@ -450,9 +450,9 @@ function TaskDetailDrawer({
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related contact</label>
+              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related lead</label>
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.personId} onChange={(e) => setForm((current) => current ? { ...current, personId: e.target.value } : current)} onBlur={() => void saveField("personId")}>
-                <option value="">No contact</option>
+                <option value="">No lead</option>
                 {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
               </select>
               <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId"}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
@@ -618,7 +618,7 @@ function TasksContent() {
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Tasks</p>
             <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Execution dashboard</h2>
-            <p className="mt-1 max-w-2xl text-sm text-text-secondary">Track follow-ups, manage due dates, and link work back to contacts, companies, and deals.</p>
+            <p className="mt-1 max-w-2xl text-sm text-text-secondary">Track follow-ups, manage due dates, and link work back to leads, companies, and deals.</p>
           </div>
           <button className="inline-flex items-center gap-2 rounded bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover disabled:opacity-60" onClick={() => setShowModal(true)} disabled={!workspaceId || loading}>
             <Plus className="h-4 w-4" />
@@ -638,7 +638,7 @@ function TasksContent() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-            <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary" placeholder="Search tasks, contacts, companies, or deals" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary" placeholder="Search tasks, leads, companies, or deals" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}>
@@ -661,7 +661,7 @@ function TasksContent() {
             <EmptyState
               icon={<AlertCircle className="h-8 w-8" />}
               title={tasks.length === 0 ? "No tasks yet" : "No matching tasks found"}
-              description={tasks.length === 0 ? "Create a task to track follow-ups and link back to contacts." : `Try refining search or filters for "${query}".`}
+              description={tasks.length === 0 ? "Create a task to track follow-ups and link back to leads." : `Try refining search or filters for "${query}".`}
               action={tasks.length === 0 ? {
                 label: "New task",
                 onClick: () => setShowModal(true),
@@ -675,7 +675,7 @@ function TasksContent() {
               <span>Task</span>
               <span>Priority</span>
               <span>Due date</span>
-              <span>Contact</span>
+              <span>Lead</span>
               <span>Relations</span>
               <span className="md:text-right">Actions</span>
             </div>

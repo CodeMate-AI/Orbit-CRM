@@ -467,7 +467,7 @@ function DealDetailPage() {
           <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Linked contacts</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Linked leads</h3>
                 <p className="mt-1 text-sm text-text-secondary">People associated with this opportunity.</p>
               </div>
               <button
@@ -475,13 +475,13 @@ function DealDetailPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-orbit-primary hover:text-text-primary"
                 onClick={() => setContactDialogOpen(true)}
               >
-                <Plus className="h-3.5 w-3.5" /> Add contact
+                <Plus className="h-3.5 w-3.5" /> Add lead
               </button>
             </div>
 
             {detail.contacts.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-4 text-sm text-text-tertiary">
-                No contacts linked yet.
+                No leads linked yet.
               </div>
             ) : (
               <div className="space-y-3">
@@ -489,7 +489,7 @@ function DealDetailPage() {
                   <div key={contact.id} className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <Link href={`/contacts/${contact.id}`} className="block truncate text-sm font-semibold text-text-primary transition hover:text-orbit-primary">
+                        <Link href={`/leads/${contact.id}`} className="block truncate text-sm font-semibold text-text-primary transition hover:text-orbit-primary">
                           {contact.name}
                         </Link>
                         <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-tertiary">
@@ -646,7 +646,7 @@ function DealDetailPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add contact</DialogTitle>
+            <DialogTitle>Add lead</DialogTitle>
             <DialogDescription>Search workspace people and link one to this deal.</DialogDescription>
           </DialogHeader>
 

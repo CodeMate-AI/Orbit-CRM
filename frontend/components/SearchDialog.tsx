@@ -66,9 +66,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     results.opportunities.length > 0;
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title="Global Search" description="Type to search contacts, companies, or deals...">
+    <CommandDialog open={open} onOpenChange={onOpenChange} title="Global Search" description="Type to search leads, companies, or deals...">
       <CommandInput
-        placeholder="Type to search contacts, companies, or deals..."
+        placeholder="Type to search leads, companies, or deals..."
         value={query}
         onValueChange={setQuery}
       />
@@ -88,12 +88,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           </div>
         )}
         {results.people.length > 0 && (
-          <CommandGroup heading="Contacts">
+          <CommandGroup heading="Leads">
             {results.people.map((person) => (
               <CommandItem
                 key={person.id}
                 value={`person-${person.id}-${person.name}`}
-                onSelect={() => handleSelect(`/contacts?id=${person.id}`)}
+                onSelect={() => handleSelect(`/leads?id=${person.id}`)}
                 className="flex cursor-pointer items-center gap-2"
               >
                 <Users className="h-4 w-4 text-text-secondary" />

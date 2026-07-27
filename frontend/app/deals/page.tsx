@@ -580,7 +580,7 @@ function DealDetailDrawer({
                   }`}
                   onClick={() => setActiveTab("contacts")}
                 >
-                  Contacts ({detail.contacts.length})
+                  Leads ({detail.contacts.length})
                 </button>
                 <button
                   type="button"
@@ -614,14 +614,14 @@ function DealDetailDrawer({
               {activeTab === "contacts" ? (
                 <div className="pt-4">
                   <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-                    <h3 className="text-sm font-semibold text-text-primary">Link workspace contacts</h3>
+                    <h3 className="text-sm font-semibold text-text-primary">Link workspace leads</h3>
                     <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                       <select
                         className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
                         value={linkingContactId}
                         onChange={(e) => setLinkingContactId(e.target.value)}
                       >
-                        <option value="">Select a contact</option>
+                        <option value="">Select a lead</option>
                         {availableContacts.map((person) => (
                           <option key={person.id} value={person.id}>
                             {person.name}
@@ -645,7 +645,7 @@ function DealDetailDrawer({
                   <div className="mt-4 space-y-3">
                     {detail.contacts.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-border-subtle px-4 py-8 text-center text-sm text-text-tertiary">
-                        No contacts linked to this deal yet.
+                        No leads linked to this deal yet.
                       </div>
                     ) : (
                       detail.contacts.map((contact) => (

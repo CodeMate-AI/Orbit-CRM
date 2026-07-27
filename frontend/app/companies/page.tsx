@@ -49,7 +49,7 @@ type DecoratedCompany = CompanyRow & {
   avatarGradient: string;
 };
 
-type DrawerTab = "contacts" | "deals" | "notes" | "files";
+type DrawerTab = "leads" | "deals" | "notes" | "files";
 
 type EditableCompanyField = Exclude<keyof CreateCompanyInput, never>;
 
@@ -348,22 +348,22 @@ function CompanyDetailDrawer({
   open,
   onClose,
   onCompanyUpdated,
-  onContactUpdated,
-  allContacts,
+  onLeadUpdated,
+  allLeads,
 }: {
   companyId: string | null;
   open: boolean;
   onClose: () => void;
   onCompanyUpdated: (company: CompanyRow) => void;
-  onContactUpdated?: (person: PersonRow) => void;
-  allContacts: PersonRow[];
+  onLeadUpdated?: (person: PersonRow) => void;
+  allLeads: PersonRow[];
 }) {
   const { workspaceId } = useWorkspace();
   const [detail, setDetail] = useState<CompanyDetailRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<DrawerTab>("contacts");
-  const [linkingContactId, setLinkingContactId] = useState("");
+  const [activeTab, setActiveTab] = useState<DrawerTab>("leads");
+  const [linkingLeadId, setLinkingLeadId] = useState("");
   const [savingField, setSavingField] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
@@ -382,7 +382,7 @@ function CompanyDetailDrawer({
     if (!open || !companyId) {
       return;
     }
-    setActiveTab("contacts");
+    setActiveTab("leads");
 
     setLoading(true);
     setError("");
@@ -407,17 +407,17 @@ function CompanyDetailDrawer({
 
   useEffect(() => {
     if (!open) {
-      setActiveTab("contacts");
-      setLinkingContactId("");
+      setActiveTab("leads");
+      setLinkingLeadId("");
       setSavingField(null);
       setLinking(false);
       setUnlinkingId(null);
     }
   }, [open]);
 
-  const availableContacts = useMemo(
-    () => allContacts.filter((person) => !person.companyId || person.companyId !== detail?.id),
-    [allContacts, detail?.id],
+  const availableLeads = useMemo(
+    () => allLeads.filter((person) => !person.companyId || person.companyId !== detail?.id),
+    [allLeads, detail?.id],
   );
 
   const updateFieldValue = (field: keyof typeof form, value: string) => {
@@ -515,11 +515,11 @@ function CompanyDetailDrawer({
     }
   };
 
-  const handleLinkContact = async () => {
-    if (!detail || !linkingContactId) return;
+  const handleLinkLead = async () => {
+    if (!detail || !linkingLeadId) return;
     setLinking(true);
     try {
-      const updated = await peopleApi.update(linkingContactId, { companyId: detail.id });
+      const updated = await peopleApi.update(linkingLeadId, { companyId: detail.id });
       const linkedPerson = {
         id: updated.id,
         firstName: updated.firstName,
@@ -539,17 +539,17 @@ function CompanyDetailDrawer({
             }
           : current,
       );
-      setLinkingContactId("");
-      onContactUpdated?.(updated);
-      toast.success("Contact linked successfully");
+      setLinkingLeadId("");
+      onLeadUpdated?.(updated);
+      toast.success("Lead linked successfully");
     } catch (err: any) {
-      toast.error(err.message || "Failed to link contact.");
+      toast.error(err.message || "Failed to link lead.");
     } finally {
       setLinking(false);
     }
   };
 
-  const handleUnlinkContact = async (personId: string) => {
+  const handleUnlinkLead = async (personId: string) => {
     if (!detail) return;
     setUnlinkingId(personId);
     try {
@@ -562,10 +562,10 @@ function CompanyDetailDrawer({
             }
           : current,
       );
-      onContactUpdated?.(updated);
-      toast.success("Contact unlinked successfully");
+      onLeadUpdated?.(updated);
+      toast.success("Lead unlinked successfully");
     } catch (err: any) {
-      toast.error(err.message || "Failed to unlink contact.");
+      toast.error(err.message || "Failed to unlink lead.");
     } finally {
       setUnlinkingId(null);
     }
@@ -658,7 +658,7 @@ function CompanyDetailDrawer({
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:w-[260px] md:grid-cols-2">
                   <div className="rounded-2xl border border-border-subtle bg-bg-secondary p-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Contacts</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Leads</p>
                     <p className="mt-2 text-2xl font-semibold text-white">{detail.people.length}</p>
                   </div>
                   <div className="rounded-2xl border border-border-subtle bg-bg-secondary p-3">
@@ -764,15 +764,15 @@ function CompanyDetailDrawer({
               <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-text-primary">Relationships & Notes</h3>
-                  <p className="text-sm text-text-secondary">Manage linked contacts, opportunities, and log notes.</p>
+                  <p className="text-sm text-text-secondary">Manage linked leads, opportunities, and log notes.</p>
                 </div>
                 <div className="inline-flex rounded-full border border-border-subtle bg-bg-tertiary p-1">
                   <button
                     type="button"
-                    className={`rounded-full px-4 py-2 text-sm transition ${activeTab === "contacts" ? "bg-orbit-primary text-white" : "text-text-secondary hover:text-text-primary"}`}
-                    onClick={() => setActiveTab("contacts")}
+                    className={`rounded-full px-4 py-2 text-sm transition ${activeTab === "leads" ? "bg-orbit-primary text-white" : "text-text-secondary hover:text-text-primary"}`}
+                    onClick={() => setActiveTab("leads")}
                   >
-                    Contacts
+                    Leads
                   </button>
                   <button
                     type="button"
@@ -798,17 +798,17 @@ function CompanyDetailDrawer({
                 </div>
               </div>
 
-              {activeTab === "contacts" ? (
+              {activeTab === "leads" ? (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-secondary/20 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center">
                       <select
                         className="min-w-0 flex-1 rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary"
-                        value={linkingContactId}
-                        onChange={(e) => setLinkingContactId(e.target.value)}
+                        value={linkingLeadId}
+                        onChange={(e) => setLinkingLeadId(e.target.value)}
                       >
-                        <option value="">Link an available contact…</option>
-                        {availableContacts.map((person) => (
+                        <option value="">Link an available lead…</option>
+                        {availableLeads.map((person) => (
                           <option key={person.id} value={person.id}>
                             {person.name}
                             {person.company ? ` — currently ${person.company}` : " — unassigned"}
@@ -818,17 +818,17 @@ function CompanyDetailDrawer({
                       <button
                         type="button"
                         className="btn-primary justify-center md:min-w-[132px] text-xs h-10 py-0"
-                        onClick={handleLinkContact}
-                        disabled={!linkingContactId || linking}
+                        onClick={handleLinkLead}
+                        disabled={!linkingLeadId || linking}
                       >
-                        {linking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Link contact"}
+                        {linking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Link lead"}
                       </button>
                     </div>
                   </div>
 
                   {detail.people.length === 0 ? (
                     <div className="rounded-2xl border border-border-subtle bg-bg-secondary/10 p-6 text-center text-sm text-text-secondary">
-                      No contacts linked yet.
+                      No leads linked yet.
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -855,7 +855,7 @@ function CompanyDetailDrawer({
                           <button
                             type="button"
                             className="rounded-full border border-red-400/20 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/10"
-                            onClick={() => handleUnlinkContact(person.id)}
+                            onClick={() => handleUnlinkLead(person.id)}
                             disabled={unlinkingId === person.id}
                           >
                             {unlinkingId === person.id ? "Unlinking…" : "Unlink"}
@@ -921,7 +921,7 @@ function CompaniesContent() {
   const router = useRouter();
   const { workspaceId } = useWorkspace();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
-  const [contacts, setContacts] = useState<PersonRow[]>([]);
+  const [leads, setLeads] = useState<PersonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -983,7 +983,7 @@ function CompaniesContent() {
     Promise.all([companiesApi.list(workspaceId), peopleApi.list(workspaceId)])
       .then(([companyRows, peopleResponse]) => {
         setCompanies(companyRows);
-        setContacts(peopleResponse.data);
+        setLeads(peopleResponse.data);
         setSelectedIds(new Set());
       })
       .catch((err: any) => setError(err.message || "Failed to load companies."))
@@ -1068,7 +1068,7 @@ function CompaniesContent() {
         next.delete(id);
         return next;
       });
-      setContacts((prev) => prev.map((person) => (person.companyId === id ? { ...person, companyId: null, company: null } : person)));
+      setLeads((prev) => prev.map((person) => (person.companyId === id ? { ...person, companyId: null, company: null } : person)));
     } catch (err: any) {
       toast.error(err.message || "Failed to delete company.");
     }
@@ -1081,7 +1081,7 @@ function CompaniesContent() {
       await Promise.all(Array.from(selectedIds).map((id) => companiesApi.delete(id)));
       toast.success(`Successfully deleted ${selectedIds.size} companies`);
       setCompanies((prev) => prev.filter((company) => !selectedIds.has(company.id)));
-      setContacts((prev) =>
+      setLeads((prev) =>
         prev.map((person) => (person.companyId && selectedIds.has(person.companyId) ? { ...person, companyId: null, company: null } : person)),
       );
       setSelectedIds(new Set());
@@ -1111,13 +1111,13 @@ function CompaniesContent() {
 
   const handleCompanyPatched = (updatedCompany: CompanyRow) => {
     setCompanies((prev) => prev.map((company) => (company.id === updatedCompany.id ? updatedCompany : company)));
-    setContacts((prev) =>
+    setLeads((prev) =>
       prev.map((person) => (person.companyId === updatedCompany.id ? { ...person, company: updatedCompany.name } : person)),
     );
   };
 
-  const handleContactUpdated = (updatedPerson: PersonRow) => {
-    setContacts((prev) => prev.map((person) => (person.id === updatedPerson.id ? updatedPerson : person)));
+  const handleLeadUpdated = (updatedPerson: PersonRow) => {
+    setLeads((prev) => prev.map((person) => (person.id === updatedPerson.id ? updatedPerson : person)));
   };
 
   return (

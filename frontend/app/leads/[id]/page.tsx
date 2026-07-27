@@ -41,13 +41,13 @@ function buildNotePayload(entityId: string, entityType: "person" | "company" | "
   return payload;
 }
 
-function ContactDetailPage() {
+function LeadDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const contactId = params.id;
+  const leadId = params.id;
   const { workspaceId } = useWorkspace();
 
-  const [contact, setContact] = useState<PersonRow | null>(null);
+  const [lead, setLead] = useState<PersonRow | null>(null);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -60,51 +60,51 @@ function ContactDetailPage() {
   const [companySearch, setCompanySearch] = useState("");
   const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
 
-  const company = useMemo(() => companies.find((entry) => entry.id === contact?.companyId) ?? null, [companies, contact]);
+  const company = useMemo(() => companies.find((entry) => entry.id === lead?.companyId) ?? null, [companies, lead]);
 
   const availableCompanies = useMemo(() => {
     const search = companySearch.trim().toLowerCase();
     return companies
-      .filter((entry) => (contact?.companyId ? entry.id !== contact.companyId : true))
+      .filter((entry) => (lead?.companyId ? entry.id !== lead.companyId : true))
       .filter((entry) => {
         if (!search) return true;
         return [entry.name, entry.domain ?? "", entry.industry ?? "", entry.city ?? ""].join(" ").toLowerCase().includes(search);
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [companySearch, companies, contact?.companyId]);
+  }, [companySearch, companies, lead?.companyId]);
 
-  const relatedTasks = useMemo(() => tasks.filter((task) => task.personId === contact?.id), [tasks, contact]);
+  const relatedTasks = useMemo(() => tasks.filter((task) => task.personId === lead?.id), [tasks, lead]);
   const recentNotes = useMemo(() => notes.slice(0, 5), [notes]);
 
   useEffect(() => {
-    document.title = contact?.name ? `${contact.name} | Orbit CRM` : "Contact detail | Orbit CRM";
-  }, [contact?.name]);
+    document.title = lead?.name ? `${lead.name} | Orbit CRM` : "Lead detail | Orbit CRM";
+  }, [lead?.name]);
 
   useEffect(() => {
-    if (!workspaceId || !contactId) return;
+    if (!workspaceId || !leadId) return;
 
     setLoading(true);
     setError("");
     Promise.all([
-      peopleApi.get(contactId),
+      peopleApi.get(leadId),
       companiesApi.list(workspaceId),
-      notesApi.list(workspaceId, "person", contactId),
+      notesApi.list(workspaceId, "person", leadId),
       tasksApi.list(workspaceId),
-      attachmentsApi.list(workspaceId, "person", contactId),
+      attachmentsApi.list(workspaceId, "person", leadId),
     ])
       .then(([person, companyRows, noteRows, taskRows, fileRows]) => {
-        setContact(person);
+        setLead(person);
         setCompanies(companyRows);
         setNotes(noteRows);
         setTasks(taskRows);
         setAttachments(fileRows);
       })
-      .catch((err) => setError(err.message || "Failed to load contact."))
+      .catch((err) => setError(err.message || "Failed to load lead."))
       .finally(() => setLoading(false));
-  }, [workspaceId, contactId]);
+  }, [workspaceId, leadId]);
 
   const handleSaveNote = async () => {
-    if (!workspaceId || !contact) return;
+    if (!workspaceId || !lead) return;
     if (!newNoteBody?.content || newNoteBody.content.length === 0) {
       toast.error("Note content cannot be empty.");
       return;
@@ -112,7 +112,7 @@ function ContactDetailPage() {
 
     setSavingNote(true);
     try {
-      const created = await notesApi.create(buildNotePayload(contact.id, "person", workspaceId, newNoteBody));
+      const created = await notesApi.create(buildNotePayload(lead.id, "person", workspaceId, newNoteBody));
       setNotes((current) => [created, ...current]);
       setNewNoteBody(null);
       toast.success("Note saved successfully.");
@@ -124,11 +124,11 @@ function ContactDetailPage() {
   };
 
   const handleLinkCompany = async (companyId: string) => {
-    if (!contact) return;
+    if (!lead) return;
     setLinkingCompanyId(companyId);
     try {
-      const updated = await peopleApi.update(contact.id, { companyId });
-      setContact((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
+      const updated = await peopleApi.update(lead.id, { companyId });
+      setLead((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
       setCompanyDialogOpen(false);
       setCompanySearch("");
       toast.success("Company linked successfully.");
@@ -140,11 +140,11 @@ function ContactDetailPage() {
   };
 
   const handleUnlinkCompany = async () => {
-    if (!contact) return;
-    setLinkingCompanyId(contact.companyId);
+    if (!lead) return;
+    setLinkingCompanyId(lead.companyId);
     try {
-      const updated = await peopleApi.update(contact.id, { companyId: "" });
-      setContact((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
+      const updated = await peopleApi.update(lead.id, { companyId: "" });
+      setLead((current) => (current ? { ...current, companyId: updated.companyId, company: updated.company } : current));
       toast.success("Company unlinked successfully.");
     } catch (err: any) {
       toast.error(err.message || "Failed to unlink company.");
@@ -158,17 +158,17 @@ function ContactDetailPage() {
       <div className="mx-auto flex min-h-[50vh] max-w-[1600px] items-center justify-center px-6 py-10">
         <div className="flex items-center gap-3 text-text-secondary">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Loading contact…
+          Loading lead…
         </div>
       </div>
     );
   }
 
-  if (error || !contact) {
+  if (error || !lead) {
     return (
       <div className="mx-auto flex min-h-[50vh] max-w-[1600px] flex-col items-center justify-center gap-4 px-6 py-10 text-center">
-        <p className="text-lg font-medium text-text-primary">{error || "Contact not found."}</p>
-        <button type="button" className="btn-primary" onClick={() => router.push("/contacts")}>Back to contacts</button>
+        <p className="text-lg font-medium text-text-primary">{error || "Lead not found."}</p>
+        <button type="button" className="btn-primary" onClick={() => router.push("/leads")}>Back to leads</button>
       </div>
     );
   }
@@ -176,12 +176,12 @@ function ContactDetailPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/contacts")}> 
+        <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-4 py-2 text-sm text-text-secondary transition hover:text-text-primary" onClick={() => router.push("/leads")}> 
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Contact detail</p>
-          <h1 className="text-2xl font-semibold text-text-primary">{contact.name}</h1>
+          <p className="text-xs uppercase tracking-[0.24em] text-text-tertiary">Lead detail</p>
+          <h1 className="text-2xl font-semibold text-text-primary">{lead.name}</h1>
         </div>
       </div>
 
@@ -189,11 +189,11 @@ function ContactDetailPage() {
         <aside className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orbit-primary/15 text-xl font-semibold text-orbit-primary">
-              {getInitials(contact.name)}
+              {getInitials(lead.name)}
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-xl font-semibold text-text-primary">{contact.name}</h2>
-              <p className="mt-1 text-sm text-text-secondary">{contact.jobTitle || "No job title"}</p>
+              <h2 className="truncate text-xl font-semibold text-text-primary">{lead.name}</h2>
+              <p className="mt-1 text-sm text-text-secondary">{lead.jobTitle || "No job title"}</p>
               {company ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
@@ -207,9 +207,9 @@ function ContactDetailPage() {
                     type="button"
                     className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary transition hover:border-orbit-primary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-70"
                     onClick={() => void handleUnlinkCompany()}
-                    disabled={linkingCompanyId === contact.companyId}
+                    disabled={linkingCompanyId === lead.companyId}
                   >
-                    {linkingCompanyId === contact.companyId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                    {linkingCompanyId === lead.companyId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                     Unlink company
                   </button>
                 </div>
@@ -226,14 +226,14 @@ function ContactDetailPage() {
           </div>
 
           <div className="space-y-3 text-sm text-text-secondary">
-            <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {contact.email || "No email"}</div>
-            <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {contact.phone || "No phone"}</div>
-            <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(contact.createdAt)}</div>
+            <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {lead.email || "No email"}</div>
+            <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {lead.phone || "No phone"}</div>
+            <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(lead.createdAt)}</div>
           </div>
         </aside>
 
         <main className="space-y-6 rounded-3xl border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm">
-          <ActivityTimeline workspaceId={workspaceId} personId={contact.id} />
+          <ActivityTimeline workspaceId={workspaceId} personId={lead.id} />
 
           <section className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-4">
             <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Add note</div>
@@ -303,8 +303,8 @@ function ContactDetailPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{contact.companyId ? "Change company" : "Link company"}</DialogTitle>
-            <DialogDescription>Search workspace companies and attach one to this contact.</DialogDescription>
+            <DialogTitle>{lead.companyId ? "Change company" : "Link company"}</DialogTitle>
+            <DialogDescription>Search workspace companies and attach one to this lead.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -355,10 +355,10 @@ function ContactDetailPage() {
   );
 }
 
-export default function ContactDetailRoute() {
+export default function LeadDetailRoute() {
   return (
-    <AppLayout pageTitle="Contact detail">
-      <ContactDetailPage />
+    <AppLayout pageTitle="Lead detail">
+      <LeadDetailPage />
     </AppLayout>
   );
 }

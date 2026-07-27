@@ -44,7 +44,7 @@ Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Foun
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "orbit_contacts_sample.csv");
+    link.setAttribute("download", "orbit_leads_sample.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -121,7 +121,7 @@ Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Foun
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="mb-4 text-lg font-semibold text-text-primary">Import Contacts from CSV</h2>
+        <h2 className="mb-4 text-lg font-semibold text-text-primary">Import Leads from CSV</h2>
 
         <div className="flex-1 overflow-y-auto">
           {step === "upload" && (
@@ -131,7 +131,7 @@ Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Foun
               ) : (
                 <label className="flex cursor-pointer flex-col items-center gap-2">
                   <Upload className="h-8 w-8 text-text-muted" />
-                  <span className="text-sm font-medium text-text-primary">Upload your contact CSV file</span>
+                  <span className="text-sm font-medium text-text-primary">Upload your lead CSV file</span>
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
                 </label>
               )}
@@ -199,7 +199,7 @@ Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Foun
             <div className="flex flex-col gap-4">
               <div className="rounded-xl border border-border-subtle bg-bg-tertiary/40 p-4 text-center">
                 <p className="text-2xl font-bold text-text-primary">{totalRows}</p>
-                <p className="mt-1 text-xs text-text-secondary">Total contacts parsed and ready to import.</p>
+                <p className="mt-1 text-xs text-text-secondary">Total leads parsed and ready to import.</p>
               </div>
 
               {errors.length > 0 && (

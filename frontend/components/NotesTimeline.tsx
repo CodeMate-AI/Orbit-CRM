@@ -1,48 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import NoteEditor from "./NoteEditor";
+import ReadOnlyNoteContent from "./ReadOnlyNoteContent";
 import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
 import { isTiptapJsonEmpty } from "@/lib/utils";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-
-// Read-only editor helper to render logged rich text JSON content
-function ReadOnlyNoteContent({ content }: { content: any }) {
-  const parsedContent = useMemo(() => {
-    if (typeof content === "string") {
-      try {
-        return JSON.parse(content);
-      } catch {
-        return content;
-      }
-    }
-    return content;
-  }, [content]);
-
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: parsedContent,
-    editable: false,
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: "prose prose-invert prose-sm max-w-none text-text-primary leading-relaxed",
-      },
-    },
-  });
-
-  useEffect(() => {
-    if (editor) {
-      editor.commands.setContent(parsedContent);
-    }
-  }, [parsedContent, editor]);
-
-  if (!editor) return null;
-  return <EditorContent editor={editor} />;
-}
 
 interface NotesTimelineProps {
   workspaceId: string;

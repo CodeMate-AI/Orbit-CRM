@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import NoteEditor from "@/components/NoteEditor";
+import ReadOnlyNoteContent from "@/components/ReadOnlyNoteContent";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttachmentRow, attachmentsApi } from "@/lib/attachments-api";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
@@ -60,6 +61,7 @@ function LeadDetailPage() {
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
+  const [selectedNote, setSelectedNote] = useState<NoteRow | null>(null);
 
   const company = useMemo(() => companies.find((entry) => entry.id === lead?.companyId) ?? null, [companies, lead]);
 
@@ -268,8 +270,13 @@ function LeadDetailPage() {
             </div>
             <div className="space-y-2">
               {recentNotes.length === 0 ? <p className="text-sm text-text-tertiary">No notes yet.</p> : recentNotes.map((note) => (
-                <article key={note.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm">
-                  <p className="font-medium text-text-primary">{note.title || extractTextFromTiptapJson(note.body).slice(0, 30) || "Untitled note"}</p>
+                <article
+                  key={note.id}
+                  onClick={() => setSelectedNote(note)}
+                  className="cursor-pointer rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm transition hover:border-orbit-primary hover:bg-bg-tertiary"
+                >
+                  <p className="font-medium text-text-primary">{note.title || (note.author?.name ? `Note by ${note.author.name}` : "Note")}</p>
+                  <p className="mt-0.5 text-[10px] text-text-tertiary">{formatDateTime(note.createdAt)}</p>
                   <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">{extractTextFromTiptapJson(note.body) || "Empty note"}</p>
                 </article>
               ))}
@@ -292,6 +299,21 @@ function LeadDetailPage() {
           </div>
         </aside>
       </section>
+
+      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedNote?.title || "Note Detail"}</DialogTitle>
+            <DialogDescription>
+              Logged on {selectedNote && formatDateTime(selectedNote.createdAt)}
+              {selectedNote?.author?.name ? ` by ${selectedNote.author.name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 max-h-[60vh] overflow-y-auto rounded-2xl border border-border-subtle bg-bg-secondary p-4">
+            {selectedNote && <ReadOnlyNoteContent content={selectedNote.body} />}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={companyDialogOpen}

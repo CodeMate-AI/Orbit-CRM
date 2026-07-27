@@ -13,6 +13,7 @@ import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone, Plus, Search, X } from "lucide-react";
+import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -105,7 +106,7 @@ function LeadDetailPage() {
 
   const handleSaveNote = async () => {
     if (!workspaceId || !lead) return;
-    if (!newNoteBody?.content || newNoteBody.content.length === 0) {
+    if (!newNoteBody || isTiptapJsonEmpty(newNoteBody)) {
       toast.error("Note content cannot be empty.");
       return;
     }
@@ -268,8 +269,8 @@ function LeadDetailPage() {
             <div className="space-y-2">
               {recentNotes.length === 0 ? <p className="text-sm text-text-tertiary">No notes yet.</p> : recentNotes.map((note) => (
                 <article key={note.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm">
-                  <p className="font-medium text-text-primary">{note.title || "Untitled note"}</p>
-                  <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">{typeof note.body === "string" ? note.body : "Rich text note"}</p>
+                  <p className="font-medium text-text-primary">{note.title || extractTextFromTiptapJson(note.body).slice(0, 30) || "Untitled note"}</p>
+                  <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">{extractTextFromTiptapJson(note.body) || "Empty note"}</p>
                 </article>
               ))}
             </div>

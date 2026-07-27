@@ -12,6 +12,7 @@ import { tasksApi, TaskRow } from "@/lib/tasks-api";
 import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Users } from "lucide-react";
+import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
@@ -76,7 +77,7 @@ function CompanyDetailPage() {
 
   const handleSaveNote = async () => {
     if (!workspaceId || !company) return;
-    if (!newNoteBody?.content || newNoteBody.content.length === 0) {
+    if (!newNoteBody || isTiptapJsonEmpty(newNoteBody)) {
       toast.error("Note content cannot be empty.");
       return;
     }
@@ -149,6 +150,29 @@ function CompanyDetailPage() {
           <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Leads</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{recentPeople.length}</span></div><div className="space-y-2">{recentPeople.length === 0 ? <p className="text-sm text-text-tertiary">No leads linked.</p> : recentPeople.map((person) => <button key={person.id} type="button" className="w-full rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-left text-sm transition hover:border-orbit-primary" onClick={() => router.push(`/leads/${person.id}`)}><p className="font-medium text-text-primary">{person.name}</p><p className="mt-1 text-xs text-text-tertiary">{person.jobTitle || "No title"}</p></button>)}</div></div>
 
           <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Tasks</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{relatedTasks.length}</span></div><div className="space-y-2">{relatedTasks.length === 0 ? <p className="text-sm text-text-tertiary">No tasks linked.</p> : relatedTasks.slice(0, 5).map((task) => <div key={task.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{task.title}</p><p className="mt-1 text-xs text-text-tertiary">{task.status}</p></div>)}</div></div>
+
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Notes</h3>
+              <span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{notes.length}</span>
+            </div>
+            <div className="space-y-2">
+              {notes.length === 0 ? (
+                <p className="text-sm text-text-tertiary">No notes yet.</p>
+              ) : (
+                notes.slice(0, 5).map((note) => (
+                  <article key={note.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm">
+                    <p className="font-medium text-text-primary">
+                      {note.title || extractTextFromTiptapJson(note.body).slice(0, 30) || "Untitled note"}
+                    </p>
+                    <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">
+                      {extractTextFromTiptapJson(note.body) || "Empty note"}
+                    </p>
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
 
           <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Files</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{attachments.length}</span></div><div className="space-y-2">{attachments.length === 0 ? <p className="text-sm text-text-tertiary">No files uploaded.</p> : attachments.slice(0, 5).map((file) => <div key={file.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{file.name}</p><p className="mt-1 text-xs text-text-tertiary">{file.mimeType}</p></div>)}</div></div>
         </aside>

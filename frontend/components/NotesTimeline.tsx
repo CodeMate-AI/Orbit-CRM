@@ -5,6 +5,7 @@ import { notesApi, NoteRow } from "@/lib/notes-api";
 import NoteEditor from "./NoteEditor";
 import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
+import { isTiptapJsonEmpty } from "@/lib/utils";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
@@ -71,7 +72,7 @@ export default function NotesTimeline({ workspaceId, entityType, entityId }: Not
   }, [workspaceId, entityType, entityId]);
 
   const handleSaveNote = async () => {
-    if (!newNoteBody || !newNoteBody.content || newNoteBody.content.length === 0) {
+    if (!newNoteBody || isTiptapJsonEmpty(newNoteBody)) {
       toast.error("Note content cannot be empty.");
       return;
     }

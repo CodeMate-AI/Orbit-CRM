@@ -300,7 +300,46 @@ The backend is organized into feature modules under [`backend/src/modules/`](bac
 - The backend includes a worker entrypoint at [`backend/src/worker.ts`](backend/src/worker.ts).
 - Event modules coordinate side effects and activity logging between features.
 
-## Related docs
 
-- [`problemStatement.md`](problemStatement.md) — original product requirements and scope notes
-- [`server.md`](server.md) — local dev server commands
+
+## AI Workspace Context (End-to-End)
+
+Here is how the AI Assistant dynamically retrieves and reasons over workspace data:
+
+### 1. Dynamic Tool Calling (On-Demand Context)
+The AI model is never handed a full raw dump of the database. Instead, `generateAssistantReply` provides:
+- The system instructions.
+- A list of available tool schemas (function definitions).
+- The chat history.
+
+The model analyzes the query and decides which tools to invoke. This follows the standard OpenAI-style function-calling schema over OpenRouter.
+
+### 2. The Tool-Calling Loop
+To retrieve data and answer multi-step questions, the AI runs inside a bounded execution loop:
+
+```typescript
+while (loopCount < maxLoops) { // Bounded at 5 iterations max
+  1. Send chat history + available tool schemas to OpenRouter.
+  2. If the model returns 'tool_calls':
+     - Execute each tool query locally using Prisma (scoped strictly to active workspaceId).
+     - Format and append the tool results into chat history with the role 'tool'.
+     - Re-run the loop so the model can inspect the results and determine next steps.
+  3. If the model returns plain content (no tool calls):
+     - Return the content immediately as the assistant's final response.
+}
+```
+
+> [!NOTE]
+> **Deduplication Guard**: To prevent infinite execution loops caused by repeating models, we maintain a `calledTools` cache (`Set` keyed by `tool_name:arguments`). If the model generates a duplicate tool call, it is skipped. If all calls in a cycle are repeats, the loop terminates immediately.
+
+### 3. Available System Tools (Scoped to `workspaceId`)
+
+| Tool Name | Scope & Queries |
+| :--- | :--- |
+| `listWorkspacePeople` | Searches contacts by name, email, job title, phone, city, lead source, industry, or company. |
+| `listWorkspaceCompanies` | Queries companies by name, domain, industry, city, employee count, or annual revenue. |
+| `listWorkspaceOpportunities` | Fetches opportunity deals, including stage, amount, close date, and associated company. |
+| `listWorkspaceTasks` | Lists workspace tasks by title, description, or assignee (disabled for `VIEWER` role). |
+| `getWorkspaceSummary` | Generates aggregated metrics (counts, pipeline value, deal stage breakdowns, task statuses). |
+| `listWorkspaceNotes` | Searches and retrieves workspace note records matching title or body substrings. |
+| `listWorkspaceActivities` | Lists logged activity histories, filterable by type (NOTE, CALL, EMAIL, MEETING, etc.). |

@@ -1024,10 +1024,6 @@ function LeadsContent() {
               <span className="contacts-metric-label">New this month</span>
               <span className="contacts-metric-value">{loading ? "—" : newThisMonth.toString()}</span>
             </div>
-            <div className="contacts-metric-card">
-              <span className="contacts-metric-label">Showing</span>
-              <span className="contacts-metric-value">{loading ? "—" : filteredLeads.length.toString()}</span>
-            </div>
           </div>
 
           {loading && (

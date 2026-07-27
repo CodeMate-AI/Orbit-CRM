@@ -130,7 +130,7 @@ export default function NotesTimeline({ workspaceId, entityType, entityId }: Not
 
       {/* Notes Stream Feed */}
       <div className="flex flex-col gap-4">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Chronological Timeline</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-text-tertiary">Notes Timeline</h3>
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-orbit-primary" />

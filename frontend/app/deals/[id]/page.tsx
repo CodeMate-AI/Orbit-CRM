@@ -26,7 +26,6 @@ import {
   Search,
   X,
   ChevronDown,
-  Users,
   Clock3,
 } from "lucide-react";
 
@@ -35,20 +34,6 @@ function formatDate(value: string | null, options: Intl.DateTimeFormatOptions) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-IN", options);
-}
-
-function formatDateTime(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
 }
 
 function DealDetailPage() {
@@ -294,7 +279,6 @@ function DealDetailPage() {
   }
 
   const stageLabel = currentStage?.name ?? "No stage";
-  const stageProbability = detail.probability ?? currentStage?.probability ?? null;
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
@@ -523,35 +507,6 @@ function DealDetailPage() {
                 ))}
               </div>
             )}
-          </section>
-
-          <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Details</h3>
-                <p className="mt-1 text-sm text-text-secondary">Core deal metadata.</p>
-              </div>
-              <Users className="h-5 w-5 text-orbit-primary" />
-            </div>
-
-            <div className="grid gap-3 text-sm text-text-secondary sm:grid-cols-2">
-              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Probability</p>
-                <p className="mt-2 text-lg font-semibold text-text-primary">{stageProbability == null ? "—" : `${stageProbability}%`}</p>
-              </div>
-              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Lead source</p>
-                <p className="mt-2 text-lg font-semibold text-text-primary">{detail.source || "—"}</p>
-              </div>
-              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Created</p>
-                <p className="mt-2 text-sm font-medium text-text-primary">{formatDateTime(detail.createdAt)}</p>
-              </div>
-              <div className="rounded-3xl border border-border-subtle bg-bg-tertiary/60 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Last updated</p>
-                <p className="mt-2 text-sm font-medium text-text-primary">{formatDateTime(detail.updatedAt)}</p>
-              </div>
-            </div>
           </section>
 
           <section className="rounded-[28px] border border-border-subtle bg-bg-secondary/80 p-5 shadow-sm md:p-6">

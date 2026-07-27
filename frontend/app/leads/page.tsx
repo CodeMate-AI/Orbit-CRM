@@ -83,6 +83,7 @@ const INDUSTRY_OPTIONS = [
   "Healthcare",
   "SaaS",
   "Education",
+  "Food and Beverages",
 ];
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #6b5ed4, #a094fa)",

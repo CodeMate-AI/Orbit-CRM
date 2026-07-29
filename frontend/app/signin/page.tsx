@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,21 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+
+  const handleCopy = (text: string, type: "email" | "password") => {
+    navigator.clipboard.writeText(text);
+    if (type === "email") {
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+      toast.success("Email copied to clipboard!");
+    } else {
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+      toast.success("Password copied to clipboard!");
+    }
+  };
 
   useEffect(() => {
     if (emailParam) {
@@ -177,6 +192,50 @@ function SignInForm() {
           {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </form>
+
+      {/* Demo Credentials Box */}
+      <div className="mt-6 rounded-lg border border-border-default bg-bg-primary/50 p-4 text-xs backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-text-primary">Demo Credentials</span>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("demo@orbitcrm.com");
+              setPassword("DemoPassword123!");
+              toast.success("Demo credentials autofilled!");
+            }}
+            className="text-orbit-primary hover:text-orbit-primary-hover font-medium underline cursor-pointer"
+          >
+            Autofill
+          </button>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center bg-bg-secondary p-2 rounded border border-border-default">
+            <span className="text-text-secondary font-mono">demo@orbitcrm.com</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-text-secondary hover:text-text-primary"
+              onClick={() => handleCopy("demo@orbitcrm.com", "email")}
+            >
+              {copiedEmail ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+          <div className="flex justify-between items-center bg-bg-secondary p-2 rounded border border-border-default">
+            <span className="text-text-secondary font-mono">DemoPassword123!</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-text-secondary hover:text-text-primary"
+              onClick={() => handleCopy("DemoPassword123!", "password")}
+            >
+              {copiedPassword ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Don&apos;t have an account?{" "}

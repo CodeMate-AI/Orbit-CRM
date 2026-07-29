@@ -27,6 +27,7 @@ function InviteAcceptContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     if (!token) {
@@ -43,20 +44,17 @@ function InviteAcceptContent() {
 
         // 2. Fetch current session
         const session = await authClient.getSession();
-        const currentUser = session?.data?.user;
+        const user = session?.data?.user;
+        setCurrentUser(user || null);
 
-        if (!currentUser) {
-          // If not logged in, redirect to signup/signin with pre-fill parameters
-          toast.info("Please sign up or sign in to accept this invitation.");
-          router.push(`/signup?email=${encodeURIComponent(details.email)}&token=${token}`);
-          return;
-        }
-
-        // 3. Securely compare emails (case-insensitive)
-        if (currentUser.email.toLowerCase().trim() !== details.email.toLowerCase().trim()) {
-          toast.warning("Signing you out: Invite is for a different email address.");
-          await authClient.signOut();
-          router.push(`/signin?email=${encodeURIComponent(details.email)}&token=${token}`);
+        if (user) {
+          // 3. Securely compare emails (case-insensitive)
+          if (user.email.toLowerCase().trim() !== details.email.toLowerCase().trim()) {
+            toast.warning("Signing you out: Invite is for a different email address.");
+            await authClient.signOut();
+            setCurrentUser(null);
+            router.push(`/signin?email=${encodeURIComponent(details.email)}&token=${token}`);
+          }
         }
       } catch (err: any) {
         toast.error(err.message || "Failed to inspect invitation. It may be expired or invalid.");
@@ -147,24 +145,47 @@ function InviteAcceptContent() {
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
-        <Button
-          id="invite-accept-btn"
-          onClick={handleAccept}
-          className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover font-medium"
-          disabled={isAccepting}
-        >
-          {isAccepting ? "Joining Workspace..." : "Accept & Enter CRM"}
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            await authClient.signOut();
-            router.push("/signin");
-          }}
-          className="w-full text-xs text-text-secondary hover:text-text-primary"
-        >
-          Sign in as a different user
-        </Button>
+        {currentUser ? (
+          <>
+            <Button
+              id="invite-accept-btn"
+              onClick={handleAccept}
+              className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover font-medium"
+              disabled={isAccepting}
+            >
+              {isAccepting ? "Joining Workspace..." : "Accept & Enter CRM"}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await authClient.signOut();
+                setCurrentUser(null);
+                router.push("/signin");
+              }}
+              className="w-full text-xs text-text-secondary hover:text-text-primary"
+            >
+              Sign in as a different user
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              id="invite-signin-btn"
+              onClick={() => router.push(`/signin?email=${encodeURIComponent(invitation.email)}&token=${token}`)}
+              className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover font-medium"
+            >
+              Sign In to Accept
+            </Button>
+            <Button
+              id="invite-signup-btn"
+              variant="outline"
+              onClick={() => router.push(`/signup?email=${encodeURIComponent(invitation.email)}&token=${token}`)}
+              className="w-full border-border-default hover:bg-surface-hover text-text-primary font-medium"
+            >
+              Create an Account
+            </Button>
+          </>
+        )}
       </div>
     </motion.div>
   );

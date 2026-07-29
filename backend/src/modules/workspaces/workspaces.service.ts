@@ -418,8 +418,19 @@ export class WorkspacesService {
           </div>
         `,
       )
-      .catch((err) => {
+      .catch(async (err) => {
         console.error("Failed to send invitation email asynchronously:", err);
+        await prisma.activity.create({
+          data: {
+            type: "EMAIL",
+            title: `Invite email failed to ${normalizedEmail}`,
+            body: `SMTP Error: ${err.message || String(err)}`,
+            workspaceId,
+            authorId: userId,
+          },
+        }).catch((dbErr) => {
+          console.error("Failed to write SMTP error to activities:", dbErr);
+        });
       });
 
     return invitation;

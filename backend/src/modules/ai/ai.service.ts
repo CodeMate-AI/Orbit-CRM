@@ -673,10 +673,7 @@ export class AiService {
   }
 
   async listWorkspaceTasks(userId: string, workspaceId: string, searchQuery: string) {
-    const member = await this.assertMembership(userId, workspaceId);
-    if (member.role === "VIEWER") {
-      throw new ForbiddenException("Viewer role cannot access task tools.");
-    }
+    await this.assertMembership(userId, workspaceId);
 
     const query = searchQuery.trim();
     const where: any = {

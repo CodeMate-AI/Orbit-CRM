@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import dns from "dns";
 import nodemailer, { Transporter } from "nodemailer";
 
 const prisma = new PrismaClient();
@@ -101,7 +102,9 @@ export class EmailService {
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
-      family: 4,
+      lookup: (hostname: string, options: any, callback: any) => {
+        return dns.lookup(hostname, { family: 4 }, callback);
+      },
     } as any);
   }
 

@@ -385,6 +385,34 @@ export class WorkspacesService {
       throw new BadRequestException("Invitations can only be sent to team members.");
     }
 
+    // 1. Check if the user is already a member of this workspace
+    const existingMember = await prisma.workspaceMember.findFirst({
+      where: {
+        workspaceId,
+        user: {
+          email: {
+            equals: normalizedEmail,
+            mode: "insensitive",
+          },
+        },
+      },
+    });
+
+    if (existingMember) {
+      throw new BadRequestException("This user is already a member of this workspace.");
+    }
+
+    // 2. Clean up any existing invitations for this email in this workspace to prevent duplicates
+    await prisma.invitation.deleteMany({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: "insensitive",
+        },
+        workspaceId,
+      },
+    });
+
     const invitation = await prisma.invitation.create({
       data: {
         email: normalizedEmail,

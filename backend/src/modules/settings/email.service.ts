@@ -98,7 +98,11 @@ export class EmailService {
         user: config.username,
         pass: config.password,
       },
-    });
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      family: 4,
+    } as any);
   }
 
   async sendEmail(workspaceId: string | null, to: string, subject: string, html: string) {

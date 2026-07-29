@@ -398,25 +398,29 @@ export class WorkspacesService {
     const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || "http://localhost:3000";
     const inviteUrl = `${appUrl.replace(/\/$/, "")}/invite/accept?token=${token}`;
 
-    await this.emailService.sendEmail(
-      workspaceId,
-      normalizedEmail,
-      `You have been invited to join ${workspace.name} on Orbit CRM`,
-      `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
-          <h2>You have been invited to Orbit CRM</h2>
-          <p>You were invited to join <strong>${workspace.name}</strong>.</p>
-          <p>
-            <a href="${inviteUrl}" style="display: inline-block; background: #8174f8; color: #ffffff; padding: 12px 18px; border-radius: 8px; text-decoration: none;">
-              Accept invitation
-            </a>
-          </p>
-          <p>If the button does not work, copy and paste this link into your browser:</p>
-          <p>${inviteUrl}</p>
-          <p>This invitation expires in 7 days.</p>
-        </div>
-      `,
-    );
+    this.emailService
+      .sendEmail(
+        workspaceId,
+        normalizedEmail,
+        `You have been invited to join ${workspace.name} on Orbit CRM`,
+        `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+            <h2>You have been invited to Orbit CRM</h2>
+            <p>You were invited to join <strong>${workspace.name}</strong>.</p>
+            <p>
+              <a href="${inviteUrl}" style="display: inline-block; background: #8174f8; color: #ffffff; padding: 12px 18px; border-radius: 8px; text-decoration: none;">
+                Accept invitation
+              </a>
+            </p>
+            <p>If the button does not work, copy and paste this link into your browser:</p>
+            <p>${inviteUrl}</p>
+            <p>This invitation expires in 7 days.</p>
+          </div>
+        `,
+      )
+      .catch((err) => {
+        console.error("Failed to send invitation email asynchronously:", err);
+      });
 
     return invitation;
   }

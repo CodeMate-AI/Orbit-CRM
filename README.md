@@ -68,8 +68,7 @@ The frontend under [`frontend/app/`](frontend/app/) includes:
 
 Shared UI components live in [`frontend/components/`](frontend/components/) and the application uses reusable route shells, dialogs, drawers, and responsive layouts throughout.
 
-
-### Backend updated 
+### Backend
 
 The backend under [`backend/src/modules/`](backend/src/modules/) is organized into feature modules:
 
@@ -92,6 +91,8 @@ The backend under [`backend/src/modules/`](backend/src/modules/) is organized in
 
 The root module is defined in [`backend/src/app.module.ts`](backend/src/app.module.ts). The API entrypoint is [`backend/src/main.ts`](backend/src/main.ts), and background work is handled from [`backend/src/worker.ts`](backend/src/worker.ts).
 
+Recent backend additions include workspace-domain aware provisioning with a seeded default Sales Pipeline, and SMTP settings that can be stored per workspace with environment-based fallbacks for email delivery and verification.
+
 ## Architecture
 
 Orbit CRM uses a two-app architecture:
@@ -101,7 +102,7 @@ Orbit CRM uses a two-app architecture:
 - **Database**: PostgreSQL for persistent CRM data.
 - **Queue / cache**: Redis for BullMQ job processing.
 - **Storage**: AWS S3 for attachments and uploaded files.
-- **Email**: Nodemailer with SMTP for transactional email.
+- **Email**: Nodemailer with SMTP for transactional email and workspace-specific SMTP configuration.
 - **AI**: OpenRouter-backed integration hooks.
 
 ### Runtime flow
@@ -233,7 +234,7 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
 SMTP_PASS=your-app-password
 SMTP_FROM_NAME="Orbit CRM"
-SMTP_FROM_EMAIL="noreply@orbitcrm.com"
+SMTP_FROM_EMAIL="your-email@gmail.com"
 APP_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
 OPENROUTER_API_KEY=
@@ -258,88 +259,43 @@ From [`backend/package.json`](backend/package.json):
 - `npm run build` — build the NestJS app
 - `npm run start` — run the server once
 - `npm run start:dev` — run the server in watch mode
-- `npm run start:prod` — start the compiled app from `dist/`
-- `npm run worker` — run the worker entrypoint
-- `npm run prisma:generate` — generate Prisma client types
+- `npm run test` — run the backend test suite
+- `npm run test:watch` — run tests in watch mode
+- `npm run test:cov` — run tests with coverage output
 
 ### Frontend
 
 From [`frontend/package.json`](frontend/package.json):
 
-- `npm run dev` — start the Next.js dev server with Turbopack
-- `npm run build` — build the production frontend
-- `npm run start` — start the production frontend
+- `npm run dev` — start the Next.js development server
+- `npm run build` — create a production build
+- `npm run start` — start the production frontend server
+- `npm run lint` — run ESLint checks
 
 ## API surface
 
-The backend is organized into feature modules under [`backend/src/modules/`](backend/src/modules/).
+The backend is organized around controller-based REST modules. Primary areas include:
 
-### Exposed controller areas
+- authentication and user/session handling
+- workspaces and workspace membership management
+- people, companies, opportunities, tasks, notes, and activities CRUD flows
+- dashboards, reports, and search
+- attachments and upload URL generation
+- settings, including profile updates and SMTP configuration
+- AI and event orchestration endpoints
 
-- `GET /api/healthz` — health endpoint
-- `/api/auth` — Better Auth integration
-- `/api/activities` — activity stream and logging
-- `/api/ai/chat` — AI assistant chat
-- `/api/attachments` — attachment upload helpers
-- `/api/companies` — company CRUD
-- `/api/dashboard` — dashboard stats
-- `/api/events` — event stream and coordination
-- `/api/notes` — notes CRUD
-- `/api/opportunities` — deals and opportunities (with company & contact linking)
-- `/api/people` — contacts/people records and import flow
-- `/api/reports` — reporting data
-- `/api/search` — global search
-- `/api/settings` — workspace settings and SMTP configuration
-- `/api/tasks` — task management
-- `/api/workspaces` — workspace membership and invitations
+Workspace creation now seeds a default Sales Pipeline with standard stages (`Lead`, `Qualified`, `Proposal`, `Negotiation`, `Won`, `Lost`) so new workspaces have a usable pipeline immediately.
+
+SMTP settings can be retrieved, stored, and tested per workspace. If a workspace does not have SMTP configured, the backend falls back to environment-based SMTP settings via [`backend/src/modules/settings/email.service.ts`](backend/src/modules/settings/email.service.ts).
 
 ## Background processing
 
-- BullMQ is configured in the backend root module.
-- The people import flow registers a dedicated queue.
-- The backend includes a worker entrypoint at [`backend/src/worker.ts`](backend/src/worker.ts).
-- Event modules coordinate side effects and activity logging between features.
+Background jobs are wired through BullMQ in [`backend/src/app.module.ts`](backend/src/app.module.ts) and executed from [`backend/src/worker.ts`](backend/src/worker.ts). The queue infrastructure supports asynchronous workflows such as people imports and other longer-running tasks.
 
+## Related docs
 
-
-## AI Workspace Context (End-to-End)
-
-Here is how the AI Assistant dynamically retrieves and reasons over workspace data:
-
-### 1. Dynamic Tool Calling (On-Demand Context)
-The AI model is never handed a full raw dump of the database. Instead, `generateAssistantReply` provides:
-- The system instructions.
-- A list of available tool schemas (function definitions).
-- The chat history.
-
-The model analyzes the query and decides which tools to invoke. This follows the standard OpenAI-style function-calling schema over OpenRouter.
-
-### 2. The Tool-Calling Loop
-To retrieve data and answer multi-step questions, the AI runs inside a bounded execution loop:
-
-```typescript
-while (loopCount < maxLoops) { // Bounded at 5 iterations max
-  1. Send chat history + available tool schemas to OpenRouter.
-  2. If the model returns 'tool_calls':
-     - Execute each tool query locally using Prisma (scoped strictly to active workspaceId).
-     - Format and append the tool results into chat history with the role 'tool'.
-     - Re-run the loop so the model can inspect the results and determine next steps.
-  3. If the model returns plain content (no tool calls):
-     - Return the content immediately as the assistant's final response.
-}
-```
-
-> [!NOTE]
-> **Deduplication Guard**: To prevent infinite execution loops caused by repeating models, we maintain a `calledTools` cache (`Set` keyed by `tool_name:arguments`). If the model generates a duplicate tool call, it is skipped. If all calls in a cycle are repeats, the loop terminates immediately.
-
-### 3. Available System Tools (Scoped to `workspaceId`)
-
-| Tool Name | Scope & Queries |
-| :--- | :--- |
-| `listWorkspacePeople` | Searches contacts by name, email, job title, phone, city, lead source, industry, or company. |
-| `listWorkspaceCompanies` | Queries companies by name, domain, industry, city, employee count, or annual revenue. |
-| `listWorkspaceOpportunities` | Fetches opportunity deals, including stage, amount, close date, and associated company. |
-| `listWorkspaceTasks` | Lists workspace tasks by title, description, or assignee (disabled for `VIEWER` role). |
-| `getWorkspaceSummary` | Generates aggregated metrics (counts, pipeline value, deal stage breakdowns, task statuses). |
-| `listWorkspaceNotes` | Searches and retrieves workspace note records matching title or body substrings. |
-| `listWorkspaceActivities` | Lists logged activity histories, filterable by type (NOTE, CALL, EMAIL, MEETING, etc.). |
+- [`backend/.env.example`](backend/.env.example)
+- [`frontend/.env.example`](frontend/.env.example)
+- [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma)
+- [`backend/src/modules/workspaces/workspaces.service.ts`](backend/src/modules/workspaces/workspaces.service.ts)
+- [`backend/src/modules/settings/email.service.ts`](backend/src/modules/settings/email.service.ts)

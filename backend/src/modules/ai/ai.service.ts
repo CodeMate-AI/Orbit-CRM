@@ -288,6 +288,7 @@ export class AiService {
           "If a search in one category (e.g. notes) returns empty, proactively check other relevant categories (e.g. companies, people, or tasks) before giving a final answer. " +
           "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly. " +
           "For general greetings (such as 'hello', 'hi', 'hey', 'how are you', etc.), respond politely and invite the user to ask questions about their workspace contacts, companies, opportunities, tasks, notes, or activities. " +
+          "You must strictly decline to answer any questions that are not related to Orbit CRM, the user's workspace, or their CRM data. If the user asks about general knowledge, competitors, or external topics (e.g. 'Who is the founder of Zoho CRM?'), reply politely that you can only assist with information related to Orbit CRM and their workspace data. " +
           "Always format currency and monetary values in Indian Rupees (₹). Never output dollar signs ($) or USD. " +
           "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items. " +
           `The current date is ${formattedDate} and the current time is ${formattedTime}.`,
@@ -449,6 +450,56 @@ export class AiService {
 
         if (!replyMessage) {
           return "I couldn't generate a response.";
+        }
+
+        let content = replyMessage.content || "";
+        if (content.includes("<tool_call>") && (!replyMessage.tool_calls || replyMessage.tool_calls.length === 0)) {
+          const toolCallRegex = /<tool_call>([\s\S]*?)<\/tool_call>/g;
+          const toolCalls: any[] = [];
+          let match;
+
+          while ((match = toolCallRegex.exec(content)) !== null) {
+            const rawCall = match[1];
+            let name = "";
+            let args: any = {};
+
+            if (rawCall.includes("<arg_key>")) {
+              const nameMatch = rawCall.match(/^([a-zA-Z0-9_]+)/);
+              if (nameMatch) {
+                name = nameMatch[1];
+              }
+              const keyMatch = rawCall.match(/<arg_key>([\s\S]*?)<\/arg_key>/);
+              const valMatch = rawCall.match(/<arg_value>([\s\S]*?)<\/arg_value>/);
+              if (keyMatch && valMatch) {
+                args[keyMatch[1].trim()] = valMatch[1].trim();
+              }
+            } else {
+              const jsonStart = rawCall.indexOf("{");
+              if (jsonStart !== -1) {
+                name = rawCall.slice(0, jsonStart).trim();
+                try {
+                  args = JSON.parse(rawCall.slice(jsonStart));
+                } catch {
+                  args = {};
+                }
+              } else {
+                name = rawCall.trim();
+              }
+            }
+
+            if (name) {
+              toolCalls.push({
+                id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                type: "function",
+                function: { name, arguments: JSON.stringify(args) },
+              });
+            }
+          }
+
+          if (toolCalls.length > 0) {
+            replyMessage.tool_calls = toolCalls;
+            replyMessage.content = null;
+          }
         }
 
         if (replyMessage.tool_calls && replyMessage.tool_calls.length > 0) {

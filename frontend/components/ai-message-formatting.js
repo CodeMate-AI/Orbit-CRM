@@ -1,5 +1,6 @@
 export function formatAiMessageContent(content) {
-  const normalized = String(content ?? "").replace(/\r\n/g, "\n");
+  let normalized = String(content ?? "").replace(/\r\n/g, "\n");
+  normalized = normalized.replace(/<[^>]+>/g, ""); // Strip any HTML/XML tags
   const formattedLines = normalized.split("\n").map((line) => {
     let formattedLine = line.replace(/\$(?=\s*\d)/g, "₹");
     formattedLine = formattedLine.replace(/^(\s{0,3})#{1,6}\s+/, "$1");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Menu, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
 import { aiApi, type ChatMessageRow, type ChatSessionRow } from "@/lib/ai-api";
@@ -32,6 +32,8 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   const [loadingSession, setLoadingSession] = useState(false);
   const [sending, setSending] = useState(false);
   const [mobileView, setMobileView] = useState<"sessions" | "chat">("chat");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const skipNextHistoryFetchRef = useRef(false);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -39,10 +41,13 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   );
 
   useEffect(() => {
-    if (!open) return;
-
-    if (window.innerWidth < 768) {
-      setMobileView("chat");
+    if (open) {
+      setActiveSessionId(null);
+      setMessages([]);
+      setInput("");
+      if (window.innerWidth < 768) {
+        setMobileView("chat");
+      }
     }
   }, [open]);
 
@@ -56,10 +61,6 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
       .then((data) => {
         if (!mounted) return;
         setSessions(data);
-        const firstSession = data[0] ?? null;
-        if (firstSession) {
-          setActiveSessionId(firstSession.id);
-        }
       })
       .catch((error) => {
         console.error("Failed to load chat sessions:", error);
@@ -76,6 +77,11 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   useEffect(() => {
     if (!open || !workspaceId || !activeSessionId) {
       setMessages([]);
+      return;
+    }
+
+    if (skipNextHistoryFetchRef.current) {
+      skipNextHistoryFetchRef.current = false;
       return;
     }
 
@@ -101,12 +107,16 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   }, [open, workspaceId, activeSessionId]);
 
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        void createSession();
+        void startNewChat();
       }
       if (event.key === "Escape") {
         onOpenChange(false);
@@ -117,18 +127,11 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onOpenChange]);
 
-  async function createSession() {
-    if (!workspaceId) return;
-
-    try {
-      const session = await aiApi.createSession(workspaceId);
-      setSessions((current) => [session, ...current]);
-      setActiveSessionId(session.id);
-      setMessages([]);
-      setMobileView("chat");
-    } catch (error) {
-      console.error("Failed to create session:", error);
-    }
+  function startNewChat() {
+    setActiveSessionId(null);
+    setMessages([]);
+    setInput("");
+    setMobileView("chat");
   }
 
   async function selectSession(sessionId: string) {
@@ -153,7 +156,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   }
 
   async function handleSend() {
-    if (!workspaceId || !activeSessionId || !input.trim() || sending) return;
+    if (!workspaceId || !input.trim() || sending) return;
 
     const content = input.trim();
     setInput("");
@@ -161,12 +164,24 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
     setMessages((current) => [...current, { id: `draft-${Date.now()}`, role: "user", content, createdAt: new Date().toISOString() }]);
 
     try {
-      const result = await aiApi.postMessage(activeSessionId, workspaceId, content);
-      setMessages((current) =>
-        current
-          .filter((message) => !message.id.startsWith("draft-"))
-          .concat(result.userMessage, result.assistantMessage),
-      );
+      let sessionId = activeSessionId;
+      if (!sessionId) {
+        skipNextHistoryFetchRef.current = true;
+        const session = await aiApi.createSession(workspaceId);
+        sessionId = session.id;
+        setActiveSessionId(sessionId);
+        setSessions((current) => [session, ...current]);
+      }
+      const result = await aiApi.postMessage(sessionId, workspaceId, content);
+      setMessages((current) => {
+        const filtered = current.filter(
+          (message) =>
+            !message.id.startsWith("draft-") &&
+            message.id !== result.userMessage.id &&
+            message.id !== result.assistantMessage.id,
+        );
+        return [...filtered, result.userMessage, result.assistantMessage];
+      });
       const refreshed = await aiApi.listSessions(workspaceId);
       setSessions(refreshed);
     } catch (error) {
@@ -210,7 +225,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={createSession} className="hidden md:inline-flex">
+                <Button variant="ghost" size="sm" onClick={startNewChat} className="hidden md:inline-flex">
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
                   New Chat
                 </Button>
@@ -232,12 +247,12 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                     <button type="button" className="inline-flex items-center gap-2 text-sm text-text-secondary" onClick={() => setMobileView("chat")}>
                       <Menu className="h-4 w-4" /> Chat
                     </button>
-                    <Button variant="outline" size="sm" onClick={createSession}>
+                    <Button variant="outline" size="sm" onClick={startNewChat}>
                       <Plus className="mr-1.5 h-3.5 w-3.5" /> New
                     </Button>
                   </div>
                   <div className="hidden border-b border-border-subtle px-4 py-3 md:block">
-                    <Button variant="outline" size="sm" className="w-full" onClick={createSession}>
+                    <Button variant="outline" size="sm" className="w-full" onClick={startNewChat}>
                       <Plus className="mr-1.5 h-3.5 w-3.5" /> New Chat
                     </Button>
                   </div>
@@ -309,6 +324,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                         {messages.map((message) => (
                           <MessageBubble key={message.id} message={message} />
                         ))}
+                        <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>
@@ -330,9 +346,9 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                       />
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-text-tertiary">Press Enter to send · Shift+Enter for newline</p>
-                        <Button 
-                          onClick={() => void handleSend()} 
-                          disabled={sending || !input.trim() || !activeSessionId}
+                        <Button
+                          onClick={() => void handleSend()}
+                          disabled={sending || !input.trim()}
                           className="bg-orbit-primary text-white hover:bg-white hover:text-black transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
                         >
                           {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}

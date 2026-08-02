@@ -287,6 +287,7 @@ export class AiService {
           "Use the provided tool-calling functions to search contacts (people), companies, opportunities, tasks, notes, and activities inside the user's workspace. " +
           "If a search in one category (e.g. notes) returns empty, proactively check other relevant categories (e.g. companies, people, or tasks) before giving a final answer. " +
           "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly. " +
+          "For general greetings (such as 'hello', 'hi', 'hey', 'how are you', etc.), respond politely and invite the user to ask questions about their workspace contacts, companies, opportunities, tasks, notes, or activities. " +
           "Always format currency and monetary values in Indian Rupees (₹). Never output dollar signs ($) or USD. " +
           "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items. " +
           `The current date is ${formattedDate} and the current time is ${formattedTime}.`,

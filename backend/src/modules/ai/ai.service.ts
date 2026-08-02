@@ -264,6 +264,21 @@ export class AiService {
       content: msg.content,
     }));
 
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString("en-IN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+    const formattedTime = currentDate.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+      timeZone: "Asia/Kolkata",
+    });
+
     const apiMessages: any[] = [
       {
         role: "system",
@@ -273,7 +288,8 @@ export class AiService {
           "If a search in one category (e.g. notes) returns empty, proactively check other relevant categories (e.g. companies, people, or tasks) before giving a final answer. " +
           "Never guess or make up data; if a search returns empty results or if you don't have the context, state that clearly. " +
           "Always format currency and monetary values in Indian Rupees (₹). Never output dollar signs ($) or USD. " +
-          "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items.",
+          "Respond in clean, neutral plain text. Do not output raw markdown symbols such as hashtags (#, ##), asterisks (**), or hyphen bullet prefixes (-). Use clean line breaks and numbered lists if listing items. " +
+          `The current date is ${formattedDate} and the current time is ${formattedTime}.`,
       },
       ...formattedMessages,
     ];
@@ -399,6 +415,7 @@ export class AiService {
     while (loopCount < maxLoops) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
+      const isLastLoop = loopCount === maxLoops - 1;
 
       try {
         const response = await fetch(`${this.openRouterBaseUrl}/chat/completions`, {
@@ -412,8 +429,7 @@ export class AiService {
           body: JSON.stringify({
             model: process.env.OPENROUTER_MODEL || this.fallbackModel,
             messages: apiMessages,
-            tools,
-            tool_choice: "auto",
+            ...(isLastLoop ? {} : { tools, tool_choice: "auto" }),
             stream: false,
           }),
           signal: controller.signal,

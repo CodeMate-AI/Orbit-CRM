@@ -20,6 +20,15 @@ function getRangeStart(now: Date, range: ReportsDateRange) {
   }[range];
 }
 
+function getRangeEnd(now: Date, range: ReportsDateRange) {
+  return {
+    week: now,
+    month: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+    quarter: new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 0, 23, 59, 59, 999),
+    year: new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999),
+  }[range];
+}
+
 function toMoney(value: unknown) {
   if (value === null || value === undefined) return 0;
   return Number(value);
@@ -56,7 +65,7 @@ export class ReportsService {
 
     const now = new Date();
     const rangeStart = getRangeStart(now, dateRange);
-    const rangeEnd = now;
+    const rangeEnd = getRangeEnd(now, dateRange);
 
     const [stages, leadSources, taskCounts, topCompanies, revenueForecastRows] = await Promise.all([
       prisma.pipelineStage.findMany({
@@ -90,7 +99,7 @@ export class ReportsService {
           workspaceId,
           deletedAt: null,
           companyId: { not: null },
-          createdAt: { gte: rangeStart, lte: rangeEnd },
+          closeDate: { gte: rangeStart, lte: rangeEnd },
         },
         _sum: { amount: true },
         _count: { _all: true },
@@ -125,7 +134,7 @@ export class ReportsService {
       where: {
         workspaceId,
         deletedAt: null,
-        createdAt: { gte: rangeStart, lte: rangeEnd },
+        closeDate: { gte: rangeStart, lte: rangeEnd },
       },
       _sum: { amount: true },
       _count: { _all: true },

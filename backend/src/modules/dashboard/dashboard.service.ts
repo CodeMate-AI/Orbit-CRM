@@ -18,6 +18,15 @@ function getRangeStart(now: Date, range: DashboardRange) {
   }[range];
 }
 
+function getRangeEnd(now: Date, range: DashboardRange) {
+  return {
+    week: now,
+    month: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+    quarter: new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 0, 23, 59, 59, 999),
+    year: new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999),
+  }[range];
+}
+
 @Injectable()
 export class DashboardService {
   private async assertMembership(userId: string, workspaceId: string) {
@@ -32,7 +41,7 @@ export class DashboardService {
 
     const now = new Date();
     const rangeStart = getRangeStart(now, range);
-    const rangeEnd = now;
+    const rangeEnd = getRangeEnd(now, range);
 
     const [
       totalContacts,
@@ -54,9 +63,9 @@ export class DashboardService {
 
       // Open deals within the selected range
       prisma.opportunity.findMany({
-        where: { workspaceId, deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
+        where: { workspaceId, deletedAt: null, closeDate: { gte: rangeStart, lte: rangeEnd } },
         include: { stage: { select: { name: true, color: true, position: true } } },
-        orderBy: { createdAt: "desc" },
+        orderBy: { closeDate: "desc" },
       }),
 
       // Won deals within the selected range
@@ -65,7 +74,7 @@ export class DashboardService {
           workspaceId,
           deletedAt: null,
           stage: { name: "Won" },
-          updatedAt: { gte: rangeStart, lte: rangeEnd },
+          closeDate: { gte: rangeStart, lte: rangeEnd },
         },
       }),
 
@@ -75,7 +84,7 @@ export class DashboardService {
           workspaceId,
           deletedAt: null,
           stage: { name: "Lost" },
-          updatedAt: { gte: rangeStart, lte: rangeEnd },
+          closeDate: { gte: rangeStart, lte: rangeEnd },
         },
       }),
 
@@ -84,7 +93,7 @@ export class DashboardService {
         where: { workspaceId, pipeline: { isDefault: true } },
         include: {
           opportunities: {
-            where: { deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
+            where: { deletedAt: null, closeDate: { gte: rangeStart, lte: rangeEnd } },
             select: { amount: true },
           },
         },

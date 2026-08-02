@@ -108,7 +108,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, sending]);
 
   useEffect(() => {
     if (!open) return;
@@ -324,6 +324,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                         {messages.map((message) => (
                           <MessageBubble key={message.id} message={message} />
                         ))}
+                        {sending && <ThinkingBubble />}
                         <div ref={messagesEndRef} />
                       </div>
                     )}
@@ -382,6 +383,20 @@ function MessageBubble({ message }: { message: ChatMessageRow }) {
         <span>{isUser ? "You" : "Orbit AI"}</span>
       </div>
       <p className="whitespace-pre-wrap">{sanitizedContent}</p>
+    </div>
+  );
+}
+
+function ThinkingBubble() {
+  return (
+    <div className="mr-auto flex max-w-[85%] flex-col gap-2 rounded-2xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm leading-7 text-text-secondary">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-text-tertiary">
+        <span>Orbit AI</span>
+      </div>
+      <div className="flex items-center gap-2 text-text-tertiary">
+        <Sparkles className="h-4 w-4 animate-pulse text-orbit-primary" />
+        <span className="animate-pulse">Orbit is thinking...</span>
+      </div>
     </div>
   );
 }

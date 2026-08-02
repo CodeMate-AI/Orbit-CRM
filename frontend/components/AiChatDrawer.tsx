@@ -267,20 +267,37 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                       </div>
                     ) : (
                       sessions.map((session) => (
-                        <button
+                        <div
                           key={session.id}
-                          type="button"
-                          onClick={() => selectSession(session.id)}
                           className={cn(
-                            "mb-2 flex w-full flex-col rounded-xl border px-3 py-2 text-left transition",
+                            "group mb-2 flex items-center justify-between rounded-xl border px-3 py-2 transition",
                             activeSessionId === session.id
                               ? "border-orbit-primary bg-orbit-primary-muted"
                               : "border-border-subtle bg-bg-secondary hover:bg-surface-hover",
                           )}
                         >
-                          <span className="truncate text-sm text-text-primary">{session.title}</span>
-                          <span className="text-[11px] text-text-tertiary">{session._count?.messages ?? 0} messages</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => selectSession(session.id)}
+                            className="flex min-w-0 flex-1 flex-col text-left"
+                          >
+                            <span className="w-full truncate text-sm text-text-primary">{session.title}</span>
+                            <span className="text-[11px] text-text-tertiary">{session._count?.messages ?? 0} messages</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Are you sure you want to delete this chat?")) {
+                                void deleteSession(session.id);
+                              }
+                            }}
+                            className="ml-2 hidden rounded p-1 text-text-tertiary hover:bg-surface-hover hover:text-red-500 group-hover:inline-flex"
+                            title="Delete Chat"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       ))
                     )}
                   </div>

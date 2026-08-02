@@ -1156,10 +1156,10 @@ function DealsContent() {
                 {pipelineValue > 0 && <> · {formatCurrency(pipelineValue)}</>}
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 id="deals-add-btn"
-                className="inline-flex items-center gap-2 rounded bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
                 onClick={() => setShowModal(true)}
                 disabled={!workspaceId || loading || stages.length === 0}
               >
@@ -1169,7 +1169,7 @@ function DealsContent() {
 
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded border border-border-subtle bg-bg-secondary px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-tertiary transition"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded border border-border-subtle bg-bg-secondary px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-tertiary transition"
                 onClick={handleExportCsv}
                 disabled={!workspaceId || loading || stages.length === 0}
                 aria-label="Export deals to CSV"
@@ -1178,10 +1178,10 @@ function DealsContent() {
                 Export
               </button>
 
-              <div className="relative">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" aria-hidden="true" />
                 <input
-                  className="rounded border border-border-subtle bg-bg-secondary py-2 pl-9 pr-4 text-sm text-text-primary outline-none focus:border-orbit-primary"
+                  className="w-full rounded border border-border-subtle bg-bg-secondary py-2 pl-9 pr-4 text-sm text-text-primary outline-none focus:border-orbit-primary"
                   placeholder="Search deals..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

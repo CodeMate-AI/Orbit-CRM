@@ -229,7 +229,7 @@ function ReportsContent() {
                 <div className="widget-title">Deals by Stage</div>
                 <div className="widget-meta">Stage count and value</div>
               </div>
-              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={handleExportDealsCsv}>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportDealsCsv}>
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
@@ -272,7 +272,7 @@ function ReportsContent() {
                 <div className="widget-title">Revenue Forecast</div>
                 <div className="widget-meta">Expected future revenue</div>
               </div>
-              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={handleExportForecastCsv}>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportForecastCsv}>
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
@@ -310,7 +310,7 @@ function ReportsContent() {
                 <div className="widget-title">Lead Source Breakdown</div>
                 <div className="widget-meta">Lead source share</div>
               </div>
-              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={handleExportLeadSourcesCsv}>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportLeadSourcesCsv}>
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
@@ -350,7 +350,7 @@ function ReportsContent() {
                 <div className="widget-title">Task Completion Rate</div>
                 <div className="widget-meta">Completion progress</div>
               </div>
-              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={handleExportTasksCsv}>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportTasksCsv}>
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
@@ -405,7 +405,7 @@ function ReportsContent() {
                 <div className="widget-title">Top 10 Companies</div>
                 <div className="widget-meta">Highest summed opportunity value</div>
               </div>
-              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={handleExportCompaniesCsv}>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportCompaniesCsv}>
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>

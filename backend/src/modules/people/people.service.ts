@@ -1,7 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bullmq";
 import { PrismaClient } from "@prisma/client";
-import { Queue } from "bullmq";
 import { parse } from "csv-parse/sync";
 import { CreatePersonDto } from "./dto/create-person.dto";
 import { DryRunImportDto } from "./dto/dry-run-import.dto";
@@ -15,15 +13,6 @@ export function setPeoplePrisma(client: PrismaClient) {
   prisma = client;
 }
 
-type CsvImportRow = Record<string, string>;
-
-type CsvImportResult = {
-  created: number;
-  updated: number;
-  skipped: number;
-  errors: string[];
-  jobId?: string;
-};
 
 const CSV_HEADERS = [
   "Name",
@@ -54,7 +43,6 @@ const CSV_COLUMNS = [
 @Injectable()
 export class PeopleService {
   constructor(
-    @InjectQueue("people-import") private readonly importQueue: Queue,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -90,28 +78,6 @@ export class PeopleService {
       .join(",");
   }
 
-  private validateImportRow(row: CsvImportRow, rowNumber: number) {
-    const firstName = this.normalizeValue(row["First Name"]);
-    const lastName = this.normalizeValue(row["Last Name"]);
-    const email = this.normalizeEmail(row.Email);
-
-    if (!firstName && !lastName && !email) {
-      return { ok: false, error: `Row ${rowNumber}: Missing first name, last name, and email.` };
-    }
-
-    if (!firstName && !lastName) {
-      if (!email) {
-        return { ok: false, error: `Row ${rowNumber}: Missing first name, last name, or email.` };
-      }
-      return { ok: true as const };
-    }
-
-    if (email && !email.includes("@")) {
-      return { ok: false, error: `Row ${rowNumber}: Invalid email format.` };
-    }
-
-    return { ok: true as const };
-  }
 
   private async exportCurrentContacts(workspaceId: string) {
     const people = await prisma.person.findMany({
@@ -276,44 +242,6 @@ export class PeopleService {
     return this.exportCurrentContacts(workspaceId);
   }
 
-  async importCsv(
-    userId: string,
-    workspaceId: string,
-    rows: CsvImportRow[],
-    dryRun: boolean,
-  ): Promise<CsvImportResult> {
-    await this.assertMembership(userId, workspaceId);
-
-    const errors: string[] = [];
-    let created = 0;
-    let updated = 0;
-    let skipped = 0;
-
-    if (dryRun) {
-      rows.forEach((row, index) => {
-        const validation = this.validateImportRow(row, index + 2);
-        if (!validation.ok) {
-          errors.push(validation.error);
-        }
-      });
-
-      return { created: 0, updated: 0, skipped: 0, errors };
-    }
-
-    const job = await this.importQueue.add("import-job", {
-      rows,
-      workspaceId,
-      userId,
-    });
-
-    return {
-      created,
-      updated,
-      skipped,
-      errors,
-      jobId: `${job.id ?? "queued"}`,
-    };
-  }
 
   async dryRun(userId: string, dto: DryRunImportDto) {
     await this.assertMembership(userId, dto.workspaceId);
@@ -347,14 +275,66 @@ export class PeopleService {
   }
 
   async startImport(userId: string, dto: StartImportDto) {
-    const job = await this.importQueue.add("import-job", {
-      csvContent: dto.csvContent,
-      columnMapping: dto.columnMapping,
-      workspaceId: dto.workspaceId,
-      userId,
-    });
+    const { csvContent, columnMapping, workspaceId } = dto;
 
-    return { jobId: job.id };
+    // Process CSV import in the background (floating promise)
+    void (async () => {
+      try {
+        const records = parse(csvContent, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+        }) as Record<string, string>[];
+
+        let successCount = 0;
+        for (const record of records) {
+          const firstName = record[columnMapping.firstName]?.trim();
+          const lastName = record[columnMapping.lastName]?.trim();
+          const email = record[columnMapping.email]?.trim() || null;
+          const phone = record[columnMapping.phone]?.trim() || null;
+          const jobTitle = record[columnMapping.jobTitle]?.trim() || null;
+          const leadSource = record[columnMapping.leadSource]?.trim() || null;
+          const industry = record[columnMapping.industry]?.trim() || null;
+          const companyName = record[columnMapping.companyName]?.trim();
+
+          if (!firstName || !lastName) continue;
+
+          let companyId: string | null = null;
+          if (companyName) {
+            let company = await prisma.company.findFirst({
+              where: { name: companyName, workspaceId },
+            });
+            if (!company) {
+              company = await prisma.company.create({
+                data: { name: companyName, workspaceId },
+              });
+            }
+            companyId = company.id;
+          }
+
+          await prisma.person.create({
+            data: {
+              firstName,
+              lastName,
+              email,
+              phone,
+              jobTitle,
+              leadSource,
+              industry,
+              companyId,
+              workspaceId,
+            },
+          });
+          successCount++;
+        }
+        console.log(`[Import] Succeeded. Imported ${successCount} contacts for workspace ${workspaceId}.`);
+        this.eventsService.emitToWorkspace(workspaceId, "person.created", { bulk: true });
+      } catch (err) {
+        console.error("[Import] Failed to process CSV import:", err);
+      }
+    })();
+
+    return { jobId: "direct-import-" + Date.now() };
   }
 
   async findOne(userId: string, personId: string) {

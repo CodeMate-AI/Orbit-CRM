@@ -18,7 +18,6 @@ The product covers contacts, companies, deals, tasks, notes, activities, attachm
 - [Environment variables](#environment-variables)
 - [Available scripts](#available-scripts)
 - [API surface](#api-surface)
-- [Background processing](#background-processing)
 - [Related docs](#related-docs)
 
 ## Overview
@@ -40,8 +39,7 @@ Orbit CRM/
 │   │   ├── modules/          # Feature modules
 │   │   ├── common/           # Shared utilities
 │   │   ├── app.module.ts     # Root Nest module
-│   │   ├── main.ts           # API bootstrap
-│   │   └── worker.ts         # BullMQ worker entrypoint
+│   │   └── main.ts           # API bootstrap
 │   ├── prisma/               # Prisma schema and migrations
 │   └── package.json          # Backend scripts and dependencies
 ├── README.md
@@ -89,7 +87,7 @@ The backend under [`backend/src/modules/`](backend/src/modules/) is organized in
 - tasks
 - workspaces
 
-The root module is defined in [`backend/src/app.module.ts`](backend/src/app.module.ts). The API entrypoint is [`backend/src/main.ts`](backend/src/main.ts), and background work is handled from [`backend/src/worker.ts`](backend/src/worker.ts).
+The root module is defined in [`backend/src/app.module.ts`](backend/src/app.module.ts). The API entrypoint is [`backend/src/main.ts`](backend/src/main.ts).
 
 Recent backend additions include workspace-domain aware provisioning with a seeded default Sales Pipeline, and SMTP settings that can be stored per workspace with environment-based fallbacks for email delivery and verification.
 
@@ -98,11 +96,10 @@ Recent backend additions include workspace-domain aware provisioning with a seed
 Orbit CRM uses a two-app architecture:
 
 - **Frontend**: Next.js App Router UI with route-based pages and client-side data access through API helpers.
-- **Backend**: NestJS REST API with feature modules, auth integration, Prisma ORM, and BullMQ workers.
+- **Backend**: NestJS REST API with feature modules, auth integration, and Prisma ORM.
 - **Database**: PostgreSQL for persistent CRM data.
-- **Queue / cache**: Redis for BullMQ job processing.
-- **Storage**: AWS S3 for attachments and uploaded files.
-- **Email**: Nodemailer with SMTP for transactional email and workspace-specific SMTP configuration.
+- **Storage**: Cloudinary for attachments and uploaded files.
+- **Email**: Brevo SMTP (via Nodemailer driver) for transactional email and workspace-specific SMTP configurations.
 - **AI**: OpenRouter-backed integration hooks.
 
 ### Runtime flow
@@ -111,8 +108,7 @@ Orbit CRM uses a two-app architecture:
 2. Auth-aware routes redirect users into sign-in, sign-up, or onboarding flows when needed.
 3. The frontend fetches CRM data from the backend REST API.
 4. The backend resolves workspace context and reads or writes data through Prisma.
-5. BullMQ processes asynchronous jobs such as people imports and related background work.
-6. PostgreSQL stores CRM records, Redis supports queues, and S3 stores uploaded files.
+5. PostgreSQL stores CRM records, and Cloudinary stores uploaded files.
 
 ## Tech stack
 
@@ -134,15 +130,11 @@ Orbit CRM uses a two-app architecture:
 - NestJS 11
 - Prisma
 - PostgreSQL
-- Redis
-- BullMQ
 - Better Auth
 - Class Validator / Class Transformer
-- Nodemailer
-- AWS SDK for S3
+- Nodemailer (Brevo SMTP driver)
+- Cloudinary
 - OpenRouter integration hooks
-
-> Note: The backend dependency set includes GraphQL packages, but the application surface in this repository is controller-based REST.
 
 ## Getting started
 
@@ -151,11 +143,10 @@ Orbit CRM uses a two-app architecture:
 - Node.js 22 LTS
 - npm 10+
 - PostgreSQL
-- Redis
 
 Optional, depending on feature usage:
 
-- AWS S3 credentials for attachments
+- Cloudinary credentials for attachments
 - SMTP credentials for email delivery
 - OpenRouter API key for AI features
 
@@ -218,15 +209,12 @@ npm run dev
 ```env
 PORT=4000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/orbit_crm
-REDIS_URL=rediss://default:YOUR_UPSTASH_PASSWORD@your-db-id.upstash.io:6379
-WORKFLOW_QUEUE_NAME=workflow-jobs
 BETTER_AUTH_SECRET=generate-a-random-32-char-string-for-dev-use
 BETTER_AUTH_URL=http://localhost:4000/api/auth
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001
-AWS_REGION=ap-southeast-2
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_BUCKET_NAME=orbit-crm
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=2525
@@ -287,10 +275,6 @@ The backend is organized around controller-based REST modules. Primary areas inc
 Workspace creation now seeds a default Sales Pipeline with standard stages (`Lead`, `Qualified`, `Proposal`, `Negotiation`, `Won`, `Lost`) so new workspaces have a usable pipeline immediately.
 
 SMTP settings can be retrieved, stored, and tested per workspace. If a workspace does not have SMTP configured, the backend falls back to environment-based SMTP settings via [`backend/src/modules/settings/email.service.ts`](backend/src/modules/settings/email.service.ts).
-
-## Background processing
-
-Background jobs are wired through BullMQ in [`backend/src/app.module.ts`](backend/src/app.module.ts) and executed from [`backend/src/worker.ts`](backend/src/worker.ts). The queue infrastructure supports asynchronous workflows such as people imports and other longer-running tasks.
 
 ## Related docs
 

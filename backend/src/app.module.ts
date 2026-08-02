@@ -5,7 +5,6 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 import { Module } from "@nestjs/common";
-import { BullModule } from "@nestjs/bullmq";
 
 import { ActivitiesModule } from "./modules/activities/activities.module";
 import { AiModule } from "./modules/ai/ai.module";
@@ -26,18 +25,6 @@ import { HealthController } from "./modules/health/health.controller";
 
 @Module({
   imports: [
-    BullModule.forRoot({
-      connection: {
-        url: process.env.REDIS_URL || "redis://localhost:6379",
-        maxRetriesPerRequest: null,
-        retryStrategy(times) {
-          if (times > 3) {
-            return null;
-          }
-          return Math.min(times * 500, 2000);
-        },
-      },
-    }),
     ActivitiesModule,
     AiModule,
     AttachmentsModule,

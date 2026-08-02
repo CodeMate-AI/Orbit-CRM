@@ -239,7 +239,7 @@ function DrawerField({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onSave}
         />
-        <button type="button" className="btn-primary min-w-[88px] justify-center text-xs h-9 py-0" onClick={onSave} disabled={saving}>
+        <button type="button" className="btn-primary min-w-22 justify-center text-xs h-9 py-0" onClick={onSave} disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
         </button>
       </div>
@@ -443,7 +443,7 @@ function DealDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm" onClick={onClose}>
       <aside
-        className="flex h-full w-full max-w-[720px] flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl"
+        className="flex h-full w-full max-w-180 flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4 md:px-6">
@@ -474,7 +474,7 @@ function DealDetailDrawer({
 
         {!loading && !error && detail && (
           <div className="flex-1 overflow-y-auto px-5 py-5 text-text-primary md:px-6 md:py-6">
-            <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,_rgba(129,116,248,0.12),_transparent_35%),linear-gradient(180deg,_var(--bg-secondary),_var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
+            <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,rgba(129,116,248,0.12),transparent_35%),linear-gradient(180deg,var(--bg-secondary),var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
               <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0 flex-1">
                   <input
@@ -854,8 +854,8 @@ function DroppableStageColumn({
         isOver ? "border-orbit-primary bg-bg-tertiary shadow-md" : "border-border-subtle"
       } ${
         activeStageId === column.id
-          ? "block w-full min-w-0 flex-shrink-0 sm:min-w-[280px] sm:max-w-[300px]"
-          : "hidden sm:block sm:min-w-[280px] sm:max-w-[300px] sm:flex-shrink-0"
+          ? "block w-full min-w-0 shrink-0 sm:min-w-70 sm:max-w-75"
+          : "hidden sm:block sm:min-w-70 sm:max-w-75 sm:shrink-0"
       }`}
       style={{ borderTopColor: column.color, borderTopWidth: 2 }}
     >
@@ -1220,7 +1220,7 @@ function DealsContent() {
             <button
               key={column.id}
               onClick={() => setActiveStageId(column.id)}
-              className={`flex-shrink-0 rounded-full px-4 py-2 text-xs font-medium transition ${
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition ${
                 activeStageId === column.id
                   ? "bg-orbit-primary text-white"
                   : "border border-border-subtle bg-bg-secondary text-text-secondary hover:bg-bg-tertiary"

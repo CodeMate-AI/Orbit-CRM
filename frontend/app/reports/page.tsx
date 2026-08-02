@@ -189,9 +189,9 @@ function ReportsContent() {
         <div className="px-4 md:px-5 lg:px-8 pb-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="widget min-h-[320px]">
+              <div key={index} className="widget min-h-80">
                 <Skeleton className="h-5 w-40" />
-                <Skeleton className="mt-4 h-[240px] w-full" />
+                <Skeleton className="mt-4 h-60 w-full" />
               </div>
             ))}
           </div>
@@ -233,7 +233,7 @@ function ReportsContent() {
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
-            <div className="mt-4 h-[280px] w-full">
+            <div className="mt-4 h-70 w-full">
               {stageChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stageChartData}>
@@ -276,7 +276,7 @@ function ReportsContent() {
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
-            <div className="mt-4 h-[280px] w-full">
+            <div className="mt-4 h-70 w-full">
               {forecastChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={forecastChartData}>
@@ -314,7 +314,7 @@ function ReportsContent() {
                 <Download className="h-4 w-4" /> Download CSV
               </button>
             </div>
-            <div className="mt-4 h-[280px] w-full">
+            <div className="mt-4 h-70 w-full">
               {leadSourceData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -355,7 +355,7 @@ function ReportsContent() {
               </button>
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
-              <div className="h-[220px] w-full">
+              <div className="h-55 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadialBarChart
                     innerRadius="60%"

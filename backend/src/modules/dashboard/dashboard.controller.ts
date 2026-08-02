@@ -12,7 +12,7 @@ export class DashboardController {
   getStats(
     @CurrentUser() user: any,
     @Query("workspaceId") workspaceId: string,
-    @Query("range") range: string = "month",
+    @Query("range") range: string = "week",
   ) {
     const validRange: DashboardRange = ["week", "month", "quarter", "year"].includes(range)
       ? (range as DashboardRange)

@@ -36,7 +36,7 @@ export class DashboardService {
     if (!member) throw new ForbiddenException("You are not a member of this workspace.");
   }
 
-  async getStats(userId: string, workspaceId: string, range: DashboardRange = "month") {
+  async getStats(userId: string, workspaceId: string, range: DashboardRange = "week") {
     await this.assertMembership(userId, workspaceId);
 
     const now = new Date();

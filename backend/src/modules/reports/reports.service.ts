@@ -60,7 +60,7 @@ export class ReportsService {
     return member;
   }
 
-  async getReports(userId: string, workspaceId: string, dateRange: ReportsDateRange = "month") {
+  async getReports(userId: string, workspaceId: string, dateRange: ReportsDateRange = "week") {
     await this.assertMembership(userId, workspaceId);
 
     const now = new Date();

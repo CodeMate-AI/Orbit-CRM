@@ -79,7 +79,7 @@ function useReportData(workspaceId: string | null, range: ReportsDateRange) {
 
 function ReportsContent() {
   const { workspaceId } = useWorkspace();
-  const [range, setRange] = useState<ReportsDateRange>("month");
+  const [range, setRange] = useState<ReportsDateRange>("week");
   const { data, loading, error } = useReportData(workspaceId, range);
 
   const taskProgress = useMemo(() => {

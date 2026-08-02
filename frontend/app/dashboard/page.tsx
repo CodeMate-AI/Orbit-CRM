@@ -149,7 +149,7 @@ function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [range, setRange] = useState<DashboardRange>("month");
+  const [range, setRange] = useState<DashboardRange>("week");
   // task completion toggle (local optimistic — can be wired to API later)
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
 

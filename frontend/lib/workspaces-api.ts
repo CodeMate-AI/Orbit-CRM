@@ -1,40 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { request } from "./api-client";
 
-async function request(path: string, options: RequestInit = {}) {
-  const headers = new Headers(options.headers);
-  if (options.body && !(options.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-  try {
-    const res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-      credentials: "include", // Essential for forwarding cookie sessions cross-origin
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || "API request failed");
-    }
-
-    const text = await res.text();
-    if (!text || text === "null") return null;
-    return JSON.parse(text);
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    if (err.name === "AbortError") {
-      throw new Error("Request timed out. Please try again.");
-    }
-    throw err;
-  }
-}
 
 export type WorkspaceMemberRole = "OWNER" | "MEMBER";
 

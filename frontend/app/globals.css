@@ -40,6 +40,8 @@
   --color-bg-tertiary: var(--bg-tertiary);
   --color-surface-default: var(--surface-default);
   --color-surface-hover: var(--surface-hover);
+  --color-popover: var(--bg-secondary);
+  --color-popover-foreground: var(--text-primary);
 
   --color-orbit-primary: var(--orbit-primary);
   --color-orbit-primary-hover: var(--orbit-primary-hover);

@@ -54,13 +54,23 @@ function formatCurrency(value: number) {
 
 function formatDueDate(dateStr: string | null) {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
+  const parts = dateStr.slice(0, 10).split("-");
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const d = new Date(year, month, day);
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  if (d.toDateString() === today.toDateString()) return "Due today";
-  if (d.toDateString() === tomorrow.toDateString()) return "Due tomorrow";
+  const compDate = new Date(d);
+  compDate.setHours(0, 0, 0, 0);
+
+  if (compDate.getTime() === today.getTime()) return "Due today";
+  if (compDate.getTime() === tomorrow.getTime()) return "Due tomorrow";
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 

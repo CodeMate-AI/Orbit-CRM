@@ -313,19 +313,45 @@ export class PeopleService {
             companyId = company.id;
           }
 
-          await prisma.person.create({
-            data: {
-              firstName,
-              lastName,
-              email,
-              phone,
-              jobTitle,
-              leadSource,
-              industry,
-              companyId,
-              workspaceId,
-            },
-          });
+          let existing = null;
+          if (email) {
+            existing = await prisma.person.findFirst({
+              where: { email, workspaceId },
+            });
+          } else {
+            existing = await prisma.person.findFirst({
+              where: { firstName, lastName, workspaceId },
+            });
+          }
+
+          if (existing) {
+            await prisma.person.update({
+              where: { id: existing.id },
+              data: {
+                firstName,
+                lastName,
+                phone: phone || existing.phone,
+                jobTitle: jobTitle || existing.jobTitle,
+                leadSource: leadSource || existing.leadSource,
+                industry: industry || existing.industry,
+                companyId: companyId || existing.companyId,
+              },
+            });
+          } else {
+            await prisma.person.create({
+              data: {
+                firstName,
+                lastName,
+                email,
+                phone,
+                jobTitle,
+                leadSource,
+                industry,
+                companyId,
+                workspaceId,
+              },
+            });
+          }
           successCount++;
         }
         console.log(`[Import] Succeeded. Imported ${successCount} contacts for workspace ${workspaceId}.`);

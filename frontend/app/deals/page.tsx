@@ -60,6 +60,7 @@ function AddDealModal({
   companies,
   initialCompanyId,
   onClose,
+  onAddCompany,
   onCreated,
 }: {
   workspaceId: string;
@@ -67,6 +68,7 @@ function AddDealModal({
   companies: CompanyRow[];
   initialCompanyId?: string | null;
   onClose: () => void;
+  onAddCompany: (company: CompanyRow) => void;
   onCreated: (deal: DealRow & { stageName: string; companyId?: string | null }) => void;
 }) {
   const [form, setForm] = useState<CreateOpportunityInput>({
@@ -75,7 +77,29 @@ function AddDealModal({
     companyId: initialCompanyId ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [showCompanyInput, setShowCompanyInput] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
   const [error, setError] = useState("");
+
+  const handleAddNewCompany = async () => {
+    const value = newCompanyName.trim();
+    if (!value) return;
+    setCreatingCompany(true);
+    setError("");
+    try {
+      const company = await companiesApi.create(workspaceId, { name: value });
+      onAddCompany(company);
+      setForm((current) => ({ ...current, companyId: company.id }));
+      setNewCompanyName("");
+      setShowCompanyInput(false);
+      toast.success("Company created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create company.");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,18 +170,58 @@ function AddDealModal({
           </div>
           <div className="form-field">
             <label className="form-label">Company</label>
-            <select
-              className="form-input"
-              value={form.companyId ?? ""}
-              onChange={(e) => setForm({ ...form, companyId: e.target.value || undefined })}
-            >
-              <option value="">No company</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+            {showCompanyInput ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  className="form-input"
+                  placeholder="Biswajit Corp"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleAddNewCompany();
+                    }
+                  }}
+                />
+                <div className="flex items-center gap-2">
+                  <button type="button" className="btn-primary" onClick={handleAddNewCompany} disabled={creatingCompany}>
+                    {creatingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setShowCompanyInput(false);
+                      setNewCompanyName("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                className="form-input"
+                value={form.companyId ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "__add_new__") {
+                    setShowCompanyInput(true);
+                    return;
+                  }
+                  setForm({ ...form, companyId: value || undefined });
+                }}
+              >
+                <option value="">No company</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+                <option value="__add_new__">+ Add new company...</option>
+              </select>
+            )}
           </div>
           <div className="form-field">
             <label className="form-label">Expected close date</label>
@@ -1307,6 +1371,9 @@ function DealsContent() {
           stages={stages}
           companies={companies}
           initialCompanyId={initialCompanyId}
+          onAddCompany={(newCompany) => {
+            setCompanies((prev) => [...prev, newCompany]);
+          }}
           onClose={() => {
             setShowModal(false);
             if (initialCompanyId) {

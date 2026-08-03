@@ -95,21 +95,33 @@ function statusBadgeClass(status: TaskStatus) {
 
 function formatDate(date: string | null) {
   if (!date) return "No due date";
-  const parsed = new Date(date);
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return "No due date";
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const parsed = new Date(year, month, day);
   if (Number.isNaN(parsed.getTime())) return "No due date";
   return parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function toDateInputValue(date: string | null) {
   if (!date) return "";
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return parsed.toISOString().slice(0, 10);
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return "";
+  return `${parts[0]}-${parts[1]}-${parts[2]}`;
 }
 
 function isDueToday(date: string | null) {
   if (!date) return false;
-  const due = new Date(date);
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return false;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const due = new Date(year, month, day);
   if (Number.isNaN(due.getTime())) return false;
   const today = new Date();
   return due.getFullYear() === today.getFullYear() && due.getMonth() === today.getMonth() && due.getDate() === today.getDate();
@@ -150,6 +162,8 @@ function AddTaskModal({
   deals,
   members,
   onClose,
+  onAddCompany,
+  onAddDeal,
   onCreated,
 }: {
   workspaceId: string;
@@ -158,6 +172,8 @@ function AddTaskModal({
   deals: DealOption[];
   members: WorkspaceMemberRow[];
   onClose: () => void;
+  onAddCompany: (company: CompanyRow) => void;
+  onAddDeal: (deal: DealOption) => void;
   onCreated: (task: TaskRow) => void;
 }) {
   const [form, setForm] = useState<CreateTaskInput>({
@@ -172,7 +188,54 @@ function AddTaskModal({
     assigneeId: "",
   });
   const [saving, setSaving] = useState(false);
+  const [showCompanyInput, setShowCompanyInput] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [showDealInput, setShowDealInput] = useState(false);
+  const [newDealName, setNewDealName] = useState("");
+  const [creatingDeal, setCreatingDeal] = useState(false);
   const [error, setError] = useState("");
+
+  const handleAddNewCompany = async () => {
+    const value = newCompanyName.trim();
+    if (!value) return;
+    setCreatingCompany(true);
+    setError("");
+    try {
+      const company = await companiesApi.create(workspaceId, { name: value });
+      onAddCompany(company);
+      setForm((current) => ({ ...current, companyId: company.id }));
+      setNewCompanyName("");
+      setShowCompanyInput(false);
+      toast.success("Company created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create company.");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
+
+  const handleAddNewDeal = async () => {
+    const value = newDealName.trim();
+    if (!value) return;
+    setCreatingDeal(true);
+    setError("");
+    try {
+      const deal = await opportunitiesApi.create(workspaceId, {
+        name: value,
+        companyId: form.companyId || undefined,
+      });
+      onAddDeal({ id: deal.id, name: deal.name });
+      setForm((current) => ({ ...current, opportunityId: deal.id }));
+      setNewDealName("");
+      setShowDealInput(false);
+      toast.success("Deal created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create deal.");
+    } finally {
+      setCreatingDeal(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,21 +328,109 @@ function AddTaskModal({
           <div className="form-row">
             <div className="form-field">
               <label className="form-label">Related company</label>
-              <select className="form-input" value={form.companyId ?? ""} onChange={(e) => setForm({ ...form, companyId: e.target.value })}>
-                <option value="">No company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>{company.name}</option>
-                ))}
-              </select>
+              {showCompanyInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Biswajit Corp"
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleAddNewCompany();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewCompany} disabled={creatingCompany}>
+                      {creatingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowCompanyInput(false);
+                        setNewCompanyName("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.companyId ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "__add_new__") {
+                      setShowCompanyInput(true);
+                      return;
+                    }
+                    setForm({ ...form, companyId: value });
+                  }}
+                >
+                  <option value="">No company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                  <option value="__add_new__">+ Add new company...</option>
+                </select>
+              )}
             </div>
             <div className="form-field">
               <label className="form-label">Related deal</label>
-              <select className="form-input" value={form.opportunityId ?? ""} onChange={(e) => setForm({ ...form, opportunityId: e.target.value })}>
-                <option value="">No deal</option>
-                {deals.map((deal) => (
-                  <option key={deal.id} value={deal.id}>{deal.name}</option>
-                ))}
-              </select>
+              {showDealInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Acme Corp Expansion"
+                    value={newDealName}
+                    onChange={(e) => setNewDealName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleAddNewDeal();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewDeal} disabled={creatingDeal}>
+                      {creatingDeal ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowDealInput(false);
+                        setNewDealName("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.opportunityId ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "__add_new__") {
+                      setShowDealInput(true);
+                      return;
+                    }
+                    setForm({ ...form, opportunityId: value });
+                  }}
+                >
+                  <option value="">No deal</option>
+                  {deals.map((deal) => (
+                    <option key={deal.id} value={deal.id}>{deal.name}</option>
+                  ))}
+                  <option value="__add_new__">+ Add new deal...</option>
+                </select>
+              )}
             </div>
           </div>
           <div className="form-row">
@@ -389,7 +540,7 @@ function TaskDetailDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm" onClick={onClose}>
-      <aside className="flex h-full w-full max-w-[760px] flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <aside className="flex h-full w-full max-w-190 flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4 md:px-6">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-text-tertiary">Task detail</p>
@@ -401,7 +552,7 @@ function TaskDetailDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
-          <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,_rgba(129,116,248,0.12),_transparent_35%),linear-gradient(180deg,_var(--bg-secondary),_var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
+          <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,rgba(129,116,248,0.12),transparent_35%),linear-gradient(180deg,var(--bg-secondary),var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-2xl font-semibold text-white">{form.title}</p>
@@ -418,13 +569,13 @@ function TaskDetailDrawer({
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Title</label>
               <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.title} onChange={(e) => setForm((current) => current ? { ...current, title: e.target.value } : current)} onBlur={() => void saveField("title")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("title")} disabled={savingField === "title"}>{savingField === "title" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("title")} disabled={savingField === "title"}>{savingField === "title" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Description</label>
               <textarea className="min-h-32 w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.description} onChange={(e) => setForm((current) => current ? { ...current, description: e.target.value } : current)} onBlur={() => void saveField("description")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("description")} disabled={savingField === "description"}>{savingField === "description" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("description")} disabled={savingField === "description"}>{savingField === "description" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -432,7 +583,7 @@ function TaskDetailDrawer({
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.status} onChange={(e) => setForm((current) => current ? { ...current, status: e.target.value as TaskStatus } : current)} onBlur={() => void saveField("status")}>
                 {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("status")} disabled={savingField === "status"}>{savingField === "status" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("status")} disabled={savingField === "status"}>{savingField === "status" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -440,13 +591,13 @@ function TaskDetailDrawer({
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.priority} onChange={(e) => setForm((current) => current ? { ...current, priority: e.target.value as TaskPriority } : current)} onBlur={() => void saveField("priority")}>
                 {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("priority")} disabled={savingField === "priority"}>{savingField === "priority" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("priority")} disabled={savingField === "priority"}>{savingField === "priority" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Due date</label>
               <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" type="date" value={form.dueDate} onChange={(e) => setForm((current) => current ? { ...current, dueDate: e.target.value } : current)} onBlur={() => void saveField("dueDate")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("dueDate")} disabled={savingField === "dueDate"}>{savingField === "dueDate" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("dueDate")} disabled={savingField === "dueDate"}>{savingField === "dueDate" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -455,7 +606,7 @@ function TaskDetailDrawer({
                 <option value="">No lead</option>
                 {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId"}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId"}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -464,7 +615,7 @@ function TaskDetailDrawer({
                 <option value="">No company</option>
                 {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId"}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId"}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -473,7 +624,7 @@ function TaskDetailDrawer({
                 <option value="">No deal</option>
                 {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId"}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId"}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -482,7 +633,7 @@ function TaskDetailDrawer({
                 <option value="">Unassigned</option>
                 {members.map((member) => <option key={member.userId} value={member.userId}>{member.user.name || member.user.email}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-[88px] justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId"}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId"}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
           </div>
         </div>
@@ -739,7 +890,23 @@ function TasksContent() {
         )}
       </section>
 
-      {showModal && workspaceId ? <AddTaskModal workspaceId={workspaceId} people={people} companies={companies} deals={deals} members={members} onClose={() => setShowModal(false)} onCreated={handleCreated} /> : null}
+      {showModal && workspaceId ? (
+        <AddTaskModal
+          workspaceId={workspaceId}
+          people={people}
+          companies={companies}
+          deals={deals}
+          members={members}
+          onAddCompany={(newCompany) => {
+            setCompanies((prev) => [...prev, newCompany]);
+          }}
+          onAddDeal={(newDeal) => {
+            setDeals((prev) => [...prev, newDeal]);
+          }}
+          onClose={() => setShowModal(false)}
+          onCreated={handleCreated}
+        />
+      ) : null}
       <TaskDetailDrawer open={Boolean(selectedTask)} task={selectedTask} people={people} companies={companies} deals={deals} members={members} onClose={() => setSelectedTaskId(null)} onTaskUpdated={applyTaskUpdate} />
     </div>
   );

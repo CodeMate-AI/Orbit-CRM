@@ -217,7 +217,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
             onClick={() => onOpenChange(false)}
           />
           <motion.aside
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[940px] flex-col border-l border-border-default bg-bg-secondary/95 shadow-2xl backdrop-blur-xl md:w-[940px]"
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-235 flex-col border-l border-border-default bg-bg-secondary/95 shadow-2xl backdrop-blur-xl md:w-235"
             initial="closed"
             animate="open"
             exit="closed"
@@ -252,7 +252,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
 
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
               {showSessionsColumn ? (
-                <aside className="flex w-full flex-col border-b border-border-subtle bg-bg-primary/40 md:w-[180px] md:border-b-0 md:border-r md:border-border-subtle">
+                <aside className="flex w-full flex-col border-b border-border-subtle bg-bg-primary/40 md:w-45 md:border-b-0 md:border-r md:border-border-subtle">
                   <div className="flex items-center justify-between px-4 py-3 md:hidden">
                     <button type="button" className="inline-flex items-center gap-2 text-sm text-text-secondary" onClick={() => setMobileView("chat")}>
                       <Menu className="h-4 w-4" /> Chat

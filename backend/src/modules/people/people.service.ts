@@ -15,18 +15,6 @@ export function setPeoplePrisma(client: PrismaClient) {
 }
 
 
-const CSV_HEADERS = [
-  "Name",
-  "First Name",
-  "Last Name",
-  "Email",
-  "Phone",
-  "Job Title",
-  "Company",
-  "Lead Source",
-  "Industry",
-  "Created At",
-];
 
 const CSV_COLUMNS = [
   "Name",

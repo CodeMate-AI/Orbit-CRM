@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import AttachmentList from "@/components/AttachmentList";
 import NoteEditor from "@/components/NoteEditor";
 import ReadOnlyNoteContent from "@/components/ReadOnlyNoteContent";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,7 +12,6 @@ import { companiesApi, CompanyDetailRow } from "@/lib/companies-api";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
-import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, CalendarDays, CheckSquare, Loader2, Mail, MapPin, Plus, Users } from "lucide-react";
 import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
@@ -40,7 +40,6 @@ function CompanyDetailPage() {
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -64,15 +63,13 @@ function CompanyDetailPage() {
       activitiesApi.listForEntity(workspaceId, "company", companyId),
       notesApi.list(workspaceId, "company", companyId),
       tasksApi.list(workspaceId),
-      attachmentsApi.list(workspaceId, "company", companyId),
     ])
-      .then(([detail, peopleResponse, timeline, noteRows, taskRows, fileRows]) => {
+      .then(([detail, peopleResponse, timeline, noteRows, taskRows]) => {
         setCompany(detail);
         setPeople(peopleResponse.data.filter((person) => person.companyId === detail.id));
         setActivities(timeline);
         setNotes(noteRows);
         setTasks(taskRows);
-        setAttachments(fileRows);
       })
       .catch((err) => setError(err.message || "Failed to load company."))
       .finally(() => setLoading(false));
@@ -182,7 +179,12 @@ function CompanyDetailPage() {
             </div>
           </div>
 
-          <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Files</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{attachments.length}</span></div><div className="space-y-2">{attachments.length === 0 ? <p className="text-sm text-text-tertiary">No files uploaded.</p> : attachments.slice(0, 5).map((file) => <div key={file.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{file.name}</p><p className="mt-1 text-xs text-text-tertiary">{file.mimeType}</p></div>)}</div></div>
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Files</h3>
+            </div>
+            <AttachmentList workspaceId={workspaceId ?? ""} entityType="company" entityId={company.id} />
+          </div>
         </aside>
       </section>
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>

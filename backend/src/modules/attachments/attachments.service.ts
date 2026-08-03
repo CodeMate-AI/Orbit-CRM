@@ -45,7 +45,11 @@ export class AttachmentsService {
 
     const uuid = randomUUID();
     const safeFileName = dto.fileName.replace(/[\\/]+/g, "-").replace(/\.[^/.]+$/, "");
-    const storageKey = `workspaces/${dto.workspaceId}/attachments/${uuid}-${safeFileName}`;
+    const resourceType = this.getResourceType(dto.mimeType);
+    const extension = dto.fileName.split(".").pop() || "";
+    const storageKey = resourceType === "raw"
+      ? `workspaces/${dto.workspaceId}/attachments/${uuid}-${safeFileName}.${extension}`
+      : `workspaces/${dto.workspaceId}/attachments/${uuid}-${safeFileName}`;
 
     const timestamp = Math.round(new Date().getTime() / 1000);
     const params = {
@@ -59,7 +63,6 @@ export class AttachmentsService {
       process.env.CLOUDINARY_API_SECRET || "",
     );
 
-    const resourceType = this.getResourceType(dto.mimeType);
     const uploadUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/auto/upload`;
     const url = this.buildAttachmentUrl(storageKey, resourceType);
 
@@ -130,7 +133,7 @@ export class AttachmentsService {
 
     const timestamp = Math.round(Date.now() / 1000) + 3600;
     const resourceType = this.getResourceType(attachment.mimeType);
-    const format = attachment.name.split(".").pop() || "";
+    const format = resourceType === "raw" ? "" : (attachment.name.split(".").pop() || "");
 
     const downloadUrl = cloudinary.utils.private_download_url(attachment.storageKey, format, {
       resource_type: resourceType,

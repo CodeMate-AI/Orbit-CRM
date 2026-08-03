@@ -443,11 +443,11 @@ function DashboardContent() {
             <div className="widget-title">Upcoming tasks</div>
             <div className="widget-meta flex items-center gap-1">
               <ListChecks className="h-3.5 w-3.5" />
-              7 days
+              {rangeLabel}
             </div>
           </div>
           {upcomingTasks.length === 0 ? (
-            <div className="empty-state-inline">No tasks due this week 🎉</div>
+            <div className="empty-state-inline">No tasks due {rangeLabel} 🎉</div>
           ) : (
             <div className="task-list">
               {upcomingTasks.map((task) => {

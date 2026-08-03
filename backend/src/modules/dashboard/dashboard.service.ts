@@ -43,6 +43,9 @@ export class DashboardService {
     const now = new Date();
     const rangeStart = getRangeStart(now, range);
     const rangeEnd = getRangeEnd(now, range);
+    const taskDueDateEnd = range === "week"
+      ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      : rangeEnd;
 
     const [
       totalContacts,
@@ -99,13 +102,13 @@ export class DashboardService {
         orderBy: { position: "asc" },
       }),
 
-      // Upcoming tasks (due in next 7 days, not done, including overdue)
+      // Upcoming tasks (due in range, not done, including overdue)
       prisma.task.findMany({
         where: {
           workspaceId,
           deletedAt: null,
           status: { in: ["TODO", "IN_PROGRESS"] },
-          dueDate: { lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+          dueDate: { lte: taskDueDateEnd },
         },
         include: {
           person: { select: { firstName: true, lastName: true } },

@@ -31,6 +31,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"sessions" | "chat">("chat");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const skipNextHistoryFetchRef = useRef(false);
@@ -161,6 +162,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
     const content = input.trim();
     setInput("");
     setSending(true);
+    setSendError(null);
     setMessages((current) => [...current, { id: `draft-${Date.now()}`, role: "user", content, createdAt: new Date().toISOString() }]);
 
     try {
@@ -184,8 +186,16 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
       });
       const refreshed = await aiApi.listSessions(workspaceId);
       setSessions(refreshed);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send AI message:", error);
+      // Remove the failed draft message and show error to user
+      setMessages((current) => current.filter((m) => !m.id.startsWith("draft-")));
+      const msg = error?.message || "";
+      if (msg.toLowerCase().includes("timeout") || msg.toLowerCase().includes("timed out")) {
+        setSendError("The AI assistant took too long to respond. Please try again.");
+      } else {
+        setSendError("Failed to get a response. Please try again.");
+      }
     } finally {
       setSending(false);
     }
@@ -348,6 +358,18 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
                   </div>
 
                   <div className="border-t border-border-subtle bg-bg-primary/70 p-4 md:p-6">
+                    {sendError && (
+                      <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                        <span className="flex-1">{sendError}</span>
+                        <button
+                          onClick={() => setSendError(null)}
+                          className="ml-2 shrink-0 text-red-400/70 hover:text-red-400"
+                          title="Dismiss"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                     <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle bg-bg-secondary/80 p-3 shadow-sm">
                       <Textarea
                         value={input}

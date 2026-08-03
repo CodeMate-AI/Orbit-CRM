@@ -8,8 +8,9 @@
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-const TIMEOUT_MS = 30_000; // 30 seconds per attempt
-const MAX_RETRIES = 1;     // retry once on timeout
+const TIMEOUT_MS = 30_000;     // 30 seconds per attempt (standard)
+const AI_TIMEOUT_MS = 120_000; // 120 seconds for AI endpoints (LLM can take time)
+const MAX_RETRIES = 1;         // retry once on timeout
 
 async function requestWithTimeout(
   path: string,
@@ -76,4 +77,52 @@ export async function request(path: string, options: RequestInit = {}): Promise<
   }
 
   throw lastErr;
+}
+
+/**
+ * Like `request` but uses a 120-second timeout — intended for AI/LLM endpoints
+ * that can take longer due to multi-step reasoning.
+ */
+export async function longRequest(path: string, options: RequestInit = {}): Promise<any> {
+  const headers = new Headers(options.headers);
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers,
+    credentials: "include",
+    signal: controller.signal,
+  };
+
+  const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+  try {
+    const res = await fetch(`${API_URL_BASE}${path}`, fetchOptions);
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "API request failed");
+    }
+
+    const text = await res.text();
+    if (!text || text === "null") return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err?.name === "AbortError") {
+      throw new Error("Request timed out. The AI assistant took too long. Please try again.");
+    }
+    throw err;
+  }
 }

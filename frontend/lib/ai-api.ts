@@ -1,4 +1,4 @@
-import { request } from "./api-client";
+import { request, longRequest } from "./api-client";
 
 export interface ChatMessageRow {
   id: string;
@@ -41,7 +41,7 @@ export const aiApi = {
     workspaceId: string,
     message: string,
   ): Promise<{ userMessage: ChatMessageRow; assistantMessage: ChatMessageRow }> =>
-    request(`/ai/chat/sessions/${sessionId}?workspaceId=${encodeURIComponent(workspaceId)}`, {
+    longRequest(`/ai/chat/sessions/${sessionId}?workspaceId=${encodeURIComponent(workspaceId)}`, {
       method: "POST",
       body: JSON.stringify({ message }),
     }),

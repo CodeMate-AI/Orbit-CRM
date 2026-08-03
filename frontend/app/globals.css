@@ -1740,7 +1740,10 @@ select {
 }
 
 .table-wrap {
-  overflow: auto;
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
@@ -1749,6 +1752,7 @@ select {
 .data-table {
   width: 100%;
   min-width: 1600px;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
@@ -1809,70 +1813,58 @@ select {
 }
 
 .col-name {
+  width: 240px;
   min-width: 240px;
   border-right: 1px solid rgba(245, 245, 245, 0.2);
 }
 
 .col-email {
+  width: 220px;
   min-width: 220px;
 }
 
 .col-phone {
+  width: 136px;
   min-width: 136px;
 }
 
 .col-company {
+  width: 150px;
   min-width: 150px;
 }
 
 .col-title {
+  width: 160px;
   min-width: 160px;
 }
 
 .col-tags {
+  width: 180px;
   min-width: 180px;
 }
 
 .col-activity {
+  width: 124px;
   min-width: 124px;
 }
 
 .col-source {
+  width: 140px;
   min-width: 140px;
 }
 
 .col-industry {
+  width: 120px;
   min-width: 120px;
 }
 
 .col-actions {
+  width: 120px;
   min-width: 120px;
   text-align: right;
   padding-right: 16px;
 }
 
-.data-table thead th.col-checkbox,
-.data-table thead th.col-name {
-  position: sticky;
-  left: 0;
-  z-index: 4;
-}
-
-.data-table thead th.col-name {
-  left: 44px;
-}
-
-.data-table tbody td.col-checkbox,
-.data-table tbody td.col-name {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--bg-primary);
-}
-
-.data-table tbody td.col-name {
-  left: 44px;
-}
 
 tr.is-selected td {
   background: rgba(129, 116, 248, 0.05);

@@ -1,12 +1,13 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaClient, MemberRole, JoinRequestStatus } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
 import { InviteMemberDto } from "./dto/invite-member.dto";
 import { EmailService } from "../settings/email.service";
 import * as crypto from "crypto";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setWorkspacesPrisma(client: PrismaClient) {
   prisma = client;

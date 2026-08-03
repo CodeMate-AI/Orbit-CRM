@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 import { UpsertSmtpConfigDto } from "./dto/upsert-smtp-config.dto";
 import { TestSmtpConfigDto } from "./dto/test-smtp-config.dto";
 import { UpdateProfileDto } from "./dto/settings.dto";
 import { EmailService, ResolvedSmtpConfig } from "./email.service";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setSettingsPrisma(client: PrismaClient) {
   prisma = client;

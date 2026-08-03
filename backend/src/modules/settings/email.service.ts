@@ -1,9 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../prisma";
 import dns from "dns";
 import nodemailer, { Transporter } from "nodemailer";
-
-const prisma = new PrismaClient();
 
 export type ResolvedSmtpConfig = {
   host: string;

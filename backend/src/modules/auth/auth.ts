@@ -1,8 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../prisma";
 
 function parseTrustedOrigins(value: string | undefined) {
   const defaults = ["http://localhost:3000", "http://localhost:3001", "https://orbit-crm-og.codemate.build"];

@@ -1,9 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../prisma";
 import { CreateNoteDto } from "./dto/create-note.dto";
 import { UpdateNoteDto } from "./dto/update-note.dto";
-
-const prisma = new PrismaClient();
 
 @Injectable()
 export class NotesService {

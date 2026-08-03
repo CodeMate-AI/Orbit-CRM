@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 
-let prisma: any = new PrismaClient();
+let prisma: any = defaultPrisma;
 
 export function setAiPrisma(client: any) {
   prisma = client;

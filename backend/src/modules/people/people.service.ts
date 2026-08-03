@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 import { parse } from "csv-parse/sync";
 import { CreatePersonDto } from "./dto/create-person.dto";
 import { DryRunImportDto } from "./dto/dry-run-import.dto";
@@ -7,7 +8,7 @@ import { StartImportDto } from "./dto/start-import.dto";
 import { UpdatePersonDto } from "./dto/update-person.dto";
 import { EventsService } from "../events/events.service";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setPeoplePrisma(client: PrismaClient) {
   prisma = client;

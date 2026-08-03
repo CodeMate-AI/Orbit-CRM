@@ -1,10 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../prisma";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
 import { EventsService } from "../events/events.service";
-
-const prisma = new PrismaClient();
 
 @Injectable()
 export class CompaniesService {

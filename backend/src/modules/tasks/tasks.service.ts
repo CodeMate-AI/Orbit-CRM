@@ -1,10 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaClient, TaskStatus } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { EventsService } from "../events/events.service";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setTasksPrisma(client: PrismaClient) {
   prisma = client;

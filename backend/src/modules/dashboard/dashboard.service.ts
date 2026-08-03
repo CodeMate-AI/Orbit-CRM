@@ -1,9 +1,10 @@
 import { Injectable, ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 
 export type DashboardRange = "week" | "month" | "quarter" | "year";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setDashboardPrisma(client: PrismaClient) {
   prisma = client;

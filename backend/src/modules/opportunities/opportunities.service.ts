@@ -1,10 +1,11 @@
 import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 import { CreateOpportunityDto } from "./dto/create-opportunity.dto";
 import { UpdateOpportunityDto } from "./dto/update-opportunity.dto";
 import { EventsService } from "../events/events.service";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setOpportunitiesPrisma(client: PrismaClient) {
   prisma = client;

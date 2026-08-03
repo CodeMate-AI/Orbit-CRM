@@ -1,7 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../prisma";
 
 @Injectable()
 export class SearchService {

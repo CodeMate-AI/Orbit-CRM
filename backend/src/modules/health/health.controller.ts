@@ -1,8 +1,6 @@
 import { Controller, Get, Res } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../prisma";
 import type { Response } from "express";
-
-const prisma = new PrismaClient();
 
 @Controller("healthz")
 export class HealthController {

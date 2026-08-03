@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaClient, ActivityType } from "@prisma/client";
+import { prisma as defaultPrisma } from "../../prisma";
 
-let prisma = new PrismaClient();
+let prisma = defaultPrisma;
 
 export function setActivitiesPrisma(client: PrismaClient) {
   prisma = client;

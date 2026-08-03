@@ -1,10 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Attachment, PrismaClient } from "@prisma/client";
+import { Attachment } from "@prisma/client";
+import { prisma } from "../../prisma";
 import { randomUUID } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
 import { GetUploadUrlDto } from "./dto/get-upload-url.dto";
-
-const prisma = new PrismaClient();
 
 @Injectable()
 export class AttachmentsService {

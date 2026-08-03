@@ -25,15 +25,6 @@ export interface DashboardStats {
     }>;
     totalValue: number;
   };
-  recentActivity: Array<{
-    id: string;
-    type: string;
-    title: string;
-    body: string | null;
-    occurredAt: string;
-    author: string | null;
-    person: string | null;
-  }>;
   upcomingTasks: Array<{
     id: string;
     title: string;

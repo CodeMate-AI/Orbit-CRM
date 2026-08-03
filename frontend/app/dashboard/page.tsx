@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Users,
   AlertCircle,
-  Activity,
   ListChecks,
 } from "lucide-react";
 import {
@@ -52,14 +51,6 @@ function formatCurrency(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 function formatDueDate(dateStr: string | null) {
   if (!dateStr) return null;
@@ -128,20 +119,6 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-// ── Activity type label ────────────────────────────────────────────────────
-function activityLabel(type: string) {
-  const map: Record<string, string> = {
-    NOTE: "Note added",
-    EMAIL: "Email sent",
-    CALL: "Call logged",
-    MEETING: "Meeting held",
-    TASK_COMPLETED: "Task completed",
-    DEAL_STAGE_CHANGED: "Deal moved",
-    RECORD_CREATED: "Record created",
-    RECORD_UPDATED: "Record updated",
-  };
-  return map[type] ?? type;
-}
 
 // ── Dashboard Content (uses WorkspaceContext) ─────────────────────────────
 function DashboardContent() {
@@ -243,8 +220,8 @@ function DashboardContent() {
       <>
         {header}
         <div className="widget-grid">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={`widget ${i === 0 || i === 2 ? "widget--2col" : ""}`}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className={`widget ${i === 0 ? "widget--2col" : ""}`}>
               <Skeleton className="h-5 w-32 mb-4" />
               <Skeleton className="h-10 w-48 mb-6" />
               <Skeleton className="h-3 w-full mb-2" />
@@ -275,7 +252,7 @@ function DashboardContent() {
 
   if (!stats) return null;
 
-  const { pipeline, deals, contacts, recentActivity, upcomingTasks } = stats;
+  const { pipeline, deals, contacts, upcomingTasks } = stats;
   const nonTerminalStages = pipeline.stages.filter((s) => s.name !== "Won" && s.name !== "Lost");
 
   return (
@@ -315,7 +292,7 @@ function DashboardContent() {
                   );
                 })}
               </div>
-              <div className="h-[200px] w-full min-w-0">
+              <div className="h-50 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={nonTerminalStages} margin={{ top: 5, right: 5, left: 20, bottom: 5 }}>
                     <XAxis
@@ -386,7 +363,7 @@ function DashboardContent() {
           </div>
           {deals.conversionRate !== null && (deals.wonThisMonth > 0 || deals.lostThisMonth > 0) ? (
             <div className="mt-4 flex flex-col items-center">
-              <div className="h-[100px] w-full min-w-0">
+              <div className="h-25 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -541,36 +518,6 @@ function DashboardContent() {
                   );
                 });
               })()}
-            </div>
-          )}
-        </div>
-
-        {/* 6. Recent Activity — 3-col */}
-        <div className="widget widget--3col">
-          <div className="widget-header">
-            <div className="widget-title">Recent activity</div>
-            <div className="widget-meta flex items-center gap-1">
-              <Activity className="h-3.5 w-3.5" />
-              {rangeLabel}
-            </div>
-          </div>
-          {recentActivity.length === 0 ? (
-            <div className="empty-state-inline">No recent activity {rangeLabel}</div>
-          ) : (
-            <div className="activity-list">
-              {recentActivity.map((a) => (
-                <div key={a.id} className="activity-row">
-                  <div className="activity-dot" />
-                  <div className="activity-body">
-                    <div className="activity-title">
-                      {activityLabel(a.type)}
-                      {a.person ? ` · ${a.person}` : ""}
-                    </div>
-                    {a.title && <div className="activity-sub">{a.title}</div>}
-                    <div className="activity-time">{timeAgo(a.occurredAt)}</div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>

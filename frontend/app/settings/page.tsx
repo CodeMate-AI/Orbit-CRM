@@ -293,7 +293,7 @@ export default function SettingsPage() {
       <AppLayout pageTitle="Settings">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
           <Card>
-            <CardContent className="flex min-h-[420px] items-center justify-center p-6">
+            <CardContent className="flex min-h-105 items-center justify-center p-6">
               <div className="flex items-center gap-3 text-text-secondary">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading settings…
@@ -355,12 +355,12 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 mt-2 flex flex-col gap-3">
-                <Button type="submit" className="w-full sm:w-auto" disabled={profileSaving}>
-                  {profileSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <div className="md:col-span-2 mt-2 flex flex-col items-center gap-3">
+                <Button type="submit" className="bg-orbit-primary hover:bg-orbit-primary-hover text-white font-medium px-5 py-2" disabled={profileSaving}>
+                  {profileSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Save profile
                 </Button>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-text-secondary text-center">
                   Changes are applied to your account profile and reflected across the app.
                 </p>
               </div>

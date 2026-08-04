@@ -54,10 +54,10 @@ The frontend under [`frontend/app/`](frontend/app/) includes:
 
 - marketing homepage
 - dashboard
-- contacts list and detail pages
+- leads list and detail pages
 - companies list and detail pages
 - deals pipeline and deal detail pages
-- tasks board
+- tasks table list
 - reports
 - settings
 - sign-in and sign-up flows
@@ -119,7 +119,6 @@ Orbit CRM uses a two-app architecture:
 - TypeScript
 - Tailwind CSS 4
 - shadcn-style UI components
-- Zustand
 - Framer Motion
 - Recharts
 - Lucide React icons
@@ -247,9 +246,6 @@ From [`backend/package.json`](backend/package.json):
 - `npm run build` — build the NestJS app
 - `npm run start` — run the server once
 - `npm run start:dev` — run the server in watch mode
-- `npm run test` — run the backend test suite
-- `npm run test:watch` — run tests in watch mode
-- `npm run test:cov` — run tests with coverage output
 
 ### Frontend
 
@@ -258,7 +254,6 @@ From [`frontend/package.json`](frontend/package.json):
 - `npm run dev` — start the Next.js development server
 - `npm run build` — create a production build
 - `npm run start` — start the production frontend server
-- `npm run lint` — run ESLint checks
 
 ## API surface
 

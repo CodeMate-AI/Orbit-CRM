@@ -2308,6 +2308,13 @@
     padding-right: 36px !important;
   }
 
+  .cn-toast {
+    background-color: #161618 !important;
+    border-color: #27272a !important;
+    color: #f4f4f5 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  }
+
 }
 
 /* end @layer base */

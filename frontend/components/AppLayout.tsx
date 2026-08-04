@@ -475,7 +475,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                 <circle cx="16" cy="16" r="3" fill="currentColor" />
               </svg>
             </div>
-            <div className="brand-text">Orbit</div>
+            <div className="brand-text">Orbit CRM</div>
             {isMobileDrawer ? (
               <button
                 type="button"
@@ -612,7 +612,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                   </svg>
                 </div>
                 <div className="mobile-header-copy">
-                  <span className="brand-text">Orbit</span>
+                  <span className="brand-text">Orbit CRM</span>
                   <span className="mobile-header-workspace">{workspaceName}</span>
                 </div>
               </div>

@@ -206,7 +206,7 @@ function DashboardContent() {
 
   const rangeLabel = RANGE_LABELS[range];
   const header = (
-    <div className="px-4 md:px-5 lg:px-8">
+    <div className="px-4 pt-5 md:px-5 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm text-text-secondary">

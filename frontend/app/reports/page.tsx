@@ -152,8 +152,7 @@ function ReportsContent() {
   const header = (
     <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary">CRM reports</h1>
-        <p className="mt-2 max-w-2xl text-sm text-text-secondary">
+        <p className="text-sm text-text-secondary">
           Switch the date window to refresh all report widgets for the selected period.
         </p>
       </div>
@@ -184,7 +183,7 @@ function ReportsContent() {
   if (loading) {
     return (
       <>
-        <div className="px-4 md:px-5 lg:px-8">
+        <div className="px-4 pt-5 md:px-5 lg:px-8">
           {header}
         </div>
         <div className="px-4 md:px-5 lg:px-8 pb-8">
@@ -204,7 +203,7 @@ function ReportsContent() {
   if (error) {
     return (
       <>
-        <div className="px-4 md:px-5 lg:px-8">
+        <div className="px-4 pt-5 md:px-5 lg:px-8">
           {header}
         </div>
         <div className="flex flex-col items-center gap-3 py-24 text-center">
@@ -222,7 +221,7 @@ function ReportsContent() {
 
   return (
     <>
-      <div className="px-4 md:px-5 lg:px-8">
+      <div className="px-4 pt-5 md:px-5 lg:px-8">
         {header}
       </div>
       <div className="px-4 md:px-5 lg:px-8 pb-8">

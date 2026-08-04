@@ -439,111 +439,117 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     );
   };
 
-  const renderSidebarContent = (isMobileDrawer = false) => (
-    <>
-      <div>
-        <div className="sidebar-brand">
-          <div className="brand-mark">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              <path d="M2 12h20" />
-            </svg>
-          </div>
-          <div className="brand-text">Orbit</div>
-          {isMobileDrawer ? (
-            <button
-              type="button"
-              className="mobile-drawer-close"
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-label="Close navigation menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          ) : null}
-        </div>
+  const renderSidebarContent = (isMobileDrawer = false) => {
+    const shouldHideWorkspaceSwitcher = isAiDrawerOpen && !isMobileDrawer;
 
-        <div className="relative z-50 pb-3" ref={workspaceMenuRef}>
-          <button
-            type="button"
-            className={`workspace-switcher ${isWorkspaceDropdownOpen ? "workspace-switcher-open" : ""}`}
-            onMouseDown={handleWorkspaceMouseDown}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            aria-expanded={isWorkspaceDropdownOpen}
-            aria-haspopup="menu"
-          >
-            <div className="min-w-0 flex-1 text-left">
-              <div className="workspace-name truncate">{workspaceName || "Loading…"}</div>
-              <div className="mt-1 inline-flex rounded-full bg-orbit-primary/15 px-2 py-0.5 text-[11px] font-semibold text-orbit-primary">
-                {ROLE_LABELS[userRole]}
-              </div>
+    return (
+      <>
+        <div>
+          <div className="sidebar-brand">
+            <div className="brand-mark">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                <path d="M2 12h20" />
+              </svg>
             </div>
-            <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${isWorkspaceDropdownOpen ? "rotate-180" : ""}`} />
-          </button>
-          {renderWorkspaceDropdown()}
-        </div>
-
-        <nav className="sidebar-nav">
-          {navigationItems.map(({ href, label, icon: Icon, active }) => (
-            <Link key={label} href={href} className={`nav-item ${active ? "active" : ""}`}>
-              <Icon className="h-[18px] w-[18px]" />
-              {label}
-            </Link>
-          ))}
-
-          <button
-            type="button"
-            className="nav-item text-left"
-            onClick={() => setIsAiDrawerOpen(true)}
-          >
-            <Sparkles className="h-[18px] w-[18px]" />
-            AI Assistant
-          </button>
-
-          <div className="nav-group-sep"></div>
-
-          <Link href={settingsItem.href} className={`nav-item ${settingsItem.active ? "active" : ""}`}>
-            <settingsItem.icon className="h-[18px] w-[18px]" />
-            {settingsItem.label}
-          </Link>
-        </nav>
-      </div>
-
-      {!isMobileDrawer && (
-        <div className="sidebar-bottom relative">
-          <div className="user-avatar">{userInitials}</div>
-          <div className="user-info">
-            <div className="user-name">{userName}</div>
-            <div className="user-role" title={userEmail}>{ROLE_LABELS[userRole]}</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="text-text-tertiary transition hover:text-text-primary focus:outline-none"
-            aria-label="Open profile actions"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-
-          {isProfileDropdownOpen && (
-            <div ref={profileMenuRef} className="absolute bottom-12 right-2 z-50 w-48 rounded border border-border-light bg-bg-tertiary p-1 shadow-md">
+            <div className="brand-text">Orbit</div>
+            {isMobileDrawer ? (
               <button
                 type="button"
-                onClick={handleSignOut}
-                className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
+                className="mobile-drawer-close"
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-label="Close navigation menu"
               >
-                <LogOut className="h-4 w-4" />
-                Sign Out
+                <X className="h-5 w-5" />
               </button>
+            ) : null}
+          </div>
+
+          {!shouldHideWorkspaceSwitcher ? (
+            <div className="relative z-50 pb-3" ref={workspaceMenuRef}>
+              <button
+                type="button"
+                className={`workspace-switcher ${isWorkspaceDropdownOpen ? "workspace-switcher-open" : ""}`}
+                onMouseDown={handleWorkspaceMouseDown}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                aria-expanded={isWorkspaceDropdownOpen}
+                aria-haspopup="menu"
+              >
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="workspace-name truncate">{workspaceName || "Loading…"}</div>
+                  <div className="mt-1 inline-flex rounded-full bg-orbit-primary/15 px-2 py-0.5 text-[11px] font-semibold text-orbit-primary">
+                    {ROLE_LABELS[userRole]}
+                  </div>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${isWorkspaceDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+              {renderWorkspaceDropdown()}
             </div>
-          )}
+          ) : null}
+
+          <nav className="sidebar-nav">
+            {navigationItems.map(({ href, label, icon: Icon, active }) => (
+              <Link key={label} href={href} className={`nav-item ${active ? "active" : ""}`}>
+                <Icon className="h-[18px] w-[18px]" />
+                {label}
+              </Link>
+            ))}
+
+            <button
+              type="button"
+              className="nav-item text-left"
+              onClick={() => setIsAiDrawerOpen(true)}
+            >
+              <Sparkles className="h-[18px] w-[18px]" />
+              AI Assistant
+            </button>
+
+            <div className="nav-group-sep"></div>
+
+            <Link href={settingsItem.href} className={`nav-item ${settingsItem.active ? "active" : ""}`}>
+              <settingsItem.icon className="h-[18px] w-[18px]" />
+              {settingsItem.label}
+            </Link>
+          </nav>
         </div>
-      )}
-    </>
-  );
+
+        {!isMobileDrawer && (
+          <div className="sidebar-bottom relative">
+            <div className="user-avatar">{userInitials}</div>
+            <div className="user-info">
+              <div className="user-name">{userName}</div>
+              <div className="user-role" title={userEmail}>{ROLE_LABELS[userRole]}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              className="text-text-tertiary transition hover:text-text-primary focus:outline-none"
+              aria-label="Open profile actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+
+            {isProfileDropdownOpen && (
+              <div ref={profileMenuRef} className="absolute bottom-12 right-2 z-50 w-48 rounded border border-border-light bg-bg-tertiary p-1 shadow-md">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <WorkspaceContext.Provider value={{ workspaceId, workspaceName }}>

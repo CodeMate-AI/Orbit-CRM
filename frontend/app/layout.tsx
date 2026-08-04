@@ -34,12 +34,17 @@ export const metadata: Metadata = {
     "Orbit CRM",
   ],
   authors: [{ name: "Orbit CRM" }],
-  metadataBase: new URL("https://orbitcrm.com"),
+  metadataBase: new URL("https://orbit-crm-og.codemate.build"),
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "Orbit CRM — AI-Native Customer Relationship Management",
     description:
       "The AI-native customer relationship management platform built for modern startups and small teams.",
-    url: "https://orbitcrm.com",
+    url: "https://orbit-crm-og.codemate.build",
     siteName: "Orbit CRM",
     locale: "en_US",
     type: "website",

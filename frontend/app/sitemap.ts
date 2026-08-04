@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = "https://orbitcrm.com";
+const siteUrl = "https://orbit-crm-og.codemate.build";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

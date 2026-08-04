@@ -193,6 +193,16 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const isTouchDevice =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isTouchDevice) {
+        setSearchShortcut("");
+        return;
+      }
+
       const isMac =
         navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
         navigator.userAgent.toUpperCase().indexOf("MAC") >= 0 ||

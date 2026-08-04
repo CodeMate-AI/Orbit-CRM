@@ -244,7 +244,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
             <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3 md:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orbit-primary/15 text-orbit-primary">
-                  <Sparkles className="h-5 w-5" />
+                  <Bot className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="font-serif text-lg text-text-primary">AI Assistant</div>
@@ -450,7 +450,7 @@ function ThinkingBubble() {
         <span>Orbit AI</span>
       </div>
       <div className="flex items-center gap-2 text-text-tertiary">
-        <Sparkles className="h-4 w-4 animate-pulse text-orbit-primary" />
+        <Bot className="h-4 w-4 animate-pulse text-orbit-primary" />
         <span className="animate-pulse">Orbit is thinking...</span>
       </div>
     </div>

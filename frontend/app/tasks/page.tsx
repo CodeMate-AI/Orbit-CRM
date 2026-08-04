@@ -5,7 +5,6 @@ import {
   AlertCircle,
   CalendarClock,
   CheckCircle2,
-  CheckSquare,
   Circle,
   Clock3,
   Link2,
@@ -20,6 +19,7 @@ import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import EmptyState from "@/components/ui/EmptyState";
 import SkeletonRow from "@/components/ui/SkeletonRow";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { opportunitiesApi } from "@/lib/opportunities-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
@@ -139,20 +139,6 @@ function buildDrawerForm(task: TaskRow): TaskDrawerForm {
     opportunityId: task.opportunityId ?? "",
     assigneeId: task.assigneeId ?? "",
   };
-}
-
-function metricCard(label: string, value: number, icon: React.ReactNode, tone: string) {
-  return (
-    <div className="rounded-2xl border border-border-subtle bg-surface-default p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-text-tertiary">{label}</p>
-          <p className="mt-3 text-3xl font-semibold text-text-primary">{value}</p>
-        </div>
-        <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${tone}`}>{icon}</div>
-      </div>
-    </div>
-  );
 }
 
 function AddTaskModal({
@@ -487,6 +473,7 @@ function TaskDetailDrawer({
 }) {
   const [form, setForm] = useState<TaskDrawerForm | null>(null);
   const [savingField, setSavingField] = useState<EditableTaskField | null>(null);
+  const [isSavingAll, setIsSavingAll] = useState(false);
 
   useEffect(() => {
     setForm(task ? buildDrawerForm(task) : null);
@@ -521,7 +508,7 @@ function TaskDetailDrawer({
 
   if (!open || !task || !form) return null;
 
-  const saveField = async (field: EditableTaskField) => {
+  const saveField = async (field: EditableTaskField, valueOverride?: any) => {
     if (!task || !form) return;
 
     const currentValue = (() => {
@@ -547,7 +534,7 @@ function TaskDetailDrawer({
       }
     })();
 
-    const nextValue = form[field] ?? "";
+    const nextValue = valueOverride !== undefined ? valueOverride : (form[field] ?? "");
     if (nextValue === currentValue) return;
     if (field === "title" && !String(nextValue).trim()) {
       toast.error("Task title is required.");
@@ -575,6 +562,37 @@ function TaskDetailDrawer({
       toast.error(err.message || "Failed to update task.");
     } finally {
       setSavingField(null);
+    }
+  };
+
+  const handleSaveAndClose = async () => {
+    if (!task || !form) return;
+    setIsSavingAll(true);
+    const fields: EditableTaskField[] = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "dueDate",
+      "personId",
+      "companyId",
+      "opportunityId",
+      "assigneeId",
+    ];
+
+    let hasErrors = false;
+    for (const field of fields) {
+      if (isFieldDirty(field)) {
+        try {
+          await saveField(field);
+        } catch (e) {
+          hasErrors = true;
+        }
+      }
+    }
+    setIsSavingAll(false);
+    if (!hasErrors) {
+      onClose();
     }
   };
 
@@ -607,74 +625,123 @@ function TaskDetailDrawer({
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Title</label>
-              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.title} onChange={(e) => setForm((current) => current ? { ...current, title: e.target.value } : current)} onBlur={() => void saveField("title")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("title")} disabled={savingField === "title" || !isFieldDirty("title")}>{savingField === "title" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Title</label>
+              </div>
+              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.title} onChange={(e) => setForm((current) => current ? { ...current, title: e.target.value } : current)} />
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Description</label>
-              <textarea className="min-h-32 w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.description} onChange={(e) => setForm((current) => current ? { ...current, description: e.target.value } : current)} onBlur={() => void saveField("description")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("description")} disabled={savingField === "description" || !isFieldDirty("description")}>{savingField === "description" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Description</label>
+              </div>
+              <textarea className="min-h-32 w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.description || ""} onChange={(e) => setForm((current) => current ? { ...current, description: e.target.value } : current)} />
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Status</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.status} onChange={(e) => setForm((current) => current ? { ...current, status: e.target.value as TaskStatus } : current)} onBlur={() => void saveField("status")}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Status</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.status} onChange={(e) => {
+                const val = e.target.value as TaskStatus;
+                setForm((current) => current ? { ...current, status: val } : current);
+              }}>
                 {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("status")} disabled={savingField === "status" || !isFieldDirty("status")}>{savingField === "status" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Priority</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.priority} onChange={(e) => setForm((current) => current ? { ...current, priority: e.target.value as TaskPriority } : current)} onBlur={() => void saveField("priority")}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Priority</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.priority} onChange={(e) => {
+                const val = e.target.value as TaskPriority;
+                setForm((current) => current ? { ...current, priority: val } : current);
+              }}>
                 {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("priority")} disabled={savingField === "priority" || !isFieldDirty("priority")}>{savingField === "priority" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Due date</label>
-              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" type="date" value={form.dueDate} onChange={(e) => setForm((current) => current ? { ...current, dueDate: e.target.value } : current)} onBlur={() => void saveField("dueDate")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("dueDate")} disabled={savingField === "dueDate" || !isFieldDirty("dueDate")}>{savingField === "dueDate" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Due date</label>
+              </div>
+              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" type="date" value={form.dueDate} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, dueDate: val } : current);
+              }} />
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related lead</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.personId} onChange={(e) => setForm((current) => current ? { ...current, personId: e.target.value } : current)} onBlur={() => void saveField("personId")}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related lead</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.personId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, personId: val } : current);
+              }}>
                 <option value="">No lead</option>
                 {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId" || !isFieldDirty("personId")}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related company</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.companyId} onChange={(e) => setForm((current) => current ? { ...current, companyId: e.target.value } : current)} onBlur={() => void saveField("companyId")}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related company</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.companyId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, companyId: val } : current);
+              }}>
                 <option value="">No company</option>
                 {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId" || !isFieldDirty("companyId")}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related deal</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.opportunityId} onChange={(e) => setForm((current) => current ? { ...current, opportunityId: e.target.value } : current)} onBlur={() => void saveField("opportunityId")}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related deal</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.opportunityId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, opportunityId: val } : current);
+              }}>
                 <option value="">No deal</option>
                 {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId" || !isFieldDirty("opportunityId")}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
-            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Assignee</label>
-              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.assigneeId} onChange={(e) => setForm((current) => current ? { ...current, assigneeId: e.target.value } : current)} onBlur={() => void saveField("assigneeId")}>
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Assignee</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.assigneeId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, assigneeId: val } : current);
+              }}>
                 <option value="">Unassigned</option>
                 {members.map((member) => <option key={member.userId} value={member.userId}>{member.user.name || member.user.email}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId" || !isFieldDirty("assigneeId")}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
+          </div>
+          <div className="mt-8 flex items-center justify-end gap-3 border-t border-border-subtle p-5 md:p-6 bg-bg-secondary/20">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isSavingAll}
+              className="border-border-subtle text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+            >
+              Cancel
+            </Button>
+            <Button
+              id="task-drawer-save-btn"
+              onClick={handleSaveAndClose}
+              disabled={isSavingAll}
+              className="bg-orbit-primary hover:bg-orbit-primary-hover text-white font-medium px-6"
+            >
+              {isSavingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save changes
+            </Button>
           </div>
         </div>
       </aside>
@@ -683,7 +750,7 @@ function TaskDetailDrawer({
 }
 
 function TasksContent() {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, userRole } = useWorkspace();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -787,6 +854,10 @@ function TasksContent() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     setDeletingTaskId(taskId);
     try {
       await tasksApi.delete(taskId);
@@ -804,43 +875,60 @@ function TasksContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 md:gap-8 md:p-8">
-      <section className="rounded-xl border border-border-subtle bg-surface-default p-5 md:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Tasks</p>
-            <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Execution dashboard</h2>
-            <p className="mt-1 max-w-2xl text-sm text-text-secondary">Track follow-ups, manage due dates, and link work back to leads, companies, and deals.</p>
+      <div className="leads-topbar">
+        <div className="leads-stats">
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Total Tasks</span>
+            <span className="leads-stat-val">{loading ? "—" : totalTasks}</span>
           </div>
-          <button className="inline-flex items-center gap-2 rounded bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover disabled:opacity-60" onClick={() => setShowModal(true)} disabled={!workspaceId || loading}>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Pending</span>
+            <span className="leads-stat-val">{loading ? "—" : pendingTasks}</span>
+          </div>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Due Today</span>
+            <span className="leads-stat-val">{loading ? "—" : dueTodayCount}</span>
+          </div>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Completed</span>
+            <span className="leads-stat-val">{loading ? "—" : completedCount}</span>
+          </div>
+        </div>
+
+        <div className="leads-actions">
+          <div className="search-wrap">
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <input
+              className="search-input"
+              placeholder="Search tasks..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search tasks"
+            />
+          </div>
+
+          <button
+            id="tasks-add-btn"
+            className="btn-primary"
+            onClick={() => setShowModal(true)}
+            disabled={!workspaceId || loading}
+          >
             <Plus className="h-4 w-4" />
             New task
           </button>
         </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metricCard("Total tasks", totalTasks, <CheckSquare className="h-5 w-5 text-violet-100" />, "bg-violet-500/20 text-violet-100")}
-        {metricCard("Pending", pendingTasks, <Clock3 className="h-5 w-5 text-amber-100" />, "bg-amber-500/20 text-amber-100")}
-        {metricCard("Due today", dueTodayCount, <CalendarClock className="h-5 w-5 text-sky-100" />, "bg-sky-500/20 text-sky-100")}
-        {metricCard("Completed", completedCount, <CheckCircle2 className="h-5 w-5 text-emerald-100" />, "bg-emerald-500/20 text-emerald-100")}
-      </section>
+      </div>
 
       <section className="rounded-2xl border border-border-subtle bg-surface-default p-5 shadow-sm md:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-            <input className="w-full rounded-xl border border-border-subtle bg-bg-secondary py-3 pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-orbit-primary" placeholder="Search tasks, leads, companies, or deals" value={query} onChange={(e) => setQuery(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}>
-              <option value="ALL">All priorities</option>
-              {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
-            </select>
-            <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
-              <option value="ALL">All statuses</option>
-              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
-            </select>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}>
+            <option value="ALL">All priorities</option>
+            {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
+          </select>
+          <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+            <option value="ALL">All statuses</option>
+            {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
+          </select>
         </div>
 
         {loading ? (

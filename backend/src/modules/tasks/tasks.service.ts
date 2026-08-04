@@ -23,6 +23,16 @@ export class TasksService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   private async validateRelations(
@@ -262,7 +272,7 @@ export class TasksService {
       throw new NotFoundException("Task not found.");
     }
 
-    await this.assertMembership(userId, task.workspaceId);
+    await this.assertOwnerPrivilege(userId, task.workspaceId);
 
     await prisma.task.update({
       where: { id: taskId },

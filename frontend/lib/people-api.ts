@@ -1,7 +1,5 @@
 import { request } from "./api-client";
 
-
-
 export interface PersonRow {
   id: string;
   firstName: string;
@@ -85,6 +83,17 @@ export const peopleApi = {
 
   delete: (id: string): Promise<{ success: boolean }> =>
     request(`/people/${id}`, { method: "DELETE" }),
+
+  exportCsv: async (workspaceId: string): Promise<string> => {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"}/people/export?workspaceId=${encodeURIComponent(workspaceId)}`,
+      { credentials: "include" },
+    );
+    if (!response.ok) {
+      throw new Error("API request failed");
+    }
+    return response.text();
+  },
 
   dryRunImport: (data: { csvContent: string; workspaceId: string }) =>
     request("/people/import/dry-run", {

@@ -102,26 +102,18 @@ export class PeopleService {
 
     const people = await prisma.person.findMany({
       where: { workspaceId, deletedAt: null },
-      include: { company: { select: { id: true, name: true } } },
+      include: {
+        company: { select: { id: true, name: true } },
+        leadOwner: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+        modifiedBy: { select: { id: true, name: true, email: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
 
     return {
       total: people.length,
-      data: people.map((p) => ({
-        id: p.id,
-        firstName: p.firstName,
-        lastName: p.lastName,
-        name: `${p.firstName} ${p.lastName}`,
-        email: p.email,
-        phone: p.phone,
-        jobTitle: p.jobTitle,
-        leadSource: p.leadSource,
-        industry: p.industry,
-        company: p.company?.name ?? null,
-        companyId: p.companyId,
-        createdAt: p.createdAt,
-      })),
+      data: people.map((p) => this.buildPersonPayload(p)),
     };
   }
 
@@ -275,6 +267,67 @@ export class PeopleService {
           trim: true,
         }) as Record<string, string>[];
 
+        const companyNames = Array.from(
+          new Set(
+            records
+              .map((record) => record[columnMapping.companyName]?.trim())
+              .filter((value): value is string => Boolean(value)),
+          ),
+        );
+        const existingCompanies = companyNames.length
+          ? await prisma.company.findMany({
+              where: {
+                workspaceId,
+                name: { in: companyNames },
+              },
+            })
+          : [];
+        const companyMap = new Map(existingCompanies.map((company) => [company.name, company]));
+
+        const peopleLookup = new Map<string, any>();
+        const emails = Array.from(
+          new Set(
+            records
+              .map((record) => record[columnMapping.email]?.trim().toLowerCase())
+              .filter((value): value is string => Boolean(value)),
+          ),
+        );
+        const namePairs = Array.from(
+          new Set(
+            records
+              .map((record) => {
+                const firstName = record[columnMapping.firstName]?.trim();
+                const lastName = record[columnMapping.lastName]?.trim();
+                return firstName && lastName ? `${firstName}::${lastName}` : null;
+              })
+              .filter((value): value is string => Boolean(value)),
+          ),
+        );
+
+        if (emails.length) {
+          const existingByEmail = await prisma.person.findMany({
+            where: { workspaceId, email: { in: emails } },
+          });
+          for (const person of existingByEmail) {
+            if (person.email) peopleLookup.set(`email:${person.email.toLowerCase()}`, person);
+          }
+        }
+
+        if (namePairs.length) {
+          const existingByName = await prisma.person.findMany({
+            where: {
+              workspaceId,
+              OR: namePairs.map((pair) => {
+                const [firstName, lastName] = pair.split("::");
+                return { firstName, lastName };
+              }),
+            },
+          });
+          for (const person of existingByName) {
+            peopleLookup.set(`name:${person.firstName}::${person.lastName}`, person);
+          }
+        }
+
         let successCount = 0;
         for (const record of records) {
           const firstName = record[columnMapping.firstName]?.trim();
@@ -290,27 +343,22 @@ export class PeopleService {
 
           let companyId: string | null = null;
           if (companyName) {
-            let company = await prisma.company.findFirst({
-              where: { name: companyName, workspaceId },
-            });
-            if (!company) {
-              company = await prisma.company.create({
+            const existingCompany = companyMap.get(companyName);
+            if (existingCompany) {
+              companyId = existingCompany.id;
+            } else {
+              const createdCompany = await prisma.company.create({
                 data: { name: companyName, workspaceId },
               });
+              companyMap.set(companyName, createdCompany);
+              companyId = createdCompany.id;
             }
-            companyId = company.id;
           }
 
-          let existing = null;
-          if (email) {
-            existing = await prisma.person.findFirst({
-              where: { email, workspaceId },
-            });
-          } else {
-            existing = await prisma.person.findFirst({
-              where: { firstName, lastName, workspaceId },
-            });
-          }
+          const lookupKey = email
+            ? `email:${email.toLowerCase()}`
+            : `name:${firstName}::${lastName}`;
+          const existing = peopleLookup.get(lookupKey) ?? null;
 
           if (existing) {
             await prisma.person.update({
@@ -326,7 +374,7 @@ export class PeopleService {
               },
             });
           } else {
-            await prisma.person.create({
+            const created = await prisma.person.create({
               data: {
                 firstName,
                 lastName,
@@ -339,6 +387,8 @@ export class PeopleService {
                 workspaceId,
               },
             });
+            if (created.email) peopleLookup.set(`email:${created.email.toLowerCase()}`, created);
+            peopleLookup.set(`name:${created.firstName}::${created.lastName}`, created);
           }
           successCount++;
         }

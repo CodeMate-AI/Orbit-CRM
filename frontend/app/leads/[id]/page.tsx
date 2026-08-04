@@ -12,64 +12,12 @@ import { companiesApi, CompanyRow } from "@/lib/companies-api";
 import { notesApi, NoteRow } from "@/lib/notes-api";
 import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
-import { workspacesApi } from "@/lib/workspaces-api";
-import { WorkspaceMemberRow } from "@/lib/opportunities-api";
+
 import { toast } from "sonner";
-import { ArrowLeft, Building2, CalendarDays, Loader2, Mail, Phone, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, Mail, Phone, Plus } from "lucide-react";
 import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
 
-const leadFieldLabels: Array<[keyof PersonRow, string]> = [
-  ["firstName", "First Name"],
-  ["lastName", "Last Name"],
-  ["email", "Email"],
-  ["phone", "Phone"],
-  ["jobTitle", "Job Title"],
-  ["leadSource", "Lead Source"],
-  ["industry", "Industry"],
-  ["companyId", "Company"],
-  ["mobile", "Mobile"],
-  ["annualRevenue", "Annual Revenue"],
-  ["fax", "Fax"],
-  ["website", "Website"],
-  ["leadStatus", "Lead Status"],
-  ["employeeCount", "Employee Count"],
-  ["skypeId", "Skype ID"],
-  ["secondaryEmail", "Secondary Email"],
-  ["twitter", "Twitter"],
-  ["address", "Address"],
-  ["description", "Description"],
-];
 
-const leadFieldKeys = leadFieldLabels.map(([key]) => key);
-
-const LEAD_SOURCE_OPTIONS = ["LinkedIn", "Referral", "Event", "Website", "Email campaign", "Trade show"];
-const INDUSTRY_OPTIONS = [
-  "Manufacturing",
-  "Logistics",
-  "Technology",
-  "Retail",
-  "Finance",
-  "Creative",
-  "Construction",
-  "Healthcare",
-  "SaaS",
-  "Education",
-  "Food and Beverages",
-];
-
-const INDIAN_PHONE_ERROR = "Phone number must be a valid Indian phone number starting with +91 or 91, followed by exactly 10 digits.";
-
-function validatePhoneNumber(value?: string) {
-  if (!value) return true;
-  const clean = value.replace(/\s+/g, "");
-  if (clean.startsWith("+")) {
-    return /^\+91\d{10}$/.test(clean);
-  }
-  if (clean.length === 12 && clean.startsWith("91")) {
-    return /^91\d{10}$/.test(clean);
-  }
-  return /^\d{10}$/.test(clean);
-}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-IN", {
@@ -105,62 +53,20 @@ function LeadDetailPage() {
   const { workspaceId } = useWorkspace();
 
   const [lead, setLead] = useState<PersonRow | null>(null);
-  const [leadDraft, setLeadDraft] = useState<Record<string, string | number | boolean>>({});
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
-  const [savingLead, setSavingLead] = useState(false);
   const [error, setError] = useState("");
-  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
-  const [companySearch, setCompanySearch] = useState("");
-  const [linkingCompanyId, setLinkingCompanyId] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<NoteRow | null>(null);
-  const [members, setMembers] = useState<WorkspaceMemberRow[]>([]);
-  const [customLeadSources, setCustomLeadSources] = useState<string[]>([]);
-  const [customIndustries, setCustomIndustries] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const storedLeadSources = window.localStorage.getItem("orbit-crm:custom-lead-sources");
-      const storedIndustries = window.localStorage.getItem("orbit-crm:custom-industries");
-      if (storedLeadSources) setCustomLeadSources(JSON.parse(storedLeadSources));
-      if (storedIndustries) setCustomIndustries(JSON.parse(storedIndustries));
-    } catch {
-      // ignore
-    }
-  }, []);
 
-  const dynamicLeadSources = useMemo(
-    () => Array.from(new Set([...LEAD_SOURCE_OPTIONS, ...customLeadSources, lead?.leadSource].filter((v): v is string => Boolean(v)))),
-    [customLeadSources, lead?.leadSource]
-  );
-
-  const dynamicIndustries = useMemo(
-    () => Array.from(new Set([...INDUSTRY_OPTIONS, ...customIndustries, lead?.industry].filter((v): v is string => Boolean(v)))),
-    [customIndustries, lead?.industry]
-  );
-
-  const fields = useMemo(() => leadFieldLabels.map(([key, label]) => ({ key, label, value: leadDraft[key] ?? "" })), [leadDraft]);
 
   const company = useMemo(() => companies.find((entry) => entry.id === lead?.companyId) ?? null, [companies, lead]);
 
-  const availableCompanies = useMemo(() => {
-    const search = companySearch.trim().toLowerCase();
-    return companies
-      .filter((entry) => (lead?.companyId ? entry.id !== lead.companyId : true))
-      .filter((entry) => {
-        if (!search) return true;
-        return [entry.name, entry.domain ?? "", entry.industry ?? "", entry.city ?? ""].join(" ").toLowerCase().includes(search);
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [companySearch, companies, lead?.companyId]);
-
   const relatedTasks = useMemo(() => tasks.filter((task) => task.personId === lead?.id), [tasks, lead]);
-  const recentNotes = useMemo(() => notes.slice(0, 5), [notes]);
 
   useEffect(() => {
     document.title = lead?.name ? `${lead.name} | Orbit CRM` : "Lead detail | Orbit CRM";
@@ -176,36 +82,12 @@ function LeadDetailPage() {
       companiesApi.list(workspaceId),
       notesApi.list(workspaceId, "person", leadId),
       tasksApi.list(workspaceId),
-      workspacesApi.listMembers(workspaceId),
     ])
-      .then(([person, companyRows, noteRows, taskRows, memberRows]) => {
+      .then(([person, companyRows, noteRows, taskRows]) => {
         setLead(person);
-        setLeadDraft({
-          firstName: person.firstName ?? "",
-          lastName: person.lastName ?? "",
-          email: person.email ?? "",
-          phone: person.phone ?? "",
-          jobTitle: person.jobTitle ?? "",
-          leadSource: person.leadSource ?? "",
-          industry: person.industry ?? "",
-          companyId: person.companyId ?? "",
-          mobile: person.mobile ?? "",
-          annualRevenue: person.annualRevenue ?? "",
-          fax: person.fax ?? "",
-          website: person.website ?? "",
-          leadStatus: person.leadStatus ?? "",
-          employeeCount: person.employeeCount ?? "",
-          skypeId: person.skypeId ?? "",
-          secondaryEmail: person.secondaryEmail ?? "",
-          twitter: person.twitter ?? "",
-          address: person.address ?? "",
-          description: person.description ?? "",
-          leadOwnerId: person.leadOwnerId ?? "",
-        } as Record<string, string | number | boolean>);
         setCompanies(companyRows);
         setNotes(noteRows);
         setTasks(taskRows);
-        setMembers(memberRows);
       })
       .catch((err) => setError(err.message || "Failed to load lead."))
       .finally(() => setLoading(false));
@@ -231,89 +113,7 @@ function LeadDetailPage() {
     }
   };
 
-  const handleLeadChange = (key: keyof PersonRow, value: string | boolean) => {
-    setLeadDraft((current) => ({ ...current, [key]: value }));
-  };
 
-  const handleSaveLead = async () => {
-    if (!lead) return;
-    if (!String(leadDraft.firstName ?? "").trim() || !String(leadDraft.lastName ?? "").trim()) {
-      toast.error("First name and last name are required.");
-      return;
-    }
-    if (leadDraft.phone && !validatePhoneNumber(String(leadDraft.phone))) {
-      toast.error(INDIAN_PHONE_ERROR);
-      return;
-    }
-    setSavingLead(true);
-    try {
-      const payload = {
-        firstName: String(leadDraft.firstName ?? "").trim(),
-        lastName: String(leadDraft.lastName ?? "").trim(),
-        email: String(leadDraft.email ?? "").trim() || null,
-        phone: String(leadDraft.phone ?? "").trim() || null,
-        jobTitle: String(leadDraft.jobTitle ?? "").trim() || null,
-        leadSource: String(leadDraft.leadSource ?? "").trim() || null,
-        industry: String(leadDraft.industry ?? "").trim() || null,
-        companyId: String(leadDraft.companyId ?? "").trim() || null,
-        mobile: String(leadDraft.mobile ?? "").trim() || null,
-        annualRevenue: leadDraft.annualRevenue === "" || leadDraft.annualRevenue == null ? null : Number(leadDraft.annualRevenue),
-        fax: String(leadDraft.fax ?? "").trim() || null,
-        website: String(leadDraft.website ?? "").trim() || null,
-        leadStatus: String(leadDraft.leadStatus ?? "").trim() || null,
-        employeeCount: leadDraft.employeeCount === "" || leadDraft.employeeCount == null ? null : Number(leadDraft.employeeCount),
-        skypeId: String(leadDraft.skypeId ?? "").trim() || null,
-        secondaryEmail: String(leadDraft.secondaryEmail ?? "").trim() || null,
-        twitter: String(leadDraft.twitter ?? "").trim() || null,
-        address: String(leadDraft.address ?? "").trim() || null,
-        description: String(leadDraft.description ?? "").trim() || null,
-        leadOwnerId: String(leadDraft.leadOwnerId ?? "").trim() || null,
-      };
-      const updated = await peopleApi.update(lead.id, payload);
-      setLead(updated);
-      setLeadDraft({
-        firstName: updated.firstName ?? "",
-        lastName: updated.lastName ?? "",
-        email: updated.email ?? "",
-        phone: updated.phone ?? "",
-        jobTitle: updated.jobTitle ?? "",
-        leadSource: updated.leadSource ?? "",
-        industry: updated.industry ?? "",
-        companyId: updated.companyId ?? "",
-        mobile: updated.mobile ?? "",
-        annualRevenue: updated.annualRevenue ?? "",
-        fax: updated.fax ?? "",
-        website: updated.website ?? "",
-        leadStatus: updated.leadStatus ?? "",
-        employeeCount: updated.employeeCount ?? "",
-        skypeId: updated.skypeId ?? "",
-        secondaryEmail: updated.secondaryEmail ?? "",
-        twitter: updated.twitter ?? "",
-        address: updated.address ?? "",
-        description: updated.description ?? "",
-        leadOwnerId: updated.leadOwnerId ?? "",
-      } as Record<string, string | number | boolean>);
-      toast.success("Lead updated successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update lead.");
-    } finally {
-      setSavingLead(false);
-    }
-  };
-
-  const handleLinkCompany = async () => {
-    if (!lead || !linkingCompanyId) return;
-    try {
-      const updated = await peopleApi.update(lead.id, { companyId: linkingCompanyId });
-      setLead(updated);
-      setLeadDraft((current) => ({ ...current, companyId: updated.companyId ?? "" }));
-      setCompanyDialogOpen(false);
-      setLinkingCompanyId(null);
-      toast.success("Company linked successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to link company.");
-    }
-  };
 
   if (loading) {
     return (

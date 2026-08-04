@@ -26,10 +26,10 @@ export class AttachmentsService {
 
   private getResourceType(mimeType: string): "image" | "video" | "raw" {
     const mime = mimeType.toLowerCase();
-    if (mime.startsWith("image/")) {
+    if (mime.startsWith("image/") || mime === "application/pdf") {
       return "image";
     }
-    if (mime.startsWith("video/")) {
+    if (mime.startsWith("video/") || mime.startsWith("audio/")) {
       return "video";
     }
     return "raw";
@@ -132,18 +132,13 @@ export class AttachmentsService {
 
     const expiresAt = Math.round(Date.now() / 1000) + 3600; // valid for 1 hour
     const resourceType = this.getResourceType(attachment.mimeType);
+    const format = resourceType === "raw" ? "" : (attachment.name.split(".").pop() || "");
 
-    // Use cloudinary.url() with sign_url — this generates a proper signed delivery
-    // URL on res.cloudinary.com for 'authenticated' type resources.
-    // NOTE: private_download_url() was wrong here — it hits api.cloudinary.com
-    // (the admin API endpoint) which cannot serve authenticated delivery resources.
-    const downloadUrl = cloudinary.url(attachment.storageKey, {
+    const downloadUrl = cloudinary.utils.private_download_url(attachment.storageKey, format, {
       resource_type: resourceType,
       type: "authenticated",
-      sign_url: true,
       expires_at: expiresAt,
-      attachment: true, // forces Content-Disposition: attachment (triggers download)
-      secure: true,
+      attachment: true,
     });
 
     return { downloadUrl };

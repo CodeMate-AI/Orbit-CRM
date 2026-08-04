@@ -82,6 +82,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchShortcut, setSearchShortcut] = useState("⌘K");
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -189,6 +190,17 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
     return undefined;
   }, [isMobileMenuOpen, isProfileDropdownOpen, isSearchOpen, isAiDrawerOpen, isWorkspaceDropdownOpen, isInviteModalOpen, isRenameModalOpen]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isMac =
+        navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
+        navigator.userAgent.toUpperCase().indexOf("MAC") >= 0 ||
+        navigator.userAgent.toUpperCase().indexOf("IPHONE") >= 0 ||
+        navigator.userAgent.toUpperCase().indexOf("IPAD") >= 0;
+      setSearchShortcut(isMac ? "⌘K" : "Ctrl+K");
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -633,7 +645,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
             <div className="top-bar-actions">
               <div className="search-trigger" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-3.5 w-3.5" />
-                ⌘K
+                {searchShortcut}
               </div>
             </div>
           </header>
@@ -711,3 +723,4 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     </WorkspaceContext.Provider>
   );
 }
+

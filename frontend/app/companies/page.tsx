@@ -472,15 +472,28 @@ function CompaniesContent() {
     <>
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 py-6 md:px-8 md:py-8">
         <section className="contacts-shell">
-          <header className="contacts-header">
-            <div className="contacts-header-main">
-              <div>
-                <p className="contacts-kicker">Revenue workspace</p>
-                <h1 className="page-title contacts-page-title">Companies</h1>
+          <div className="leads-topbar">
+            {/* Total Companies stat */}
+            <div className="leads-stats">
+              <div className="leads-stat-chip">
+                <span className="leads-stat-label">Total Companies</span>
+                <span className="leads-stat-val">{loading ? "—" : companies.length.toLocaleString()}</span>
               </div>
             </div>
 
-            <div className="contacts-toolbar">
+            {/* Actions: Search → Add company → Export */}
+            <div className="leads-actions">
+              <div className="search-wrap">
+                <Search className="h-4 w-4" aria-hidden="true" />
+                <input
+                  className="search-input"
+                  placeholder="Search companies..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search companies"
+                />
+              </div>
+
               <button id="companies-add-btn" className="btn-primary" onClick={() => setShowModal(true)} disabled={!workspaceId}>
                 <Plus className="h-4 w-4" />
                 Add company
@@ -496,19 +509,8 @@ function CompaniesContent() {
                 <Download className="h-4 w-4" />
                 Export
               </button>
-
-              <div className="search-wrap">
-                <Search className="h-4 w-4" aria-hidden="true" />
-                <input
-                  className="search-input"
-                  placeholder="Search companies..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Search companies"
-                />
-              </div>
             </div>
-          </header>
+          </div>
 
           {selectedIds.size > 0 && (
             <div className="bulk-bar" role="status" aria-live="polite">
@@ -522,16 +524,6 @@ function CompaniesContent() {
           )}
 
           <section className="contacts-table-section">
-            <div className="contacts-metrics">
-              <div className="contacts-metric-card">
-                <span className="contacts-metric-label">Total companies</span>
-                <span className="contacts-metric-value">{loading ? "—" : companies.length.toLocaleString()}</span>
-              </div>
-              <div className="contacts-metric-card">
-                <span className="contacts-metric-label">Showing</span>
-                <span className="contacts-metric-value">{loading ? "—" : filteredCompanies.length.toString()}</span>
-              </div>
-            </div>
 
             {loading && (
               <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />

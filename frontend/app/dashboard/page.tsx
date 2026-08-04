@@ -209,8 +209,7 @@ function DashboardContent() {
     <div className="px-4 md:px-5 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text-primary">Analytics overview</h1>
-          <p className="mt-2 max-w-2xl text-sm text-text-secondary">
+          <p className="text-sm text-text-secondary">
             Switch the date window to refresh all dashboard widgets for the selected period.
           </p>
         </div>

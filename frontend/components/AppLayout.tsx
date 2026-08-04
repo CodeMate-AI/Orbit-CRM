@@ -447,10 +447,10 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
         <div>
           <div className="sidebar-brand">
             <div className="brand-mark">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                <path d="M2 12h20" />
+              <svg width="18" height="18" viewBox="0 0 32 32" fill="none" style={{ color: "#fff" }}>
+                <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2.5" />
+                <ellipse cx="16" cy="16" rx="14" ry="5" stroke="currentColor" strokeWidth="2" transform="rotate(-30 16 16)" />
+                <circle cx="16" cy="16" r="3" fill="currentColor" />
               </svg>
             </div>
             <div className="brand-text">Orbit</div>
@@ -583,10 +583,10 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               </button>
               <div className="mobile-header-brand">
                 <div className="brand-mark">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#fff" }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                    <path d="M2 12h20" />
+                  <svg width="18" height="18" viewBox="0 0 32 32" fill="none" style={{ color: "#fff" }}>
+                    <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2.5" />
+                    <ellipse cx="16" cy="16" rx="14" ry="5" stroke="currentColor" strokeWidth="2" transform="rotate(-30 16 16)" />
+                    <circle cx="16" cy="16" r="3" fill="currentColor" />
                   </svg>
                 </div>
                 <div className="mobile-header-copy">

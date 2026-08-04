@@ -33,6 +33,7 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"sessions" | "chat">("chat");
+  const [isCompact, setIsCompact] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const skipNextHistoryFetchRef = useRef(false);
 
@@ -42,15 +43,26 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
   );
 
   useEffect(() => {
+    const updateCompactState = () => {
+      setIsCompact(window.innerWidth < 768);
+    };
+
+    updateCompactState();
+    window.addEventListener("resize", updateCompactState);
+
+    return () => window.removeEventListener("resize", updateCompactState);
+  }, []);
+
+  useEffect(() => {
     if (open) {
       setActiveSessionId(null);
       setMessages([]);
       setInput("");
-      if (window.innerWidth < 768) {
+      if (isCompact) {
         setMobileView("chat");
       }
     }
-  }, [open]);
+  }, [open, isCompact]);
 
   useEffect(() => {
     if (!open || !workspaceId) return;
@@ -201,7 +213,6 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
     }
   }
 
-  const isCompact = typeof window !== "undefined" ? window.innerWidth < 768 : false;
   const showSessionsColumn = !isCompact || mobileView === "sessions";
   const showChatColumn = !isCompact || mobileView === "chat";
 

@@ -25,14 +25,14 @@ const features = [
   {
     eyebrow: "Contacts & Deals",
     title: "One record for every relationship",
-    body: "Stop digging through spreadsheets and scattered updates. Every contact, company, and deal lives in one unified profile with complete context — interactions, deal history, and next steps all in a single view.",
+    body: "Stop digging through spreadsheets and scattered updates. Every contact, company, and deal lives in one unified profile with complete context - interactions, deal history, and next steps all in a single view.",
     checks: ["Rich contact profiles with timeline", "Company records with deal context", "Deal timeline and activity history"],
     visualType: "contact",
   },
   {
     eyebrow: "Pipeline",
     title: "See your pipeline at a glance",
-    body: "Drag, drop, and manage deals through every stage. A visual sales process your team will actually use — clean, fast, and designed for momentum.",
+    body: "Drag, drop, and manage deals through every stage. A visual sales process your team will actually use - clean, fast, and designed for momentum.",
     checks: ["Lead, Qualified, Proposal, and Won stages", "Deal value and status tracking", "Win rates and progress visibility"],
     visualType: "kanban",
   },
@@ -45,7 +45,7 @@ const features = [
   },
   {
     eyebrow: "AI Assistant",
-    title: "Answers, insights, and outreach — just ask.",
+    title: "Answers, insights, and outreach - just ask.",
     body: "Orbit's AI helps you work faster with context-aware drafts and plain-English workspace search. Draft follow-ups, email copy, or notes, and surface the right companies, leads, tasks, and notes without clicking through menus.",
     checks: ["Natural language queries", "Outreach templates for follow-ups and notes", "Contextual search across the workspace"],
     visualType: "ai",
@@ -53,7 +53,7 @@ const features = [
   {
     eyebrow: "Analytics",
     title: "See what's working. Fix what isn't.",
-    body: "Real-time dashboards give every team member the metrics they need. From individual performance to company-wide trends — clarity without the complexity of enterprise reporting tools.",
+    body: "Real-time dashboards give every team member the metrics they need. From individual performance to company-wide trends - clarity without the complexity of enterprise reporting tools.",
     checks: ["Workspace dashboards", "Revenue forecasting", "Workspace activity logs"],
     visualType: "analytics",
   },
@@ -164,7 +164,7 @@ function AiVisual() {
         <p className="mb-2">
           Based on your current velocity,{" "}
           <strong className="text-text-primary">Q3 revenue is forecasted at ₹42.8 lakhs</strong>{" "}
-          — an 18% increase over Q2.
+          - an 18% increase over Q2.
         </p>
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-text-tertiary">Confidence: 87%</span>

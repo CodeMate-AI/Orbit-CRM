@@ -22,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orbit CRM — AI-Native Customer Relationship Management",
+  title: "Orbit CRM - AI-Native Customer Relationship Management",
   description:
     "The AI-native customer relationship management platform built for modern startups and small teams.",
   keywords: [
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     apple: "/icon.svg",
   },
   openGraph: {
-    title: "Orbit CRM — AI-Native Customer Relationship Management",
+    title: "Orbit CRM - AI-Native Customer Relationship Management",
     description:
       "The AI-native customer relationship management platform built for modern startups and small teams.",
     url: "https://orbit-crm-og.codemate.build",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Orbit CRM — AI-Native Customer Relationship Management",
+    title: "Orbit CRM - AI-Native Customer Relationship Management",
     description:
       "The AI-native customer relationship management platform built for modern startups and small teams.",
   },

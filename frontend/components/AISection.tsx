@@ -52,7 +52,7 @@ const chatBubbles = [
   },
   {
     type: "ai" as const,
-    text: "Based on your pipeline velocity and historical close rates, projected Q3 revenue is ₹42.8 lakhs — an 18% increase over Q2.",
+    text: "Based on your pipeline velocity and historical close rates, projected Q3 revenue is ₹42.8 lakhs - an 18% increase over Q2.",
     chart: true,
   },
   {
@@ -102,7 +102,7 @@ export default function AISection() {
             An assistant that knows your workspace
           </h2>
           <p className="max-w-115 text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
-            Ask questions in plain English. Get context-aware drafts and workspace search instantly — without interrupting your flow.
+            Ask questions in plain English. Get context-aware drafts and workspace search instantly - without interrupting your flow.
           </p>
 
           <div className="mt-6 flex flex-col gap-5">

@@ -8,7 +8,7 @@ const personas = [
     name: "Priya Krishnan",
     role: "Solo Founder",
     quote:
-      "I went from scattered spreadsheets to organized deals in an afternoon. Orbit didn't demand a tutorial — it just made sense.",
+      "I went from scattered spreadsheets to organized deals in an afternoon. Orbit didn't demand a tutorial - it just made sense.",
     tag: "Self-serve setup",
     tagColor: "green" as const,
   },
@@ -59,7 +59,7 @@ export default function PersonasSection() {
             Built for how you actually work
           </h2>
           <p className="text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
-            Orbit is designed around the real workflows of modern teams — no training manuals required.
+            Orbit is designed around the real workflows of modern teams - no training manuals required.
           </p>
         </motion.div>
 

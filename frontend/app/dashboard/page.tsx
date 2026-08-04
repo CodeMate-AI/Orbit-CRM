@@ -54,13 +54,8 @@ function formatCurrency(value: number) {
 
 function formatDueDate(dateStr: string | null) {
   if (!dateStr) return null;
-  const parts = dateStr.slice(0, 10).split("-");
-  if (parts.length !== 3) return null;
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1;
-  const day = parseInt(parts[2], 10);
-
-  const d = new Date(year, month, day);
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -498,7 +493,7 @@ function DashboardContent() {
             <div className="widget-title">Stage summary</div>
             <div className="widget-meta flex items-center gap-1">
               <TrendingUp className="h-3.5 w-3.5" />
-              All time
+              {rangeLabel}
             </div>
           </div>
           {pipeline.stages.length === 0 ? (

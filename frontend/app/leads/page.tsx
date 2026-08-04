@@ -532,6 +532,7 @@ function LeadsContent() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [newPeriod, setNewPeriod] = useState<"week" | "month" | "quarter" | "year">("month");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -647,11 +648,40 @@ function LeadsContent() {
   const visibleSelectedCount = filteredLeads.filter((Lead) => selectedIds.has(Lead.id)).length;
   const allVisibleSelected = filteredLeads.length > 0 && visibleSelectedCount === filteredLeads.length;
   const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
-  const newThisMonth = Leads.filter((c) => {
-    const d = new Date(c.createdAt);
+  const getNewCount = useMemo(() => {
     const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
+    return Leads.filter((c) => {
+      const d = new Date(c.createdAt);
+      if (newPeriod === "week") {
+        // Current calendar week: Monday 00:00 to now
+        const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon … 6=Sat
+        const diffToMonday = (dayOfWeek + 6) % 7; // days since last Monday
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+        return d >= monday && d <= now;
+      }
+      if (newPeriod === "month") {
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }
+      if (newPeriod === "quarter") {
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        const leadQuarter = Math.floor(d.getMonth() / 3);
+        return leadQuarter === currentQuarter && d.getFullYear() === now.getFullYear();
+      }
+      if (newPeriod === "year") {
+        return d.getFullYear() === now.getFullYear();
+      }
+      return false;
+    }).length;
+  }, [Leads, newPeriod]);
+
+  const NEW_PERIOD_LABELS: Record<"week" | "month" | "quarter" | "year", string> = {
+    week: "This week",
+    month: "This month",
+    quarter: "This quarter",
+    year: "This year",
+  };
 
   const handleSort = (column: SortableColumn) => {
     setSortConfig((current) => {
@@ -741,15 +771,31 @@ function LeadsContent() {
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 py-6 md:px-8 md:py-8">
       <section className="contacts-shell">
-        <header className="contacts-header">
-          <div className="contacts-header-main">
-            <div>
-              <p className="contacts-kicker">Revenue workspace</p>
-              <h1 className="page-title contacts-page-title">Leads</h1>
+        <div className="leads-topbar">
+          <div className="leads-stats">
+            <div className="leads-stat-chip">
+              <span className="leads-stat-label">Total Leads</span>
+              <span className="leads-stat-val">{loading ? "—" : Leads.length.toLocaleString()}</span>
+            </div>
+            <div className="leads-stat-chip">
+              <span className="leads-stat-label">New · {NEW_PERIOD_LABELS[newPeriod]}</span>
+              <span className="leads-stat-val">{loading ? "—" : getNewCount.toString()}</span>
+              <div className="leads-period-toggle" role="group" aria-label="Select period">
+                {(["week", "month", "quarter", "year"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`leads-period-btn${newPeriod === p ? " active" : ""}`}
+                    onClick={() => setNewPeriod(p)}
+                  >
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="contacts-toolbar">
+          <div className="leads-actions">
             <button
               id="Leads-add-btn"
               className="btn-primary"
@@ -804,7 +850,7 @@ function LeadsContent() {
               />
             </div>
           </div>
-        </header>
+        </div>
 
         {selectedIds.size > 0 && (
           <div className="bulk-bar" role="status" aria-live="polite">
@@ -823,17 +869,6 @@ function LeadsContent() {
         )}
 
         <section className="contacts-table-section">
-          <div className="contacts-metrics">
-            <div className="contacts-metric-card">
-              <span className="contacts-metric-label">Total Leads</span>
-              <span className="contacts-metric-value">{loading ? "—" : Leads.length.toLocaleString()}</span>
-            </div>
-            <div className="contacts-metric-card">
-              <span className="contacts-metric-label">New this month</span>
-              <span className="contacts-metric-value">{loading ? "—" : newThisMonth.toString()}</span>
-            </div>
-          </div>
-
           {loading && (
             <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />
           )}

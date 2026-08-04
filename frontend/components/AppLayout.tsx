@@ -41,11 +41,13 @@ import { shouldCloseWorkspaceDropdown, toggleWorkspaceDropdown } from "./workspa
 interface WorkspaceContextValue {
   workspaceId: string | null;
   workspaceName: string;
+  userRole: WorkspaceMemberRole;
 }
 
 export const WorkspaceContext = createContext<WorkspaceContextValue>({
   workspaceId: null,
   workspaceName: "",
+  userRole: "MEMBER",
 });
 
 export function useWorkspace() {
@@ -574,7 +576,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
   };
 
   return (
-    <WorkspaceContext.Provider value={{ workspaceId, workspaceName }}>
+    <WorkspaceContext.Provider value={{ workspaceId, workspaceName, userRole }}>
       <div className="app-frame min-h-screen">
         <aside className="sidebar desktop-sidebar">{renderSidebarContent()}</aside>
 

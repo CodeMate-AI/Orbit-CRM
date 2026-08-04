@@ -16,6 +16,16 @@ export class CompaniesService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   async listByWorkspace(userId: string, workspaceId: string) {
@@ -193,7 +203,7 @@ export class CompaniesService {
       throw new NotFoundException("Company not found.");
     }
 
-    await this.assertMembership(userId, company.workspaceId);
+    await this.assertOwnerPrivilege(userId, company.workspaceId);
 
     await prisma.company.update({
       where: { id: companyId },

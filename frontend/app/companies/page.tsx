@@ -276,7 +276,7 @@ function AddCompanyModal({
 
 function CompaniesContent() {
   const router = useRouter();
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, userRole } = useWorkspace();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [leads, setLeads] = useState<PersonRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,6 +416,10 @@ function CompaniesContent() {
   };
 
   const handleDelete = async (id: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     try {
       await companiesApi.delete(id);
       toast.success("Company deleted successfully");
@@ -432,6 +436,10 @@ function CompaniesContent() {
   };
 
   const handleBulkDelete = async () => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     if (selectedIds.size === 0) return;
     setIsDeleting(true);
     try {

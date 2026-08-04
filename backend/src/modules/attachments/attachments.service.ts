@@ -22,6 +22,16 @@ export class AttachmentsService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   private getResourceType(mimeType: string): "image" | "video" | "raw" {
@@ -153,7 +163,7 @@ export class AttachmentsService {
       throw new NotFoundException("Attachment not found.");
     }
 
-    await this.assertMembership(userId, attachment.workspaceId);
+    await this.assertOwnerPrivilege(userId, attachment.workspaceId);
 
     const resourceType = this.getResourceType(attachment.mimeType);
 

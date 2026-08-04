@@ -7,6 +7,7 @@ import ReadOnlyNoteContent from "./ReadOnlyNoteContent";
 import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
 import { isTiptapJsonEmpty } from "@/lib/utils";
+import { useWorkspace } from "./AppLayout";
 
 interface NotesTimelineProps {
   workspaceId: string;
@@ -15,6 +16,7 @@ interface NotesTimelineProps {
 }
 
 export default function NotesTimeline({ workspaceId, entityType, entityId }: NotesTimelineProps) {
+  const { userRole } = useWorkspace();
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,10 @@ export default function NotesTimeline({ workspaceId, entityType, entityId }: Not
   };
 
   const handleDeleteNote = async (id: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this note?")) return;
     try {
       await notesApi.delete(id);

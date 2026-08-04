@@ -15,7 +15,7 @@ import {
   Trash2,
   ChevronDown,
   LayoutGrid,
-} from "lucide-react"
+} from "lucide-react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { downloadCsv } from "@/lib/csv-utils";
 import { toast } from "sonner";
@@ -507,6 +507,8 @@ function DealsContent() {
   };
 
 
+  const { userRole } = useWorkspace();
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -591,6 +593,10 @@ function DealsContent() {
   };
 
   const handleDeleteDeal = async (id: string, stageId: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     try {
       await opportunitiesApi.delete(id);
       toast.success("Deal deleted successfully");

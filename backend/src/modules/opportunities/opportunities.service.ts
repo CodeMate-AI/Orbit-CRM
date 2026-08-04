@@ -20,6 +20,15 @@ export class OpportunitiesService {
       where: { userId_workspaceId: { userId, workspaceId } },
     });
     if (!member) throw new ForbiddenException("You are not a member of this workspace.");
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   /** Returns all pipeline stages + their opportunities for a workspace */
@@ -276,7 +285,7 @@ export class OpportunitiesService {
   async delete(userId: string, oppId: string) {
     const opp = await prisma.opportunity.findUnique({ where: { id: oppId } });
     if (!opp) throw new NotFoundException("Opportunity not found.");
-    await this.assertMembership(userId, opp.workspaceId);
+    await this.assertOwnerPrivilege(userId, opp.workspaceId);
 
     await prisma.opportunity.update({
       where: { id: oppId },

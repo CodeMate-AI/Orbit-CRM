@@ -43,6 +43,15 @@ export class PeopleService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   private normalizeEmail(value?: string | null) {
@@ -508,7 +517,7 @@ export class PeopleService {
   async delete(userId: string, personId: string) {
     const person = await prisma.person.findUnique({ where: { id: personId } });
     if (!person) throw new NotFoundException("Person not found.");
-    await this.assertMembership(userId, person.workspaceId);
+    await this.assertOwnerPrivilege(userId, person.workspaceId);
 
     await prisma.person.update({
       where: { id: personId },

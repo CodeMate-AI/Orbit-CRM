@@ -5,6 +5,7 @@ import { Download, File, FileImage, FileText, Loader2, Trash2 } from "lucide-rea
 import { toast } from "sonner";
 import { attachmentsApi, AttachmentRow } from "@/lib/attachments-api";
 import FileUploader from "./FileUploader";
+import { useWorkspace } from "./AppLayout";
 
 interface AttachmentListProps {
   workspaceId: string;
@@ -29,6 +30,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function AttachmentList({ workspaceId, entityType, entityId }: AttachmentListProps) {
+  const { userRole } = useWorkspace();
   const [files, setFiles] = useState<AttachmentRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +60,10 @@ export default function AttachmentList({ workspaceId, entityType, entityId }: At
   };
 
   const handleDelete = async (id: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this attachment?")) return;
 
     try {

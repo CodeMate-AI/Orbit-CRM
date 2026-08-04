@@ -13,6 +13,16 @@ export class NotesService {
     if (!member) {
       throw new ForbiddenException("You are not a member of this workspace.");
     }
+
+    return member;
+  }
+
+  /** Verify user is an owner of the workspace */
+  private async assertOwnerPrivilege(userId: string, workspaceId: string) {
+    const member = await this.assertMembership(userId, workspaceId);
+    if (member.role !== "OWNER") {
+      throw new ForbiddenException("Only workspace owners can perform this action.");
+    }
   }
 
   async listForEntity(
@@ -118,7 +128,7 @@ export class NotesService {
       throw new NotFoundException("Note not found.");
     }
 
-    await this.assertMembership(userId, note.workspaceId);
+    await this.assertOwnerPrivilege(userId, note.workspaceId);
 
     await prisma.note.update({
       where: { id: noteId },

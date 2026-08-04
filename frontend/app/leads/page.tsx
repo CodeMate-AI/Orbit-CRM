@@ -516,7 +516,7 @@ function AddLeadModal({
 
 function LeadsContent() {
   const router = useRouter();
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, userRole } = useWorkspace();
   const [Leads, setLeads] = useState<PersonRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [customLeadSources, setCustomLeadSources] = useState<string[]>([]);
@@ -718,6 +718,10 @@ function LeadsContent() {
   };
 
   const handleDeleteLead = async (id: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     try {
       await peopleApi.delete(id);
       toast.success("Lead deleted successfully");
@@ -733,6 +737,10 @@ function LeadsContent() {
   };
 
   const handleBulkDelete = async () => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
     if (selectedIds.size === 0) return;
     setIsDeleting(true);
     try {

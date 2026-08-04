@@ -16,7 +16,7 @@ import {
   Briefcase,
   IndianRupee,
   CheckSquare,
-  Sparkles,
+  Bot,
   Settings,
   LogOut,
   Search,
@@ -528,7 +528,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               className="nav-item text-left"
               onClick={() => setIsAiDrawerOpen(true)}
             >
-              <Sparkles className="h-4.5 w-4.5" />
+              <Bot className="h-4.5 w-4.5" />
               AI Assistant
             </button>
 
@@ -627,7 +627,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                 onClick={() => setIsAiDrawerOpen(true)}
                 aria-label="Open AI assistant"
               >
-                <Sparkles className="h-5 w-5" />
+                <Bot className="h-5 w-5" />
               </button>
               <button
                 type="button"

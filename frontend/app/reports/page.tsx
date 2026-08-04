@@ -62,6 +62,7 @@ function useReportData(workspaceId: string | null, range: ReportsDateRange) {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -72,15 +73,15 @@ function useReportData(workspaceId: string | null, range: ReportsDateRange) {
       .then(setData)
       .catch((err) => setError(err.message || "Failed to load reports."))
       .finally(() => setLoading(false));
-  }, [workspaceId, range]);
+  }, [workspaceId, range, retryCount]);
 
-  return { data, loading, error };
+  return { data, loading, error, retry: () => setRetryCount((count) => count + 1) };
 }
 
 function ReportsContent() {
   const { workspaceId } = useWorkspace();
   const [range, setRange] = useState<ReportsDateRange>("week");
-  const { data, loading, error } = useReportData(workspaceId, range);
+  const { data, loading, error, retry } = useReportData(workspaceId, range);
 
   const taskProgress = useMemo(() => {
     if (!data) return 0;
@@ -209,6 +210,9 @@ function ReportsContent() {
         <div className="flex flex-col items-center gap-3 py-24 text-center">
           <BarChart2 className="h-8 w-8 text-error" />
           <p className="text-sm text-error">{error}</p>
+          <button type="button" onClick={retry} className="btn-secondary h-10 px-4 text-sm">
+            Retry
+          </button>
         </div>
       </>
     );
@@ -270,7 +274,7 @@ function ReportsContent() {
             <div className="widget-header">
               <div>
                 <div className="widget-title">Revenue Forecast</div>
-                <div className="widget-meta">Expected future revenue</div>
+                <div className="widget-meta">Expected revenue in period</div>
               </div>
               <button type="button" className="btn-secondary h-9 px-3 text-xs ml-auto" onClick={handleExportForecastCsv}>
                 <Download className="h-4 w-4" /> Download CSV
@@ -299,7 +303,7 @@ function ReportsContent() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-full items-center justify-center text-sm text-text-secondary">No future revenue found.</div>
+                <div className="flex h-full items-center justify-center text-sm text-text-secondary">No revenue found for this period.</div>
               )}
             </div>
           </section>

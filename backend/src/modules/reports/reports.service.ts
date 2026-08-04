@@ -69,7 +69,7 @@ export class ReportsService {
 
     const [stages, leadSources, taskCounts, topCompanies, revenueForecastRows] = await Promise.all([
       prisma.pipelineStage.findMany({
-        where: { workspaceId },
+        where: { workspaceId, pipeline: { isDefault: true } },
         select: { id: true, name: true, color: true, position: true },
         orderBy: [{ position: "asc" }, { name: "asc" }],
       }),
@@ -168,9 +168,6 @@ export class ReportsService {
         (taskByStatus.get("DONE") ?? 0) +
         (taskByStatus.get("CANCELLED") ?? 0),
     };
-    const completedTasks = taskCompletionRate.done;
-    const activeTaskTotal = taskCompletionRate.todo + taskCompletionRate.inProgress + taskCompletionRate.done;
-    const taskCompletionPercent = activeTaskTotal > 0 ? Math.round((completedTasks / activeTaskTotal) * 100) : 0;
 
     const companyIds = topCompanies.map((entry) => entry.companyId).filter((value): value is string => Boolean(value));
     const companies = companyIds.length

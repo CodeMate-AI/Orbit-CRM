@@ -409,6 +409,10 @@ function DealsContent() {
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: "asc" | "desc" }>({ column: "name", direction: "asc" });
 
+  useEffect(() => {
+    setStages([]);
+  }, [workspaceId]);
+
   // DnD & Responsiveness states
   const [isMobile, setIsMobile] = useState(false);
   const [activeDragDeal, setActiveDragDeal] = useState<DealRow | null>(null);
@@ -514,7 +518,9 @@ function DealsContent() {
 
   useEffect(() => {
     if (!workspaceId) return;
-    setLoading(true);
+    if (stages.length === 0) {
+      setLoading(true);
+    }
 
     Promise.all([
       opportunitiesApi.list(workspaceId),
@@ -533,7 +539,7 @@ function DealsContent() {
       })
       .catch((err: any) => setError(err.message || "Failed to load deals."))
       .finally(() => setLoading(false));
-  }, [workspaceId, refreshTrigger]);
+  }, [workspaceId, refreshTrigger, stages.length]);
 
   useEffect(() => {
     if (!boardRef.current || stages.length === 0) return;

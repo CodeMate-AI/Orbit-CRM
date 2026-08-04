@@ -196,8 +196,14 @@ export default function AiChatDrawer({ open, onOpenChange }: AiChatDrawerProps) 
         );
         return [...filtered, result.userMessage, result.assistantMessage];
       });
-      const refreshed = await aiApi.listSessions(workspaceId);
-      setSessions(refreshed);
+      void aiApi
+        .listSessions(workspaceId)
+        .then((refreshed) => {
+          setSessions(refreshed);
+        })
+        .catch((error) => {
+          console.error("Failed to refresh sessions:", error);
+        });
     } catch (error: any) {
       console.error("Failed to send AI message:", error);
       // Remove the failed draft message and show error to user

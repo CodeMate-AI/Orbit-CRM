@@ -1,5 +1,4 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Attachment } from "@prisma/client";
 import { prisma } from "../../prisma";
 import { randomUUID } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
@@ -131,15 +130,20 @@ export class AttachmentsService {
 
     await this.assertMembership(userId, attachment.workspaceId);
 
-    const timestamp = Math.round(Date.now() / 1000) + 3600;
+    const expiresAt = Math.round(Date.now() / 1000) + 3600; // valid for 1 hour
     const resourceType = this.getResourceType(attachment.mimeType);
-    const format = resourceType === "raw" ? "" : (attachment.name.split(".").pop() || "");
 
-    const downloadUrl = cloudinary.utils.private_download_url(attachment.storageKey, format, {
+    // Use cloudinary.url() with sign_url — this generates a proper signed delivery
+    // URL on res.cloudinary.com for 'authenticated' type resources.
+    // NOTE: private_download_url() was wrong here — it hits api.cloudinary.com
+    // (the admin API endpoint) which cannot serve authenticated delivery resources.
+    const downloadUrl = cloudinary.url(attachment.storageKey, {
       resource_type: resourceType,
       type: "authenticated",
-      expires_at: timestamp,
-      attachment: true,
+      sign_url: true,
+      expires_at: expiresAt,
+      attachment: true, // forces Content-Disposition: attachment (triggers download)
+      secure: true,
     });
 
     return { downloadUrl };

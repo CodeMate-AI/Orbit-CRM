@@ -1705,8 +1705,8 @@
   }
 
   .leads-stat-val {
-    font-family: var(--font-mono);
-    font-size: 22px;
+    font-family: var(--font-sans);
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1;

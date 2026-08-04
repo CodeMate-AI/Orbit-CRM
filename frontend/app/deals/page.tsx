@@ -652,58 +652,54 @@ function DealsContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 md:gap-8 md:p-8">
-      <section className="rounded-xl border border-border-subtle bg-surface-default p-5 md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Deals</p>
-            <h2 className="mt-2 text-2xl font-semibold md:text-3xl">Opportunity board</h2>
-            <p className="mt-1 max-w-2xl text-sm text-text-secondary">
-              Review pipeline health, spot stuck deals, and keep revenue momentum visible.
-            </p>
+      <div className="leads-topbar">
+        <div className="leads-stats">
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Total Deals</span>
+            <span className="leads-stat-val">{loading ? "—" : totalDeals.toLocaleString()}</span>
           </div>
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            {!loading && (
-              <div className="font-mono text-sm text-text-secondary">
-                {totalDeals} deal{totalDeals !== 1 ? "s" : ""}
-                {pipelineValue > 0 && <> · {formatCurrency(pipelineValue)}</>}
-              </div>
-            )}
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <button
-                id="deals-add-btn"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded bg-orbit-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-orbit-primary-hover"
-                onClick={() => setShowModal(true)}
-                disabled={!workspaceId || loading || stages.length === 0}
-              >
-                <Plus className="h-4 w-4" />
-                New deal
-              </button>
-
-              <button
-                type="button"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded border border-border-subtle bg-bg-secondary px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-tertiary transition"
-                onClick={handleExportCsv}
-                disabled={!workspaceId || loading || stages.length === 0}
-                aria-label="Export deals to CSV"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </button>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" aria-hidden="true" />
-                <input
-                  className="w-full rounded border border-border-subtle bg-bg-secondary py-2 pl-9 pr-4 text-sm text-text-primary outline-none focus:border-orbit-primary"
-                  placeholder="Search deals..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Search deals"
-                />
-              </div>
+          {pipelineValue > 0 && (
+            <div className="leads-stat-chip">
+              <span className="leads-stat-label">Pipeline Value</span>
+              <span className="leads-stat-val">{loading ? "—" : formatCurrency(pipelineValue)}</span>
             </div>
-          </div>
+          )}
         </div>
-      </section>
+
+        <div className="leads-actions">
+          <div className="search-wrap">
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <input
+              className="search-input"
+              placeholder="Search deals..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search deals"
+            />
+          </div>
+
+          <button
+            id="deals-add-btn"
+            className="btn-primary"
+            onClick={() => setShowModal(true)}
+            disabled={!workspaceId || loading || stages.length === 0}
+          >
+            <Plus className="h-4 w-4" />
+            New deal
+          </button>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleExportCsv}
+            disabled={!workspaceId || loading || stages.length === 0}
+            aria-label="Export deals to CSV"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+        </div>
+      </div>
 
       {loading && (
         <div className="flex items-center justify-center gap-3 py-20 text-text-tertiary">

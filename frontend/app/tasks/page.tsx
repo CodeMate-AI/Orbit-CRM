@@ -528,10 +528,17 @@ function TaskDetailDrawer({
       return;
     }
 
+    const payloadValue = (() => {
+      if (field === "title" || field === "description") {
+        return String(nextValue).trim();
+      }
+      return nextValue;
+    })();
+
     setSavingField(field);
     try {
       const updated = await tasksApi.update(task.id, {
-        [field]: field === "title" || field === "description" ? String(nextValue).trim() || undefined : nextValue || undefined,
+        [field]: payloadValue,
       });
       onTaskUpdated(updated);
       setForm(buildDrawerForm(updated));

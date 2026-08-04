@@ -17,7 +17,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarDays,
-  CircleDollarSign,
+  IndianRupee,
   Paperclip,
   Loader2,
   Mail,
@@ -295,11 +295,11 @@ function DealDetailPage() {
         </div>
       </div>
 
-      <section className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,_rgba(129,116,248,0.12),_transparent_32%),linear-gradient(180deg,_var(--bg-secondary),_var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] md:p-6">
+      <section className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,rgba(129,116,248,0.12),transparent_32%),linear-gradient(180deg,var(--bg-secondary),var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] md:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary">
-              <CircleDollarSign className="h-3.5 w-3.5" /> Opportunity workspace
+              <IndianRupee className="h-3.5 w-3.5" /> Opportunity workspace
             </div>
 
             <div className="space-y-3">
@@ -323,7 +323,7 @@ function DealDetailPage() {
               />
               <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
                 <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
-                  <CircleDollarSign className="h-4 w-4 text-orbit-primary" /> {formatMoney(detail.amount)}
+                  <IndianRupee className="h-4 w-4 text-orbit-primary" /> {formatMoney(detail.amount)}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
                   <CalendarDays className="h-4 w-4 text-orbit-primary" /> Close date {formatDate(detail.closeDate, { day: "numeric", month: "short", year: "numeric" })}
@@ -617,7 +617,7 @@ function DealDetailPage() {
               />
             </label>
 
-            <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-105 space-y-3 overflow-y-auto pr-1">
               {availableContacts.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/40 p-6 text-center text-sm text-text-tertiary">
                   No matching people found.

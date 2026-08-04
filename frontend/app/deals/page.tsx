@@ -7,7 +7,7 @@ import SkeletonRow from "@/components/ui/SkeletonRow";
 import {
   Building2,
   CalendarClock,
-  CircleDollarSign,
+  IndianRupee,
   Download,
   Loader2,
   Plus,
@@ -346,7 +346,7 @@ function DraggableDealCard({
       <div className="mt-3 flex flex-col gap-1.5">
         {deal.amount !== null && (
           <div className="flex items-center gap-2 text-xs text-text-secondary">
-            <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
+            <IndianRupee className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
             <span className="font-mono">{formatCurrency(deal.amount)}</span>
           </div>
         )}
@@ -796,7 +796,7 @@ function DealsContent() {
                 <div className="mt-3 flex flex-col gap-1.5">
                   {activeDragDeal.amount !== null && (
                     <div className="flex items-center gap-2 text-xs text-text-secondary">
-                      <CircleDollarSign className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
+                      <IndianRupee className="h-3.5 w-3.5 shrink-0 text-orbit-primary" />
                       <span className="font-mono">{formatCurrency(activeDragDeal.amount)}</span>
                     </div>
                   )}

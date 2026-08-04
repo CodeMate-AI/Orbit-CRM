@@ -12,7 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
+import { Users, Briefcase, IndianRupee, Loader2 } from "lucide-react";
 
 interface SearchDialogProps {
   open: boolean;
@@ -72,7 +72,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         value={query}
         onValueChange={setQuery}
       />
-      <CommandList className="max-h-[350px] overflow-y-auto">
+      <CommandList className="max-h-87.5 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-6 text-text-tertiary">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -136,7 +136,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 onSelect={() => handleSelect(`/deals?id=${deal.id}`)}
                 className="flex cursor-pointer items-center gap-2"
               >
-                <DollarSign className="h-4 w-4 text-text-secondary" />
+                <IndianRupee className="h-4 w-4 text-text-secondary" />
                 <div className="flex flex-col">
                   <span className="font-medium text-text-primary">{deal.name}</span>
                   <span className="text-[10px] text-text-muted">

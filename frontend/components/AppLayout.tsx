@@ -14,7 +14,7 @@ import {
   Users,
   LayoutGrid,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   CheckSquare,
   Sparkles,
   Settings,
@@ -289,7 +289,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     { href: "/reports", label: "Reports", icon: BarChart2, active: pathname === "/reports" },
     { href: "/leads", label: "Leads", icon: Users, active: pathname === "/leads" },
     { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
-    { href: "/deals", label: "Deals", icon: DollarSign, active: pathname === "/deals" },
+    { href: "/deals", label: "Deals", icon: IndianRupee, active: pathname === "/deals" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, active: pathname === "/tasks" },
   ];
 

@@ -4,16 +4,18 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const sidebarItems = [
-  { label: "Pipeline", active: true },
-  { label: "Contacts" },
+  { label: "Dashboard", active: true },
+  { label: "Reports" },
+  { label: "Leads" },
+  { label: "Companies" },
   { label: "Deals" },
   { label: "Tasks" },
-  { label: "Analytics" },
+  { label: "Settings" },
 ];
 
 const pipelineColumns = [
   {
-    header: "New Lead",
+    header: "Lead",
     count: "12",
     deals: [
       { title: "Acme Corporation", meta: "₹24,00,000 · Rahul S", tag: "Warm" },
@@ -29,14 +31,14 @@ const pipelineColumns = [
     ],
   },
   {
-    header: "Negotiation",
+    header: "Proposal",
     count: "5",
     deals: [
       { title: "Vertex Labs", meta: "₹35,00,000 · Priya K", tag: "Proposal" },
     ],
   },
   {
-    header: "Closed Won",
+    header: "Won",
     count: "24",
     deals: [
       { title: "TechStart Fund", meta: "₹64,00,000 · Rahul S", tag: null },
@@ -46,17 +48,17 @@ const pipelineColumns = [
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden px-4 pb-16 lg:pb-[140px] pt-[96px] sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden px-4 pb-16 lg:pb-35 pt-24 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 min-[900px]:grid-cols-[1fr_1.15fr] min-[900px]:gap-16">
         {/* Left column */}
         <div className="flex flex-col gap-7">
-          <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
+          <p className="text-xs font-normal uppercase tracking-widest text-text-tertiary">
             Orbit CRM
           </p>
           <h1 className="font-serif text-[clamp(2.5rem,5vw,4.25rem)] font-normal leading-[1.08] tracking-[-0.03em] text-text-primary">
             A fast, beautiful CRM you&apos;ll actually want to use.
           </h1>
-          <p className="max-w-[460px] text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
+          <p className="max-w-115 text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
             Orbit replaces spreadsheets and overpriced enterprise tools with an AI-native CRM designed for modern startups and small teams. Set up in minutes. Priced for growth.
           </p>
           <div className="mt-2 flex flex-wrap gap-4">
@@ -111,7 +113,7 @@ export default function HeroSection() {
             {/* Body */}
             <div className="flex min-w-0 flex-1 flex-col">
               {/* Topbar */}
-              <div className="flex h-[52px] items-center justify-between border-b border-border-default px-5">
+              <div className="flex h-13 items-center justify-between border-b border-border-default px-5">
                 <div className="text-sm font-medium text-text-primary">
                   Sales Pipeline
                 </div>
@@ -125,9 +127,9 @@ export default function HeroSection() {
                 {pipelineColumns.map((col) => (
                   <div
                     key={col.header}
-                    className="flex min-w-[160px] flex-1 flex-col gap-2 rounded border border-border-default bg-bg-primary p-3 md:min-w-0"
+                    className="flex min-w-40 flex-1 flex-col gap-2 rounded border border-border-default bg-bg-primary p-3 md:min-w-0"
                   >
-                    <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.1em] text-text-tertiary">
+                    <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-text-tertiary">
                       {col.header}
                       <span className="rounded-full bg-bg-tertiary px-1.5 py-0.5 text-[10px] text-text-secondary">
                         {col.count}

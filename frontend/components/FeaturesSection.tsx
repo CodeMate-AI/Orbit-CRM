@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 function CheckIcon() {
   return (
-    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-success/25 bg-success/10">
+    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-success/25 bg-success/10">
       <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
         <path d="M1 3L3 5L7 1" stroke="#32d583" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -25,43 +25,43 @@ const features = [
   {
     eyebrow: "Contacts & Deals",
     title: "One record for every relationship",
-    body: "Stop digging through emails and notes. Every contact, company, and deal lives in one unified profile with complete context — interactions, deal history, and next steps all in a single view.",
-    checks: ["Rich contact profiles with timeline", "Company hierarchy and relationships", "Deal timeline and activity history"],
+    body: "Stop digging through spreadsheets and scattered updates. Every contact, company, and deal lives in one unified profile with complete context — interactions, deal history, and next steps all in a single view.",
+    checks: ["Rich contact profiles with timeline", "Company records with deal context", "Deal timeline and activity history"],
     visualType: "contact",
   },
   {
     eyebrow: "Pipeline",
     title: "See your pipeline at a glance",
     body: "Drag, drop, and manage deals through every stage. A visual sales process your team will actually use — clean, fast, and designed for momentum.",
-    checks: ["Fully customizable stages", "Deal value and probability tracking", "Win rates and deal status tracking"],
+    checks: ["Lead, Qualified, Proposal, and Won stages", "Deal value and status tracking", "Win rates and progress visibility"],
     visualType: "kanban",
   },
   {
-    eyebrow: "Customization",
-    title: "Your business isn't generic. Neither is your CRM.",
-    body: "Capture the data that matters to you. Add custom fields and categories without writing a single line of code. Make Orbit fit your workflow, not the other way around.",
-    checks: ["Text, number, date, and dropdown fields", "Multi-select and customizable fields", "Required field enforcement"],
-    visualType: "fields",
+    eyebrow: "Notes & Files",
+    title: "Centralized notes and documents",
+    body: "Keep all communication history and context in one place. Add rich client notes, upload files up to 10MB (images, PDFs, documents, audio/video), and download them securely with private expiring links.",
+    checks: ["Rich-text notes with timeline", "Supports any file type up to 10MB", "Cloudinary secure expiring downloads"],
+    visualType: "notes",
   },
   {
     eyebrow: "AI Assistant",
-    title: "Answers, insights, and updates — just ask.",
-    body: "Orbit's AI understands your data and helps you work faster. Generate summaries, update records, and get forecasts without clicking through menus or running reports.",
-    checks: ["Natural language queries", "Pipeline forecasting and insights", "Smart follow-up reminders"],
+    title: "Answers, insights, and outreach — just ask.",
+    body: "Orbit's AI helps you work faster with context-aware drafts and plain-English workspace search. Draft follow-ups, email copy, or notes, and surface the right companies, leads, tasks, and notes without clicking through menus.",
+    checks: ["Natural language queries", "Outreach templates for follow-ups and notes", "Contextual search across the workspace"],
     visualType: "ai",
   },
   {
     eyebrow: "Analytics",
     title: "See what's working. Fix what isn't.",
     body: "Real-time dashboards give every team member the metrics they need. From individual performance to company-wide trends — clarity without the complexity of enterprise reporting tools.",
-    checks: ["Workspace dashboards", "Revenue forecasting", "Stage summaries and activity logs"],
+    checks: ["Workspace dashboards", "Revenue forecasting", "Workspace activity logs"],
     visualType: "analytics",
   },
 ];
 
 function ContactVisual() {
   return (
-    <div className="w-full max-w-[340px] rounded border border-border-default bg-bg-primary p-6 flex flex-col gap-5">
+    <div className="w-full max-w-85 rounded border border-border-default bg-bg-primary p-6 flex flex-col gap-5">
       <div className="flex items-center gap-3.5">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-tertiary font-serif text-lg text-orbit-primary">R</div>
         <div>
@@ -95,7 +95,7 @@ function ContactVisual() {
 
 function KanbanVisual() {
   return (
-    <div className="flex w-full max-w-[380px] gap-3">
+    <div className="flex w-full max-w-95 gap-3">
       {[
         {
           header: "Qualified",
@@ -112,7 +112,7 @@ function KanbanVisual() {
         },
       ].map((col) => (
         <div key={col.header} className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.1em] text-text-tertiary">
+          <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-text-tertiary">
             {col.header}
             <span className="rounded-full bg-bg-tertiary px-1.5 py-0.5 text-[9px]">{col.count}</span>
           </div>
@@ -120,7 +120,7 @@ function KanbanVisual() {
             <div key={c.title} className="flex flex-col gap-2 rounded border border-border-default bg-bg-primary p-3">
               <div className="text-xs font-medium text-text-primary">{c.title}</div>
               <div className="font-mono text-[10px] text-text-tertiary">{c.meta}</div>
-              <div className="mt-1 h-[3px] overflow-hidden rounded bg-bg-tertiary">
+              <div className="mt-1 h-0.75 overflow-hidden rounded bg-bg-tertiary">
                 <div className="h-full rounded bg-orbit-primary" style={{ width: c.fill }} />
               </div>
             </div>
@@ -131,32 +131,32 @@ function KanbanVisual() {
   );
 }
 
-function FieldsVisual() {
+function NotesVisual() {
   return (
-    <div className="flex w-full max-w-[340px] flex-col gap-2.5">
-      <div className="mb-1 text-[11px] uppercase tracking-[0.08em] text-text-tertiary">Custom Fields</div>
-      {[
-        { type: "Text", name: "GST Number" },
-        { type: "Select", name: "Industry Vertical" },
-        { type: "Date", name: "Contract Renewal" },
-        { type: "Number", name: "Team Size" },
-      ].map((f) => (
-        <div key={f.name} className="flex items-center gap-3 rounded border border-border-default bg-bg-primary px-3.5 py-3">
-          <span className="rounded bg-bg-tertiary px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.08em] text-text-tertiary">{f.type}</span>
-          <span className="text-[13px] text-text-secondary">{f.name}</span>
+    <div className="w-full max-w-85 rounded border border-border-default bg-bg-primary p-6 flex flex-col gap-4">
+      <div>
+        <div className="text-[11px] uppercase tracking-[0.08em] text-text-tertiary">Client Note</div>
+        <div className="mt-1.5 text-xs text-text-secondary rounded border border-border-default bg-bg-secondary p-3">
+          "Spoke with Priya. They are interested in a 12-month pilot and requested pricing options."
         </div>
-      ))}
-      <div className="mt-1 text-xs text-orbit-primary">+ Add custom field</div>
+      </div>
+      <div>
+        <div className="text-[11px] uppercase tracking-[0.08em] text-text-tertiary">Secure Attachment</div>
+        <div className="mt-1.5 flex items-center justify-between rounded border border-border-default bg-bg-secondary px-3 py-2.5 text-xs">
+          <span className="truncate text-text-secondary">Invoice-INV-0001.pdf</span>
+          <span className="font-mono text-[10px] text-orbit-primary">PDF · 1.2 MB</span>
+        </div>
+      </div>
     </div>
   );
 }
 
 function AiVisual() {
   return (
-    <div className="flex w-full max-w-[360px] flex-col gap-4">
-      <div className="relative rounded border border-border-default bg-bg-primary p-4 text-[13px] leading-[1.5] text-text-secondary">
+    <div className="flex w-full max-w-90 flex-col gap-4">
+      <div className="relative rounded border border-border-default bg-bg-primary p-4 text-[13px] leading-normal text-text-secondary">
         <span
-          className="absolute -top-2 left-3 rounded-full px-2 py-[2px] text-[9px] font-medium tracking-[0.06em] text-[#0b0b0b]"
+          className="absolute -top-2 left-3 rounded-full px-2 py-0.5 text-[9px] font-medium tracking-[0.06em] text-[#0b0b0b]"
           style={{ background: "var(--orbit-primary)" }}
         >
           AI
@@ -194,7 +194,7 @@ function AiVisual() {
 function AnalyticsVisual() {
   const bars = [35, 50, 42, 65, 58, 82];
   return (
-    <div className="flex w-full max-w-[360px] flex-col gap-5">
+    <div className="flex w-full max-w-90 flex-col gap-5">
       <div className="flex items-end justify-between rounded border border-border-default bg-bg-primary p-5">
         <div>
           <div className="text-[11px] uppercase tracking-[0.08em] text-text-tertiary">Monthly Revenue</div>
@@ -202,7 +202,7 @@ function AnalyticsVisual() {
         </div>
         <div className="rounded-full bg-[rgba(176,253,190,0.08)] px-2.5 py-1 text-xs text-[#b0fdbe]">+18%</div>
       </div>
-      <div className="flex h-[100px] items-end gap-2 rounded border border-border-default bg-bg-primary p-5">
+      <div className="flex h-25 items-end gap-2 rounded border border-border-default bg-bg-primary p-5">
         {bars.map((h, i) => (
           <div
             key={i}
@@ -221,8 +221,8 @@ function FeatureVisual({ type }: { type: string }) {
       return <ContactVisual />;
     case "kanban":
       return <KanbanVisual />;
-    case "fields":
-      return <FieldsVisual />;
+    case "notes":
+      return <NotesVisual />;
     case "ai":
       return <AiVisual />;
     case "analytics":
@@ -234,16 +234,16 @@ function FeatureVisual({ type }: { type: string }) {
 
 export default function FeaturesSection() {
   return (
-    <section id="product" className="px-4 py-16 lg:py-[140px] sm:px-6 lg:px-8">
+    <section id="product" className="px-4 py-16 lg:py-35 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.55 }}
-          className="mb-20 flex max-w-[560px] flex-col gap-4"
+          className="mb-20 flex max-w-140 flex-col gap-4"
         >
-          <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">Features</p>
+          <p className="text-xs font-normal uppercase tracking-widest text-text-tertiary">Features</p>
           <h2 className="font-serif text-[clamp(2rem,4vw,2.75rem)] font-normal leading-[1.15] tracking-[-0.01em] text-text-primary">
             Everything you need.
             <br />
@@ -254,7 +254,7 @@ export default function FeaturesSection() {
           </p>
         </motion.div>
 
-        <div className="flex flex-col gap-[140px]">
+        <div className="flex flex-col gap-35">
           {features.map((feature, i) => {
             const isReversed = i % 2 !== 0;
             return (
@@ -267,15 +267,15 @@ export default function FeaturesSection() {
                 variants={rowVariants}
                 className={`flex flex-col gap-12 md:gap-20 ${isReversed ? "md:flex-row-reverse" : "md:flex-row"} md:items-center`}
               >
-                <div className="flex min-h-[360px] flex-1 items-center justify-center rounded border border-border-default bg-bg-secondary p-8 relative overflow-hidden">
+                <div className="flex min-h-90 flex-1 items-center justify-center rounded border border-border-default bg-bg-secondary p-8 relative overflow-hidden">
                   <FeatureVisual type={feature.visualType} />
                 </div>
                 <div className="flex flex-1 flex-col gap-4">
-                  <p className="mb-1 text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">{feature.eyebrow}</p>
+                  <p className="mb-1 text-xs font-normal uppercase tracking-widest text-text-tertiary">{feature.eyebrow}</p>
                   <h3 className="font-serif text-[clamp(1.5rem,3vw,2rem)] font-normal leading-[1.2] text-text-primary">
                     {feature.title}
                   </h3>
-                  <p className="max-w-[420px] text-[15px] font-normal leading-[1.65] text-text-secondary">{feature.body}</p>
+                  <p className="max-w-105 text-[15px] font-normal leading-[1.65] text-text-secondary">{feature.body}</p>
                   <ul className="mt-1.5 flex flex-col gap-3">
                     {feature.checks.map((check) => (
                       <li key={check} className="flex items-start gap-2.5 text-sm text-text-secondary">

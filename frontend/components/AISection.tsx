@@ -35,13 +35,13 @@ const contextItems = [
   },
   {
     icon: TrendingUpIcon,
-    title: "Predictive forecasting",
-    desc: "AI models predict revenue and flag at-risk deals before they go cold.",
+    title: "Outreach templates",
+    desc: "Draft follow-ups, email copy, or internal notes with context from the workspace.",
   },
   {
     icon: EditIcon,
-    title: "Smart data entry",
-    desc: "Auto-extract details from emails and notes so your records stay current.",
+    title: "Contextual search",
+    desc: "Search across companies, leads, tasks, and notes in plain English.",
   },
 ];
 
@@ -85,7 +85,7 @@ const chatBubbleVariants = {
 
 export default function AISection() {
   return (
-    <section className="px-4 py-[140px] sm:px-6 lg:px-8">
+    <section className="px-4 py-35 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl items-center gap-16 md:grid-cols-2 md:gap-20">
         {/* Left — header + context */}
         <motion.div
@@ -95,14 +95,14 @@ export default function AISection() {
           transition={{ duration: 0.55 }}
           className="flex flex-col gap-5"
         >
-          <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
+          <p className="text-xs font-normal uppercase tracking-widest text-text-tertiary">
             Artificial Intelligence
           </p>
           <h2 className="font-serif text-[clamp(2rem,4vw,2.75rem)] font-normal leading-[1.15] tracking-[-0.01em] text-text-primary">
-            An assistant that knows your business
+            An assistant that knows your workspace
           </h2>
-          <p className="max-w-[460px] text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
-            Ask questions in plain English. Get answers, insights, and actions instantly — without interrupting your flow.
+          <p className="max-w-115 text-lg font-normal leading-[1.55] text-text-secondary sm:text-[19px]">
+            Ask questions in plain English. Get context-aware drafts and workspace search instantly — without interrupting your flow.
           </p>
 
           <div className="mt-6 flex flex-col gap-5">
@@ -113,7 +113,7 @@ export default function AISection() {
                 </div>
                 <div>
                   <div className="text-[15px] font-medium text-text-primary">{item.title}</div>
-                  <div className="mt-1 text-sm leading-[1.5] text-text-secondary">{item.desc}</div>
+                  <div className="mt-1 text-sm leading-normal text-text-secondary">{item.desc}</div>
                 </div>
               </div>
             ))}
@@ -132,7 +132,7 @@ export default function AISection() {
             <motion.div
               key={i}
               variants={chatBubbleVariants}
-              className={`flex max-w-[88%] flex-col gap-3.5 rounded px-[18px] py-3.5 text-sm leading-[1.55] ${
+              className={`flex max-w-[88%] flex-col gap-3.5 rounded px-4.5 py-3.5 text-sm leading-[1.55] ${
                 bubble.type === "user"
                   ? "self-end bg-orbit-primary font-medium text-[#0b0b0b]"
                   : "self-start border border-border-default bg-bg-primary text-text-secondary"

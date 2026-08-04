@@ -49,17 +49,17 @@ const cards = [
   {
     icon: UsersIcon,
     title: "Role-based access",
-    desc: "Granular permissions ensure team members see only what they need. Admin, manager, and user roles out of the box.",
+    desc: "Granular permissions ensure team members see only what they need. Owner and Member roles keep access simple and secure.",
   },
   {
     icon: FileTextIcon,
-    title: "Audit logs",
-    desc: "Track every change, login, and export with immutable audit trails. Compliance-ready reporting when you need it.",
+    title: "Workspace activity logs",
+    desc: "Track CRM resource activity in a centralized feed so your team can review updates, changes, and collaboration history.",
   },
   {
     icon: RefreshIcon,
-    title: "Automated backups",
-    desc: "Point-in-time recovery with automated daily backups and cross-region redundancy for peace of mind.",
+    title: "CSV import & export",
+    desc: "Bulk upload records with CSV import and move data out cleanly with CSV exports when you need portable reporting.",
   },
 ];
 
@@ -74,16 +74,16 @@ const cardVariants = {
 
 export default function SecuritySection() {
   return (
-    <section className="border-y border-border-default bg-bg-secondary px-4 py-[140px] sm:px-6 lg:px-8">
+    <section className="border-y border-border-default bg-bg-secondary px-4 py-35 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.55 }}
-          className="mb-[72px] flex max-w-[560px] flex-col gap-4"
+          className="mb-18 flex max-w-140 flex-col gap-4"
         >
-          <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
+          <p className="text-xs font-normal uppercase tracking-widest text-text-tertiary">
             Security & Reliability
           </p>
           <h2 className="font-serif text-[clamp(2rem,4vw,2.75rem)] font-normal leading-[1.15] tracking-[-0.01em] text-text-primary">

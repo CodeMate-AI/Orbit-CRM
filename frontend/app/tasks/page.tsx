@@ -327,7 +327,18 @@ function AddTaskModal({
           </div>
           <div className="form-row">
             <div className="form-field">
-              <label className="form-label">Related company</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label mb-0">Related company</label>
+                {!showCompanyInput && (
+                  <button
+                    type="button"
+                    className="text-xs text-orbit-primary hover:underline"
+                    onClick={() => setShowCompanyInput(true)}
+                  >
+                    + Add new
+                  </button>
+                )}
+              </div>
               {showCompanyInput ? (
                 <div className="flex flex-col gap-2">
                   <input
@@ -362,25 +373,28 @@ function AddTaskModal({
                 <select
                   className="form-input"
                   value={form.companyId ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === "__add_new__") {
-                      setShowCompanyInput(true);
-                      return;
-                    }
-                    setForm({ ...form, companyId: value });
-                  }}
+                  onChange={(e) => setForm({ ...form, companyId: e.target.value })}
                 >
                   <option value="">No company</option>
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
-                  <option value="__add_new__">+ Add new company...</option>
                 </select>
               )}
             </div>
             <div className="form-field">
-              <label className="form-label">Related deal</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label mb-0">Related deal</label>
+                {!showDealInput && (
+                  <button
+                    type="button"
+                    className="text-xs text-orbit-primary hover:underline"
+                    onClick={() => setShowDealInput(true)}
+                  >
+                    + Add new
+                  </button>
+                )}
+              </div>
               {showDealInput ? (
                 <div className="flex flex-col gap-2">
                   <input
@@ -415,20 +429,12 @@ function AddTaskModal({
                 <select
                   className="form-input"
                   value={form.opportunityId ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === "__add_new__") {
-                      setShowDealInput(true);
-                      return;
-                    }
-                    setForm({ ...form, opportunityId: value });
-                  }}
+                  onChange={(e) => setForm({ ...form, opportunityId: e.target.value })}
                 >
                   <option value="">No deal</option>
                   {deals.map((deal) => (
                     <option key={deal.id} value={deal.id}>{deal.name}</option>
                   ))}
-                  <option value="__add_new__">+ Add new deal...</option>
                 </select>
               )}
             </div>

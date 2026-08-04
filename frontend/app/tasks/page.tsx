@@ -492,6 +492,33 @@ function TaskDetailDrawer({
     setForm(task ? buildDrawerForm(task) : null);
   }, [task]);
 
+  const isFieldDirty = (field: EditableTaskField): boolean => {
+    if (!task || !form) return false;
+
+    switch (field) {
+      case "title":
+        return form.title !== task.title;
+      case "description":
+        return form.description !== (task.description ?? "");
+      case "status":
+        return form.status !== task.status;
+      case "priority":
+        return form.priority !== task.priority;
+      case "dueDate":
+        return form.dueDate !== toDateInputValue(task.dueDate);
+      case "personId":
+        return form.personId !== (task.personId ?? "");
+      case "companyId":
+        return form.companyId !== (task.companyId ?? "");
+      case "opportunityId":
+        return form.opportunityId !== (task.opportunityId ?? "");
+      case "assigneeId":
+        return form.assigneeId !== (task.assigneeId ?? "");
+      default:
+        return false;
+    }
+  };
+
   if (!open || !task || !form) return null;
 
   const saveField = async (field: EditableTaskField) => {
@@ -582,13 +609,13 @@ function TaskDetailDrawer({
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Title</label>
               <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.title} onChange={(e) => setForm((current) => current ? { ...current, title: e.target.value } : current)} onBlur={() => void saveField("title")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("title")} disabled={savingField === "title"}>{savingField === "title" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("title")} disabled={savingField === "title" || !isFieldDirty("title")}>{savingField === "title" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Description</label>
               <textarea className="min-h-32 w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.description} onChange={(e) => setForm((current) => current ? { ...current, description: e.target.value } : current)} onBlur={() => void saveField("description")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("description")} disabled={savingField === "description"}>{savingField === "description" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("description")} disabled={savingField === "description" || !isFieldDirty("description")}>{savingField === "description" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -596,7 +623,7 @@ function TaskDetailDrawer({
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.status} onChange={(e) => setForm((current) => current ? { ...current, status: e.target.value as TaskStatus } : current)} onBlur={() => void saveField("status")}>
                 {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("status")} disabled={savingField === "status"}>{savingField === "status" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("status")} disabled={savingField === "status" || !isFieldDirty("status")}>{savingField === "status" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -604,13 +631,13 @@ function TaskDetailDrawer({
               <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.priority} onChange={(e) => setForm((current) => current ? { ...current, priority: e.target.value as TaskPriority } : current)} onBlur={() => void saveField("priority")}>
                 {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("priority")} disabled={savingField === "priority"}>{savingField === "priority" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("priority")} disabled={savingField === "priority" || !isFieldDirty("priority")}>{savingField === "priority" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
               <label className="mb-2 block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Due date</label>
               <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" type="date" value={form.dueDate} onChange={(e) => setForm((current) => current ? { ...current, dueDate: e.target.value } : current)} onBlur={() => void saveField("dueDate")} />
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("dueDate")} disabled={savingField === "dueDate"}>{savingField === "dueDate" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("dueDate")} disabled={savingField === "dueDate" || !isFieldDirty("dueDate")}>{savingField === "dueDate" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -619,7 +646,7 @@ function TaskDetailDrawer({
                 <option value="">No lead</option>
                 {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId"}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("personId")} disabled={savingField === "personId" || !isFieldDirty("personId")}>{savingField === "personId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -628,7 +655,7 @@ function TaskDetailDrawer({
                 <option value="">No company</option>
                 {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId"}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("companyId")} disabled={savingField === "companyId" || !isFieldDirty("companyId")}>{savingField === "companyId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -637,7 +664,7 @@ function TaskDetailDrawer({
                 <option value="">No deal</option>
                 {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.name}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId"}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("opportunityId")} disabled={savingField === "opportunityId" || !isFieldDirty("opportunityId")}>{savingField === "opportunityId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
 
             <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
@@ -646,7 +673,7 @@ function TaskDetailDrawer({
                 <option value="">Unassigned</option>
                 {members.map((member) => <option key={member.userId} value={member.userId}>{member.user.name || member.user.email}</option>)}
               </select>
-              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId"}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
+              <div className="mt-3 flex justify-end"><button type="button" className="btn-primary h-9 min-w-22 justify-center py-0 text-xs" onClick={() => void saveField("assigneeId")} disabled={savingField === "assigneeId" || !isFieldDirty("assigneeId")}>{savingField === "assigneeId" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}</button></div>
             </div>
           </div>
         </div>

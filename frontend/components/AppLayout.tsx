@@ -354,7 +354,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     if (!isWorkspaceDropdownOpen) return null;
 
     return (
-      <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[280px] rounded-2xl border border-border-subtle bg-bg-secondary/95 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
+      <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-70 rounded-2xl border border-border-subtle bg-bg-secondary/95 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-3">
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-text-primary">{workspaceName || "Workspace"}</div>
@@ -494,7 +494,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
           <nav className="sidebar-nav">
             {navigationItems.map(({ href, label, icon: Icon, active }) => (
               <Link key={label} href={href} className={`nav-item ${active ? "active" : ""}`}>
-                <Icon className="h-[18px] w-[18px]" />
+                <Icon className="h-4.5 w-4.5" />
                 {label}
               </Link>
             ))}
@@ -504,14 +504,14 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
               className="nav-item text-left"
               onClick={() => setIsAiDrawerOpen(true)}
             >
-              <Sparkles className="h-[18px] w-[18px]" />
+              <Sparkles className="h-4.5 w-4.5" />
               AI Assistant
             </button>
 
             <div className="nav-group-sep"></div>
 
             <Link href={settingsItem.href} className={`nav-item ${settingsItem.active ? "active" : ""}`}>
-              <settingsItem.icon className="h-[18px] w-[18px]" />
+              <settingsItem.icon className="h-4.5 w-4.5" />
               {settingsItem.label}
             </Link>
           </nav>
@@ -643,7 +643,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
       </div>
 
       <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-130">
           <DialogHeader>
             <DialogTitle>Invite team members</DialogTitle>
             <DialogDescription>Send an invitation link to a teammate by email.</DialogDescription>
@@ -683,7 +683,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
       </Dialog>
 
       <Dialog open={isRenameModalOpen} onOpenChange={setIsRenameModalOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-130">
           <DialogHeader>
             <DialogTitle>Rename workspace</DialogTitle>
             <DialogDescription>Update the workspace name used across Orbit CRM.</DialogDescription>

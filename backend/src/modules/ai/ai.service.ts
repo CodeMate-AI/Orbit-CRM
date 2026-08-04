@@ -417,7 +417,7 @@ export class AiService {
 
     while (loopCount < maxLoops) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
       const isLastLoop = loopCount === maxLoops - 1;
 
       try {

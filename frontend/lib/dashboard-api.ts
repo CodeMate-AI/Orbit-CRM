@@ -5,7 +5,7 @@ import { request } from "./api-client";
 export interface DashboardStats {
   contacts: {
     total: number;
-    newThisMonth: number;
+    newThisRange: number;
   };
   deals: {
     open: number;

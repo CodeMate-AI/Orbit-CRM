@@ -112,7 +112,8 @@ export class ReportsService {
         WHERE "workspaceId" = ${workspaceId}
           AND "deletedAt" IS NULL
           AND "closeDate" IS NOT NULL
-          AND "closeDate" >= ${now}
+          AND "closeDate" >= ${rangeStart}
+          AND "closeDate" <= ${rangeEnd}
         GROUP BY 1
         ORDER BY 1 ASC
       `,

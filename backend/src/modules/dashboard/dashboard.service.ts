@@ -64,9 +64,13 @@ export class DashboardService {
         where: { workspaceId, deletedAt: null, createdAt: { gte: rangeStart, lte: rangeEnd } },
       }),
 
-      // Open deals (all-time active pipeline value)
+      // Open deals within the selected range
       prisma.opportunity.findMany({
-        where: { workspaceId, deletedAt: null },
+        where: {
+          workspaceId,
+          deletedAt: null,
+          closeDate: { gte: rangeStart, lte: rangeEnd },
+        },
         include: { stage: { select: { name: true, color: true, position: true } } },
       }),
 
@@ -90,25 +94,31 @@ export class DashboardService {
         },
       }),
 
-      // Pipeline stages with deal counts and values (all-time)
+      // Pipeline stages with deal counts and values for the selected range
       prisma.pipelineStage.findMany({
         where: { workspaceId, pipeline: { isDefault: true } },
         include: {
           opportunities: {
-            where: { deletedAt: null },
+            where: {
+              deletedAt: null,
+              closeDate: { gte: rangeStart, lte: rangeEnd },
+            },
             select: { amount: true },
           },
         },
         orderBy: { position: "asc" },
       }),
 
-      // Upcoming tasks (due in range, not done, including overdue)
+      // Upcoming tasks (due within the selected window)
       prisma.task.findMany({
         where: {
           workspaceId,
           deletedAt: null,
           status: { in: ["TODO", "IN_PROGRESS"] },
-          dueDate: { lte: taskDueDateEnd },
+          dueDate: {
+            gte: range === "week" ? now : rangeStart,
+            lte: taskDueDateEnd,
+          },
         },
         include: {
           person: { select: { firstName: true, lastName: true } },
@@ -143,7 +153,7 @@ export class DashboardService {
     return {
       contacts: {
         total: totalContacts,
-        newThisMonth: newContactsThisRange,
+        newThisRange: newContactsThisRange,
       },
       deals: {
         open: activeDeals.length,

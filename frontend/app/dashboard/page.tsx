@@ -438,7 +438,7 @@ function DashboardContent() {
           <div className="contacts-chips">
             <div className="chip">
               <span className="chip-dot chip-dot--green" />
-              {contacts.newThisMonth} new {rangeLabel}
+              {contacts.newThisRange} new {rangeLabel}
             </div>
             <div className="chip">
               <span className="chip-dot chip-dot--blue" />

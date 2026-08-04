@@ -17,6 +17,7 @@ interface InvitationDetails {
     name: string;
     logo: string | null;
   };
+  userExists?: boolean;
 }
 
 function InviteAcceptContent() {
@@ -142,6 +143,22 @@ function InviteAcceptContent() {
           <p className="text-xs text-text-tertiary">Invited Email address</p>
           <p className="text-sm font-medium text-text-primary truncate mt-0.5">{invitation.email}</p>
         </div>
+
+        {!currentUser && (
+          <div className="border-t border-border-default pt-4">
+            {invitation.userExists ? (
+              <div className="rounded-lg border border-orbit-primary/20 bg-orbit-primary/10 p-3 text-left text-sm text-orbit-primary flex flex-col gap-1">
+                <p className="text-xs font-semibold uppercase tracking-wider">Sign in required</p>
+                <p className="text-xs text-text-secondary">You already have an account. Please sign in to accept the invitation and join the workspace.</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-left text-sm text-amber-500 flex flex-col gap-1">
+                <p className="text-xs font-semibold uppercase tracking-wider">Account required</p>
+                <p className="text-xs text-text-secondary">It looks like you don't have an account yet. Please sign up to accept this invitation and join the workspace.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
@@ -167,7 +184,7 @@ function InviteAcceptContent() {
               Sign in as a different user
             </Button>
           </>
-        ) : (
+        ) : invitation.userExists ? (
           <>
             <Button
               id="invite-signin-btn"
@@ -183,6 +200,24 @@ function InviteAcceptContent() {
               className="w-full border-border-default hover:bg-surface-hover text-text-primary font-medium"
             >
               Create an Account
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              id="invite-signup-btn"
+              onClick={() => router.push(`/signup?email=${encodeURIComponent(invitation.email)}&token=${token}`)}
+              className="w-full bg-orbit-primary text-white hover:bg-orbit-primary-hover font-medium"
+            >
+              Sign Up to Accept
+            </Button>
+            <Button
+              id="invite-signin-btn"
+              variant="ghost"
+              onClick={() => router.push(`/signin?email=${encodeURIComponent(invitation.email)}&token=${token}`)}
+              className="w-full text-xs text-text-secondary hover:text-text-primary"
+            >
+              Already have an account? Sign In
             </Button>
           </>
         )}

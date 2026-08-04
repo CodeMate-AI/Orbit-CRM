@@ -292,6 +292,38 @@ export class WorkspacesService {
     return workspace;
   }
 
+  async getInvitation(token: string) {
+    const invitation = await prisma.invitation.findUnique({
+      where: { token },
+      include: {
+        workspace: {
+          select: {
+            name: true,
+            logo: true,
+          },
+        },
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException("Invitation not found or invalid.");
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      throw new BadRequestException("This invitation has expired.");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: invitation.email },
+      select: { id: true },
+    });
+
+    return {
+      ...invitation,
+      userExists: !!user,
+    };
+  }
+
   async requestJoin(userId: string, workspaceId: string) {
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -461,30 +493,6 @@ export class WorkspacesService {
           console.error("Failed to write SMTP error to activities:", dbErr);
         });
       });
-
-    return invitation;
-  }
-
-  async getInvitation(token: string) {
-    const invitation = await prisma.invitation.findUnique({
-      where: { token },
-      include: {
-        workspace: {
-          select: {
-            name: true,
-            logo: true,
-          },
-        },
-      },
-    });
-
-    if (!invitation) {
-      throw new NotFoundException("Invitation not found or invalid.");
-    }
-
-    if (invitation.expiresAt < new Date()) {
-      throw new BadRequestException("This invitation has expired.");
-    }
 
     return invitation;
   }

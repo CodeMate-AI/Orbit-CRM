@@ -43,16 +43,16 @@ const cardVariants = {
 
 export default function PersonasSection() {
   return (
-    <section className="border-y border-border-default bg-bg-secondary px-4 py-[140px] sm:px-6 lg:px-8">
+    <section className="border-y border-border-default bg-bg-secondary px-4 py-35 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.55 }}
-          className="mb-[72px] flex max-w-[560px] flex-col gap-4"
+          className="mb-18 flex max-w-140 flex-col gap-4"
         >
-          <p className="text-xs font-normal uppercase tracking-[0.1em] text-text-tertiary">
+          <p className="text-xs font-normal uppercase tracking-widest text-text-tertiary">
             Use Cases
           </p>
           <h2 className="font-serif text-[clamp(2rem,4vw,2.75rem)] font-normal leading-[1.15] tracking-[-0.01em] text-text-primary">

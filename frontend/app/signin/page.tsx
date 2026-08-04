@@ -44,7 +44,10 @@ function SignInForm() {
   useEffect(() => {
     if (emailParam) {
       setEmail(emailParam);
+    } else {
+      setEmail("");
     }
+    setPassword("");
   }, [emailParam]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -139,7 +142,7 @@ function SignInForm() {
             placeholder="name@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
+            autoComplete="off"
             className="bg-bg-primary border-border-default focus:border-orbit-primary"
             disabled={isLoading || !!emailParam} // Lock the email input if prefilled via invite
             required
@@ -164,7 +167,7 @@ function SignInForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete="new-password"
               className="bg-bg-primary border-border-default pr-10 focus:border-orbit-primary"
               disabled={isLoading}
               required

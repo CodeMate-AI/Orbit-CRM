@@ -187,7 +187,7 @@ export default function ActivityTimeline({ workspaceId, personId, companyId, opp
               onChange={(e) => setQuickTitle(e.target.value)}
             />
             <textarea
-              className="min-h-[96px] w-full rounded-2xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm outline-none transition focus:border-orbit-primary"
+              className="min-h-24 w-full rounded-2xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm outline-none transition focus:border-orbit-primary"
               placeholder="Details"
               value={quickBody}
               onChange={(e) => setQuickBody(e.target.value)}
@@ -228,7 +228,7 @@ export default function ActivityTimeline({ workspaceId, personId, companyId, opp
       </div>
 
       {loading ? (
-        <div className="flex min-h-[160px] items-center justify-center rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/50 text-sm text-text-tertiary">
+        <div className="flex min-h-40 items-center justify-center rounded-3xl border border-dashed border-border-subtle bg-bg-tertiary/50 text-sm text-text-tertiary">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading timeline…
         </div>
       ) : groupedActivities.length === 0 ? (

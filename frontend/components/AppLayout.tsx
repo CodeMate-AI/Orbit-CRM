@@ -428,23 +428,23 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
             </div>
           </div>
 
-          <div>
-            <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
-              Workspace Options
-            </div>
-            <div className="flex flex-col gap-1">
-              <Button
-                variant="ghost"
-                className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
-                onMouseDown={handleDropdownAction(() => openInviteModal(currentWorkspace ?? undefined))}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
-                  <UserPlus className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">Invite Team Members</span>
-              </Button>
+          {isPrivilegedRole ? (
+            <div>
+              <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+                Workspace Options
+              </div>
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="ghost"
+                  className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
+                  onMouseDown={handleDropdownAction(() => openInviteModal(currentWorkspace ?? undefined))}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-primary">
+                    <UserPlus className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">Invite Team Members</span>
+                </Button>
 
-              {isPrivilegedRole ? (
                 <Button
                   variant="ghost"
                   className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-primary hover:bg-white/5"
@@ -455,9 +455,9 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
                   </span>
                   <span className="min-w-0 flex-1">Rename Workspace</span>
                 </Button>
-              ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     );

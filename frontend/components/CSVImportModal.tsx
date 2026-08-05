@@ -208,7 +208,7 @@ Priya,Krishnan,priya@designops.co,+91 99887 76655,Referral,Design,DesignOps,Foun
                     <AlertCircle className="h-4 w-4" />
                     <span>Dry-run Validation Warnings ({errors.length})</span>
                   </div>
-                  <div className="max-h-[140px] space-y-1 overflow-y-auto text-xs text-amber-200/80">
+                  <div className="max-h-35 space-y-1 overflow-y-auto text-xs text-amber-200/80">
                     {errors.map((error, idx) => (
                       <p key={idx}>{error}</p>
                     ))}

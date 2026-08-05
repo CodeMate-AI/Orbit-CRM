@@ -278,3 +278,13 @@ SMTP settings can be retrieved, stored, and tested per workspace. If a workspace
 - [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma)
 - [`backend/src/modules/workspaces/workspaces.service.ts`](backend/src/modules/workspaces/workspaces.service.ts)
 - [`backend/src/modules/settings/email.service.ts`](backend/src/modules/settings/email.service.ts)
+
+
+In NestJS, the three core building blocks serve the following purposes:
+
+1. Controllers: Handle incoming HTTP requests, map routes/endpoints, parse payloads, and return responses back to the client.
+
+2. Services: Contain the core business logic, database queries (via ORMs like Prisma), and 
+internal processing rules.
+
+3. Modules: Act as organizers that group related controllers and services together, managing dependency injection boundaries and exports.

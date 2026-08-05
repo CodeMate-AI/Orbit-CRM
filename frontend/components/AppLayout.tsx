@@ -29,6 +29,7 @@ import {
   Pencil,
   Plus,
   Check,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -293,6 +294,7 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     { href: "/companies", label: "Companies", icon: Briefcase, active: pathname === "/companies" },
     { href: "/deals", label: "Deals", icon: IndianRupee, active: pathname === "/deals" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, active: pathname === "/tasks" },
+    { href: "/assigned-tasks", label: "Assigned Tasks", icon: ListChecks, active: pathname === "/assigned-tasks" },
   ];
 
   const settingsItem = { href: "/settings", label: "Settings", icon: Settings, active: pathname === "/settings" };

@@ -11,6 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
+const demoCredentials = {
+  owner: {
+    label: "Workspace Owner",
+    email: "demo@orbitcrm.com",
+    password: "DemoPassword123!",
+  },
+  member: {
+    label: "Workspace Member",
+    email: "jayh31572@gmail.com",
+    password: "DemoPassword123!",
+  },
+} as const;
+
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,6 +38,7 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [demoRole, setDemoRole] = useState<"owner" | "member">("owner");
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
 
@@ -198,14 +212,42 @@ function SignInForm() {
 
       {/* Demo Credentials Box */}
       <div className="mt-6 rounded-lg border border-border-default bg-bg-primary/50 p-4 text-xs backdrop-blur-sm">
+        <div className="flex border-b border-border-default mb-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setDemoRole("owner")}
+            className={`flex-1 pb-2 text-center font-medium border-b-2 transition-colors cursor-pointer ${
+              demoRole === "owner"
+                ? "border-orbit-primary text-orbit-primary font-semibold"
+                : "border-transparent text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            Workspace Owner
+          </button>
+          <button
+            type="button"
+            onClick={() => setDemoRole("member")}
+            className={`flex-1 pb-2 text-center font-medium border-b-2 transition-colors cursor-pointer ${
+              demoRole === "member"
+                ? "border-orbit-primary text-orbit-primary font-semibold"
+                : "border-transparent text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            Workspace Member
+          </button>
+        </div>
+
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-text-primary">Demo Credentials</span>
+          <span className="font-semibold text-text-primary">
+            {demoRole === "owner" ? "Owner Accounts" : "Member Accounts"}
+          </span>
           <button
             type="button"
             onClick={() => {
-              setEmail("demo@orbitcrm.com");
-              setPassword("DemoPassword123!");
-              toast.success("Demo credentials autofilled!");
+              const activeCredentials = demoCredentials[demoRole];
+              setEmail(activeCredentials.email);
+              setPassword(activeCredentials.password);
+              toast.success(`${demoRole === "owner" ? "Owner" : "Member"} credentials autofilled!`);
             }}
             className="text-orbit-primary hover:text-orbit-primary-hover font-medium underline cursor-pointer"
           >
@@ -213,26 +255,28 @@ function SignInForm() {
           </button>
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between items-center bg-bg-secondary p-2 rounded border border-border-default">
-            <span className="text-text-secondary font-mono">demo@orbitcrm.com</span>
+          <div className="flex items-center justify-between rounded border border-border-default bg-bg-secondary p-2">
+            <span className="font-mono text-text-secondary">
+              {demoCredentials[demoRole].email}
+            </span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="h-6 w-6 text-text-secondary hover:text-text-primary"
-              onClick={() => handleCopy("demo@orbitcrm.com", "email")}
+              onClick={() => handleCopy(demoCredentials[demoRole].email, "email")}
             >
               {copiedEmail ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
             </Button>
           </div>
-          <div className="flex justify-between items-center bg-bg-secondary p-2 rounded border border-border-default">
-            <span className="text-text-secondary font-mono">DemoPassword123!</span>
+          <div className="flex items-center justify-between rounded border border-border-default bg-bg-secondary p-2">
+            <span className="font-mono text-text-secondary">{demoCredentials[demoRole].password}</span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="h-6 w-6 text-text-secondary hover:text-text-primary"
-              onClick={() => handleCopy("DemoPassword123!", "password")}
+              onClick={() => handleCopy(demoCredentials[demoRole].password, "password")}
             >
               {copiedPassword ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
             </Button>

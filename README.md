@@ -89,7 +89,7 @@ The backend under [`backend/src/modules/`](backend/src/modules/) is organized in
 
 The root module is defined in [`backend/src/app.module.ts`](backend/src/app.module.ts). The API entrypoint is [`backend/src/main.ts`](backend/src/main.ts).
 
-Recent backend additions include workspace-domain aware provisioning with a seeded default Sales Pipeline, and SMTP settings that can be stored per workspace with environment-based fallbacks for email delivery and verification.
+Recent backend additions include workspace-domain aware provisioning with a seeded default Sales Pipeline and invite-only workspace membership.
 
 ## Architecture
 
@@ -99,7 +99,7 @@ Orbit CRM uses a two-app architecture:
 - **Backend**: NestJS REST API with feature modules, auth integration, and Prisma ORM.
 - **Database**: PostgreSQL for persistent CRM data.
 - **Storage**: Cloudinary for attachments and uploaded files.
-- **Email**: Brevo SMTP (via Nodemailer driver) for transactional email and workspace-specific SMTP configurations.
+- **Email**: Brevo SMTP (via Nodemailer) for transactional email. Credentials are configured via environment variables.
 - **AI**: OpenRouter-backed integration hooks.
 
 ### Runtime flow
@@ -211,9 +211,15 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/orbit_crm
 BETTER_AUTH_SECRET=generate-a-random-32-char-string-for-dev-use
 BETTER_AUTH_URL=http://localhost:4000/api/auth
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
 CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+
 EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=2525
@@ -222,12 +228,13 @@ SMTP_PASSWORD=your-smtp-key
 SMTP_PASS=your-smtp-key
 SMTP_FROM_NAME="Orbit CRM"
 SMTP_FROM_EMAIL=your-verified-email@domain.com
+
 APP_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL=openrouter/free
 OPENROUTER_SITE_URL=http://localhost:3000
 OPENROUTER_APP_TITLE="Orbit CRM"
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=qwen/qwen3.7-flash
 ```
 
 ### Frontend (`frontend/.env.local`)
@@ -264,12 +271,10 @@ The backend is organized around controller-based REST modules. Primary areas inc
 - people, companies, opportunities, tasks, notes, and activities CRUD flows
 - dashboards, reports, and search
 - attachments and upload URL generation
-- settings, including profile updates and SMTP configuration
+- settings, including profile updates
 - AI and event orchestration endpoints
 
-Workspace creation now seeds a default Sales Pipeline with standard stages (`Lead`, `Qualified`, `Proposal`, `Negotiation`, `Won`, `Lost`) so new workspaces have a usable pipeline immediately.
-
-SMTP settings can be retrieved, stored, and tested per workspace. If a workspace does not have SMTP configured, the backend falls back to environment-based SMTP settings via [`backend/src/modules/settings/email.service.ts`](backend/src/modules/settings/email.service.ts).
+Workspace creation seeds a default Sales Pipeline with standard stages (`Lead`, `Qualified`, `Proposal`, `Negotiation`, `Won`, `Lost`) so new workspaces have a usable pipeline immediately.
 
 ### Revenue Forecast Calculation
 

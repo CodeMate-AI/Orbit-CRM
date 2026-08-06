@@ -22,7 +22,7 @@ export class AuthController {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new BadRequestException("No user found with this email address.");
+      throw new BadRequestException("No account found with this email address. Please sign up first.");
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

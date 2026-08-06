@@ -27,7 +27,6 @@ model User {
   tasks         Task[]
   notes         Note[]
   attachments   Attachment[]
-  auditLogs     AuditLog[]
   ownedLeads    Person[]  @relation("LeadOwner")
   createdLeads  Person[]  @relation("LeadCreatedBy")
   modifiedLeads Person[]  @relation("LeadModifiedBy")
@@ -55,7 +54,6 @@ model Workspace {
   notes               Note[]
   attachments         Attachment[]
   opportunityContacts OpportunityContact[]
-  auditLogs           AuditLog[]
 
   activities          Activity[]
   domainAutoJoin      Boolean          @default(false)
@@ -98,30 +96,7 @@ enum MemberRole {
   MEMBER
 }
 
-enum AuditAction {
-  CREATE
-  UPDATE
-  DELETE
-  RESTORE
-}
 
-
-model AuditLog {
-  id          String       @id @default(cuid())
-  entityType  String
-  entityId    String
-  action      AuditAction
-  before      Json?
-  after       Json?
-  occurredAt  DateTime     @default(now())
-  workspaceId String
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId      String?
-  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([workspaceId])
-  @@index([userId])
-}
 
 model ChatSession {
   id          String        @id @default(cuid())

@@ -42,6 +42,7 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: ["google", "email-password"],
     },
+    storeStateStrategy: "database",
   },
   trustedOrigins: parseTrustedOrigins(process.env.BETTER_AUTH_TRUSTED_ORIGINS),
   trustHost: true,

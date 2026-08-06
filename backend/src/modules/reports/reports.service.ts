@@ -107,13 +107,16 @@ export class ReportsService {
         take: 10,
       }),
       prisma.$queryRaw<Array<{ month: Date; amount: unknown }>>`
-        SELECT date_trunc('month', "closeDate") AS month, SUM(COALESCE("amount", 0)) AS amount
-        FROM "Opportunity"
-        WHERE "workspaceId" = ${workspaceId}
-          AND "deletedAt" IS NULL
-          AND "closeDate" IS NOT NULL
-          AND "closeDate" >= ${rangeStart}
-          AND "closeDate" <= ${rangeEnd}
+        SELECT 
+          date_trunc('month', o."closeDate") AS month, 
+          SUM(COALESCE(o."amount", 0) * COALESCE(o."probability", s."probability", 100) / 100.0) AS amount
+        FROM "Opportunity" o
+        JOIN "PipelineStage" s ON o."stageId" = s."id"
+        WHERE o."workspaceId" = ${workspaceId}
+          AND o."deletedAt" IS NULL
+          AND o."closeDate" IS NOT NULL
+          AND o."closeDate" >= ${rangeStart}
+          AND o."closeDate" <= ${rangeEnd}
         GROUP BY 1
         ORDER BY 1 ASC
       `,

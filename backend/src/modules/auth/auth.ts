@@ -17,12 +17,31 @@ function parseTrustedOrigins(value: string | undefined) {
   return Array.from(new Set([...defaults, ...extraOrigins]));
 }
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleSocialProvider =
+  googleClientId && googleClientSecret
+    ? {
+        google: {
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
+        },
+      }
+    : undefined;
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
   emailAndPassword: {
     enabled: true,
+  },
+  socialProviders: googleSocialProvider,
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "email-password"],
+    },
   },
   trustedOrigins: parseTrustedOrigins(process.env.BETTER_AUTH_TRUSTED_ORIGINS),
   trustHost: true,

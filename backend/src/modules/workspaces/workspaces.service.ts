@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
-import { PrismaClient, MemberRole, JoinRequestStatus } from "@prisma/client";
+import { PrismaClient, MemberRole } from "@prisma/client";
 import { prisma as defaultPrisma } from "../../prisma";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
@@ -13,21 +13,7 @@ export function setWorkspacesPrisma(client: PrismaClient) {
   prisma = client;
 }
 
-const PUBLIC_DOMAINS = new Set([
-  "gmail.com",
-  "yahoo.com",
-  "hotmail.com",
-  "outlook.com",
-  "icloud.com",
-  "live.com",
-  "aol.com",
-  "zoho.com",
-  "protonmail.com",
-  "mail.com",
-  "gmx.com",
-  "yandex.com",
-  "proton.me"
-]);
+
 
 const PRIVILEGED_ROLES = new Set<MemberRole>([MemberRole.OWNER]);
 const INVITABLE_MEMBER_ROLES = new Set<MemberRole>([MemberRole.MEMBER]);
@@ -36,13 +22,7 @@ const INVITABLE_MEMBER_ROLES = new Set<MemberRole>([MemberRole.MEMBER]);
 export class WorkspacesService {
   constructor(private readonly emailService: EmailService) {}
 
-  private extractDomain(email: string): string | null {
-    if (!email) return null;
-    const parts = email.split("@");
-    if (parts.length < 2) return null;
-    const domain = parts[1].toLowerCase().trim();
-    return PUBLIC_DOMAINS.has(domain) ? null : domain;
-  }
+
 
   private async requireWorkspaceMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -152,7 +132,10 @@ export class WorkspacesService {
   async createWorkspace(userId: string, userEmail: string, dto: CreateWorkspaceDto) {
     let domain = dto.domain?.toLowerCase().trim() || null;
     if (!domain) {
-      domain = this.extractDomain(userEmail);
+      const parts = userEmail?.split("@");
+      const raw = parts?.length === 2 ? parts[1].toLowerCase().trim() : null;
+      const PUBLIC_EMAIL_DOMAINS = new Set(["gmail.com","yahoo.com","hotmail.com","outlook.com","icloud.com","live.com","aol.com","zoho.com","protonmail.com","mail.com","gmx.com","yandex.com","proton.me"]);
+      domain = raw && !PUBLIC_EMAIL_DOMAINS.has(raw) ? raw : null;
     }
 
     if (domain) {
@@ -270,27 +253,6 @@ export class WorkspacesService {
     });
   }
 
-  async discoverWorkspace(userEmail: string) {
-    const domain = this.extractDomain(userEmail);
-    if (!domain) return null;
-
-    const workspace = await prisma.workspace.findUnique({
-      where: { domain },
-      select: {
-        id: true,
-        name: true,
-        logo: true,
-        domain: true,
-        domainAutoJoin: true,
-        domainRequestJoin: true,
-      },
-    });
-
-    if (!workspace) return null;
-    if (!workspace.domainAutoJoin && !workspace.domainRequestJoin) return null;
-
-    return workspace;
-  }
 
   async getInvitation(token: string) {
     const invitation = await prisma.invitation.findUnique({
@@ -324,75 +286,6 @@ export class WorkspacesService {
     };
   }
 
-  async requestJoin(userId: string, workspaceId: string) {
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: workspaceId },
-    });
-    if (!workspace) {
-      throw new NotFoundException("Workspace not found.");
-    }
-
-    const existingMember = await prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: { userId, workspaceId },
-      },
-    });
-    if (existingMember) {
-      throw new BadRequestException("You are already a member of this workspace.");
-    }
-
-    const request = await prisma.joinRequest.upsert({
-      where: {
-        userId_workspaceId: { userId, workspaceId },
-      },
-      create: {
-        userId,
-        workspaceId,
-        status: JoinRequestStatus.PENDING,
-      },
-      update: {
-        status: JoinRequestStatus.PENDING,
-        createdAt: new Date(),
-      },
-    });
-
-    return { status: request.status };
-  }
-
-  async directJoin(userId: string, userEmail: string, workspaceId: string) {
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: workspaceId },
-    });
-    if (!workspace) {
-      throw new NotFoundException("Workspace not found.");
-    }
-
-    if (!workspace.domainAutoJoin) {
-      throw new ForbiddenException("Auto-join is not enabled for this workspace.");
-    }
-
-    const userDomain = this.extractDomain(userEmail);
-    if (!userDomain || userDomain !== workspace.domain) {
-      throw new ForbiddenException("Your email domain does not match this workspace domain.");
-    }
-
-    const existingMember = await prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: { userId, workspaceId },
-      },
-    });
-    if (existingMember) {
-      throw new BadRequestException("You are already a member of this workspace.");
-    }
-
-    return await prisma.workspaceMember.create({
-      data: {
-        userId,
-        workspaceId,
-        role: MemberRole.MEMBER,
-      },
-    });
-  }
 
   async inviteMember(userId: string, workspaceId: string, dto: InviteMemberDto) {
     const inviter = await this.requirePrivilegedMembership(userId, workspaceId);

@@ -36,11 +36,6 @@ export class WorkspacesController {
     return this.workspacesService.updateWorkspace(user.id, workspaceId, dto);
   }
 
-  @Get("discover")
-  @UseGuards(AuthGuard)
-  async discoverWorkspace(@CurrentUser() user: any) {
-    return this.workspacesService.discoverWorkspace(user.email);
-  }
 
   @Get(":id/members")
   @UseGuards(AuthGuard)
@@ -85,23 +80,6 @@ export class WorkspacesController {
     return this.workspacesService.revokeInvitation(user.id, workspaceId, inviteId);
   }
 
-  @Post(":id/request-join")
-  @UseGuards(AuthGuard)
-  async requestJoin(
-    @CurrentUser() user: any,
-    @Param("id") workspaceId: string,
-  ) {
-    return this.workspacesService.requestJoin(user.id, workspaceId);
-  }
-
-  @Post(":id/join")
-  @UseGuards(AuthGuard)
-  async directJoin(
-    @CurrentUser() user: any,
-    @Param("id") workspaceId: string,
-  ) {
-    return this.workspacesService.directJoin(user.id, user.email, workspaceId);
-  }
 
   @Post(":id/invitations")
   @UseGuards(AuthGuard)

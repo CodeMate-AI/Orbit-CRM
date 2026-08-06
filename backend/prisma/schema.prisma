@@ -33,7 +33,6 @@ model User {
 
   sessions      Session[]
   accounts      Account[]
-  joinRequests  JoinRequest[]
   chatSessions  ChatSession[]
 }
 
@@ -56,10 +55,7 @@ model Workspace {
   opportunityContacts OpportunityContact[]
 
   activities          Activity[]
-  domainAutoJoin      Boolean          @default(false)
-  domainRequestJoin   Boolean          @default(true)
   invitations         Invitation[]
-  joinRequests        JoinRequest[]
   smtpConfig          SmtpConfig?
   chatSessions        ChatSession[]
 }
@@ -443,23 +439,7 @@ model Account {
   updatedAt            DateTime  @updatedAt
 }
 
-model JoinRequest {
-  id          String            @id @default(cuid())
-  userId      String
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspaceId String
-  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  status      JoinRequestStatus @default(PENDING)
-  createdAt   DateTime          @default(now())
 
-  @@unique([userId, workspaceId])
-}
-
-enum JoinRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
 
 model Invitation {
   id          String     @id @default(cuid())

@@ -46,3 +46,5 @@ next-env.d.ts
 
 server.md
 .agents/
+Backend.md
+Frontend.md

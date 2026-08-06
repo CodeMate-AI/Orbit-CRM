@@ -13,7 +13,9 @@ async function bootstrap() {
 
   // Parse JSON bodies except for auth endpoints to avoid disturbing request streams
   app.use((req: any, res: any, next: any) => {
-    if (req.originalUrl.startsWith("/api/auth")) {
+    if (req.path === "/api/auth/forgot-password" || req.path === "/api/auth/reset-password") {
+      json()(req, res, next);
+    } else if (req.originalUrl.startsWith("/api/auth")) {
       next();
     } else {
       json()(req, res, next);
@@ -22,7 +24,9 @@ async function bootstrap() {
 
   // Parse URLencoded bodies except for auth endpoints
   app.use((req: any, res: any, next: any) => {
-    if (req.originalUrl.startsWith("/api/auth")) {
+    if (req.path === "/api/auth/forgot-password" || req.path === "/api/auth/reset-password") {
+      urlencoded({ extended: true })(req, res, next);
+    } else if (req.originalUrl.startsWith("/api/auth")) {
       next();
     } else {
       urlencoded({ extended: true })(req, res, next);

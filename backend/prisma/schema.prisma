@@ -497,7 +497,12 @@ model Invitation {
   createdAt   DateTime   @default(now())
 }
 
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-
-
-
+  @@index([email])
+}

@@ -283,22 +283,34 @@ $$\text{Expected Value} = \text{Deal Amount} \times \left( \frac{\text{Probabili
 * **Deal Amount**: The total financial value of the deal.
 * **Probability**: The estimated percentage chance of winning the deal:
   1. **Custom Deal Probability**: If you manually set a custom probability on a deal, that specific percentage is used.
-  2. **Pipeline Stage Fallback**: If no custom probability is set on the deal, the system falls back to the default probability of the deal's active pipeline stage (e.g. *Proposal* = 50%, *Negotiation* = 80%).
+  2. **Pipeline Stage Fallback**: If no custom probability is set on the deal, the system falls back to the default probability of the deal's active pipeline stage (e.g. *Proposal* = 50%, *Negotiation* = 75%).
   3. **Fallback Default**: If both are missing, it defaults to 100%.
 
-#### 2. Practical Example
+#### 2. Default Pipeline Stages & Probabilities
+When a workspace is created, it is seeded with a default Sales Pipeline containing the following stages:
+
+| Stage Name | Position | Default Probability | Description / Status |
+| :--- | :--- | :--- | :--- |
+| **Lead** | 0 | **10%** | New opportunity from forms, events, or inquiries |
+| **Qualified** | 1 | **25%** | Initial contact established and requirements verified |
+| **Proposal** | 2 | **50%** | Proposal, quote, or demo presented to prospect |
+| **Negotiation** | 3 | **75%** | Under review, contract terms being finalized |
+| **Won** | 4 | **100%** | Deal closed successfully and contract signed |
+| **Lost** | 5 | **0%** | Deal lost or cancelled (revenue forecast is ₹0) |
+
+#### 3. Practical Example
 Suppose you have three deals closing in August 2026:
 * **Deal A**: Value of ₹10,00,000, in *Proposal* stage (50% default probability).
   $$\text{Expected Value} = \text{₹10,00,000} \times 0.50 = \text{₹5,00,000}$$
-* **Deal B**: Value of ₹20,00,000, in *Negotiation* stage (80% default probability).
-  $$\text{Expected Value} = \text{₹20,00,000} \times 0.80 = \text{₹16,00,000}$$
+* **Deal B**: Value of ₹20,00,000, in *Negotiation* stage (75% default probability).
+  $$\text{Expected Value} = \text{₹20,00,000} \times 0.75 = \text{₹15,00,000}$$
 * **Deal C**: Value of ₹5,00,000, in *Lost* stage (0% default probability).
   $$\text{Expected Value} = \text{₹5,00,000} \times 0.00 = \text{₹0}$$
 
 **August 2026 Forecast Sum**:
-$$\text{Total Forecast} = \text{₹5,00,000} + \text{₹16,00,000} + \text{₹0} = \text{₹21,00,000}$$
+$$\text{Total Forecast} = \text{₹5,00,000} + \text{₹15,00,000} + \text{₹0} = \text{₹20,00,000}$$
 
-#### 3. Filtering and Inclusion Criteria
+#### 4. Filtering and Inclusion Criteria
 To ensure data accuracy, the database query filters deals based on:
 * **Deletion Status**: Deleted opportunities (`deletedAt IS NOT NULL`) are excluded.
 * **Date Range**: Only deals with a valid close date (`closeDate`) falling within the selected time window (e.g., *This Quarter* or *This Year*) are counted.

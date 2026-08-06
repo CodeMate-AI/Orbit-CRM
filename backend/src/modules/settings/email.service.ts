@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { prisma } from "../../prisma";
 import dns from "dns";
 import nodemailer, { Transporter } from "nodemailer";
 
@@ -33,23 +32,6 @@ function toBadRequest(message: string, prefix: string) {
   return new BadRequestException(`${prefix}: ${message}`);
 }
 
-export function mapStoredConfig(config: {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  senderName: string;
-  senderEmail: string;
-}): ResolvedSmtpConfig {
-  return {
-    host: config.host,
-    port: config.port,
-    username: config.username,
-    password: config.password,
-    senderName: config.senderName,
-    senderEmail: config.senderEmail,
-  };
-}
 
 export function getEnvSmtpConfig(env: NodeJS.ProcessEnv = process.env): ResolvedSmtpConfig {
   const host = env.SMTP_HOST;
@@ -74,17 +56,7 @@ export function getEnvSmtpConfig(env: NodeJS.ProcessEnv = process.env): Resolved
 
 @Injectable()
 export class EmailService {
-  async resolveSmtpConfig(workspaceId: string | null): Promise<ResolvedSmtpConfig> {
-    if (workspaceId) {
-      const savedConfig = await (prisma as any).smtpConfig.findUnique({
-        where: { workspaceId },
-      });
-
-      if (savedConfig) {
-        return mapStoredConfig(savedConfig);
-      }
-    }
-
+  async resolveSmtpConfig(): Promise<ResolvedSmtpConfig> {
     return getEnvSmtpConfig();
   }
 
@@ -107,7 +79,7 @@ export class EmailService {
   }
 
   async sendEmail(workspaceId: string | null, to: string, subject: string, html: string) {
-    const config = await this.resolveSmtpConfig(workspaceId);
+    const config = await this.resolveSmtpConfig();
     const transport = this.createTransport(config);
 
     try {
@@ -122,54 +94,4 @@ export class EmailService {
     }
   }
 
-  async sendTestEmail(config: ResolvedSmtpConfig, to: string) {
-    const transport = this.createTransport(config);
-
-    try {
-      return await transport.sendMail({
-        from: `"${config.senderName}" <${config.senderEmail}>`,
-        to,
-        subject: "Orbit CRM SMTP test email",
-        html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
-          <h2>SMTP test email</h2>
-          <p>This email confirms that Orbit CRM can send transactional mail from your configured Gmail SMTP account.</p>
-          <p>If you received this message, your workspace SMTP settings are working correctly.</p>
-        </div>
-      `,
-      });
-    } catch (error) {
-      throw toBadRequest(getErrorMessage(error), "SMTP test email failed");
-    }
-  }
-
-  async testConnection(input?: Partial<ResolvedSmtpConfig>, workspaceId?: string | null) {
-    const hasCompleteInput =
-      Boolean(input?.host) &&
-      Boolean(input?.port) &&
-      Boolean(input?.username) &&
-      Boolean(input?.password) &&
-      Boolean(input?.senderName) &&
-      Boolean(input?.senderEmail);
-
-    const config = hasCompleteInput
-      ? {
-          host: input!.host as string,
-          port: input!.port as number,
-          username: input!.username as string,
-          password: input!.password as string,
-          senderName: input!.senderName as string,
-          senderEmail: input!.senderEmail as string,
-        }
-      : await this.resolveSmtpConfig(workspaceId ?? null);
-
-    const transport = this.createTransport(config);
-
-    try {
-      await transport.verify();
-      return { success: true };
-    } catch (error) {
-      throw toBadRequest(getErrorMessage(error), "SMTP verification failed");
-    }
-  }
 }

@@ -56,23 +56,9 @@ model Workspace {
 
   activities          Activity[]
   invitations         Invitation[]
-  smtpConfig          SmtpConfig?
   chatSessions        ChatSession[]
 }
 
-model SmtpConfig {
-  id          String    @id @default(cuid())
-  host        String
-  port        Int
-  username    String
-  password    String
-  senderName  String
-  senderEmail String
-  workspaceId String    @unique
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
 
 model WorkspaceMember {
   id          String     @id @default(cuid())

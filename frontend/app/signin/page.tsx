@@ -608,30 +608,45 @@ function SignInForm() {
             <p className="font-medium text-text-primary">Demo credentials</p>
             <p className="text-xs text-text-secondary">Quick access for workspace previews.</p>
           </div>
-          <div className="flex rounded-full border border-border-default bg-bg-secondary p-1 text-xs">
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex rounded-full border border-border-default bg-bg-secondary p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setDemoRole("owner")}
+                className={`rounded-full px-3 py-1 transition cursor-pointer ${
+                  demoRole === "owner"
+                    ? "bg-orbit-primary text-white"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+                disabled={isLoading}
+              >
+                Owner
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoRole("member")}
+                className={`rounded-full px-3 py-1 transition cursor-pointer ${
+                  demoRole === "member"
+                    ? "bg-orbit-primary text-white"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+                disabled={isLoading}
+              >
+                Member
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setDemoRole("owner")}
-              className={`rounded-full px-3 py-1 transition ${
-                demoRole === "owner"
-                  ? "bg-orbit-primary text-white"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
+              onClick={() => {
+                const activeCredentials = demoCredentials[demoRole];
+                setEmail(activeCredentials.email);
+                setPassword(activeCredentials.password);
+                toast.success(`${demoRole === "owner" ? "Owner" : "Member"} credentials autofilled!`);
+              }}
+              className="text-xs text-orbit-primary hover:text-orbit-primary-hover font-medium underline cursor-pointer"
               disabled={isLoading}
             >
-              Owner
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoRole("member")}
-              className={`rounded-full px-3 py-1 transition ${
-                demoRole === "member"
-                  ? "bg-orbit-primary text-white"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-              disabled={isLoading}
-            >
-              Member
+              Autofill
             </button>
           </div>
         </div>

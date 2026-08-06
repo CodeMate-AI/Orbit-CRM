@@ -51,6 +51,14 @@ function DealDetailPage() {
   const [draftName, setDraftName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [savingStageId, setSavingStageId] = useState<string | null>(null);
+
+  const [draftAmount, setDraftAmount] = useState("");
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const [savingAmount, setSavingAmount] = useState(false);
+
+  const [draftCloseDate, setDraftCloseDate] = useState("");
+  const [isEditingCloseDate, setIsEditingCloseDate] = useState(false);
+  const [savingCloseDate, setSavingCloseDate] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
   const [linkingPersonId, setLinkingPersonId] = useState<string | null>(null);
@@ -78,6 +86,8 @@ function DealDetailPage() {
       .then(([opp, listResponse, companyRows, peopleResponse]) => {
         setDetail(opp);
         setDraftName(opp.name);
+        setDraftAmount(opp.amount !== null ? opp.amount.toString() : "");
+        setDraftCloseDate(opp.closeDate ? opp.closeDate.split("T")[0] : "");
         setStages(listResponse.stages);
         setCompanies(companyRows);
         setPeople(peopleResponse.data);
@@ -124,6 +134,65 @@ function DealDetailPage() {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [contactSearch, linkedContactIds, people]);
+
+  const handleSaveAmount = async () => {
+    if (!detail) return;
+    const cleaned = draftAmount.trim();
+    const val = cleaned === "" ? null : parseFloat(cleaned);
+
+    if (val !== null && (Number.isNaN(val) || val < 0)) {
+      toast.error("Please enter a valid amount.");
+      setDraftAmount(detail.amount !== null ? detail.amount.toString() : "");
+      setIsEditingAmount(false);
+      return;
+    }
+
+    if (val === detail.amount) {
+      setIsEditingAmount(false);
+      return;
+    }
+
+    setSavingAmount(true);
+    try {
+      await opportunitiesApi.update(detail.id, { amount: val });
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
+      setDraftAmount(refreshed.amount !== null ? refreshed.amount.toString() : "");
+      toast.success("Deal amount updated.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update deal amount.");
+      setDraftAmount(detail.amount !== null ? detail.amount.toString() : "");
+    } finally {
+      setSavingAmount(false);
+      setIsEditingAmount(false);
+    }
+  };
+
+  const handleSaveCloseDate = async () => {
+    if (!detail) return;
+    const nextDate = draftCloseDate ? new Date(draftCloseDate).toISOString() : null;
+    const prevDate = detail.closeDate ? new Date(detail.closeDate).toISOString() : null;
+
+    if (nextDate === prevDate) {
+      setIsEditingCloseDate(false);
+      return;
+    }
+
+    setSavingCloseDate(true);
+    try {
+      await opportunitiesApi.update(detail.id, { closeDate: nextDate });
+      const refreshed = await opportunitiesApi.get(detail.id);
+      setDetail(refreshed);
+      setDraftCloseDate(refreshed.closeDate ? refreshed.closeDate.split("T")[0] : "");
+      toast.success("Deal close date updated.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update close date.");
+      setDraftCloseDate(detail.closeDate ? detail.closeDate.split("T")[0] : "");
+    } finally {
+      setSavingCloseDate(false);
+      setIsEditingCloseDate(false);
+    }
+  };
 
   const handleSaveName = async () => {
     if (!detail) return;
@@ -322,12 +391,68 @@ function DealDetailPage() {
                 aria-label="Deal name"
               />
               <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-                <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
-                  <IndianRupee className="h-4 w-4 text-orbit-primary" /> {formatMoney(detail.amount)}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5">
-                  <CalendarDays className="h-4 w-4 text-orbit-primary" /> Close date {formatDate(detail.closeDate, { day: "numeric", month: "short", year: "numeric" })}
-                </span>
+                {isEditingAmount ? (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-orbit-primary bg-bg-primary px-3 py-1">
+                    <IndianRupee className="h-4 w-4 text-orbit-primary" />
+                    <input
+                      type="number"
+                      value={draftAmount}
+                      onChange={(e) => setDraftAmount(e.target.value)}
+                      onBlur={handleSaveAmount}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveAmount();
+                        if (e.key === "Escape") {
+                          setDraftAmount(detail.amount !== null ? detail.amount.toString() : "");
+                          setIsEditingAmount(false);
+                        }
+                      }}
+                      autoFocus
+                      disabled={savingAmount}
+                      className="w-24 bg-transparent text-sm text-text-primary outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAmount(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5 hover:border-orbit-primary hover:bg-surface-hover transition-colors cursor-pointer"
+                    aria-label="Edit deal amount"
+                  >
+                    <IndianRupee className="h-4 w-4 text-orbit-primary" /> {formatMoney(detail.amount)}
+                  </button>
+                )}
+
+                {isEditingCloseDate ? (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-orbit-primary bg-bg-primary px-3 py-1">
+                    <CalendarDays className="h-4 w-4 text-orbit-primary" />
+                    <input
+                      type="date"
+                      value={draftCloseDate}
+                      onChange={(e) => setDraftCloseDate(e.target.value)}
+                      onBlur={handleSaveCloseDate}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveCloseDate();
+                        if (e.key === "Escape") {
+                          setDraftCloseDate(detail.closeDate ? detail.closeDate.split("T")[0] : "");
+                          setIsEditingCloseDate(false);
+                        }
+                      }}
+                      autoFocus
+                      disabled={savingCloseDate}
+                      className="bg-transparent text-sm text-text-primary outline-none cursor-pointer scheme-dark"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingCloseDate(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-tertiary/70 px-3 py-1.5 hover:border-orbit-primary hover:bg-surface-hover transition-colors cursor-pointer"
+                    aria-label="Edit deal close date"
+                  >
+                    <CalendarDays className="h-4 w-4 text-orbit-primary" /> Close date {formatDate(detail.closeDate, { day: "numeric", month: "short", year: "numeric" })}
+                  </button>
+                )}
                 <span
                   className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-text-primary"
                   style={{

@@ -87,15 +87,29 @@ export class AuthController {
     const account = await prisma.account.findFirst({
       where: { userId: user.id, providerId: "credential" },
     });
-    if (!account) {
-      throw new BadRequestException("Account does not support password logins.");
-    }
 
     const hashedPassword = await hashPassword(password);
-    await prisma.account.update({
-      where: { id: account.id },
-      data: { password: hashedPassword },
-    });
+
+    if (!account) {
+      // If the user signed up via social login but wants to set/add a password login option,
+      // dynamically create the credential account for them.
+      const crypto = require("crypto");
+      const accountId = crypto.randomBytes(16).toString("hex");
+      await prisma.account.create({
+        data: {
+          id: accountId,
+          accountId: user.id,
+          providerId: "credential",
+          userId: user.id,
+          password: hashedPassword,
+        },
+      });
+    } else {
+      await prisma.account.update({
+        where: { id: account.id },
+        data: { password: hashedPassword },
+      });
+    }
 
     await passwordResetOtpClient.deleteMany({ where: { email } });
     return { success: true, message: "Your password has been successfully reset." };

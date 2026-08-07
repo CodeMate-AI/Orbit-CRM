@@ -1,8 +1,10 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { prisma } from "../../prisma";
 
+// Handles full-text lookup requests across primary workspace data entities
 @Injectable()
 export class SearchService {
+  // Helper to ensure the user has permission to search within the requested workspace
   private async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
@@ -12,16 +14,18 @@ export class SearchService {
     }
   }
 
+  // Executes multi-table lookup for contacts, companies, and opportunities matching the query
   async searchWorkspace(userId: string, workspaceId: string, query: string) {
     await this.assertMembership(userId, workspaceId);
 
     const cleanQuery = query.trim();
     if (!cleanQuery) {
-      return { people: [], companies: [], opportunities: [] };
+      return { people: [], companies: [], opportunities: [] }; // Early exit if query is empty
     }
 
+    // Query all three tables concurrently
     const [people, companies, opportunities] = await Promise.all([
-      // Search People
+      // Query contacts matching name, email, phone, or job title (case-insensitive)
       prisma.person.findMany({
         where: {
           workspaceId,
@@ -41,10 +45,10 @@ export class SearchService {
           email: true,
           jobTitle: true,
         },
-        take: 10,
+        take: 10, // Cap results to avoid performance issues
       }),
 
-      // Search Companies
+      // Query companies matching name, domain, city, or industry (case-insensitive)
       prisma.company.findMany({
         where: {
           workspaceId,
@@ -61,10 +65,10 @@ export class SearchService {
           name: true,
           domain: true,
         },
-        take: 10,
+        take: 10, // Cap results to avoid performance issues
       }),
 
-      // Search Opportunities (Deals)
+      // Query opportunities/deals matching name (case-insensitive)
       prisma.opportunity.findMany({
         where: {
           workspaceId,
@@ -81,10 +85,11 @@ export class SearchService {
             },
           },
         },
-        take: 10,
+        take: 10, // Cap results to avoid performance issues
       }),
     ]);
 
+    // Format DB response records into standard frontend structures
     return {
       people: people.map((p) => ({
         id: p.id,
@@ -106,3 +111,4 @@ export class SearchService {
     };
   }
 }
+

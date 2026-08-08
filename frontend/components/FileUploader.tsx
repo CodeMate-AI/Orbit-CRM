@@ -17,7 +17,31 @@ export default function FileUploader({ workspaceId, entityType, entityId, onUplo
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Allowlist of MIME types accepted by Cloudinary for this CRM
+  const ALLOWED_MIME_TYPES: Record<string, string> = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/gif": "GIF",
+    "image/webp": "WebP",
+    "image/svg+xml": "SVG",
+    "application/pdf": "PDF",
+    "application/msword": "DOC",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    "application/vnd.ms-excel": "XLS",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+    "text/plain": "TXT",
+    "text/csv": "CSV",
+  };
+
+  const ALLOWED_LABELS = Object.values(ALLOWED_MIME_TYPES).join(", ");
+
   const handleUpload = async (file: File) => {
+    const mimeType = file.type || "application/octet-stream";
+    if (!ALLOWED_MIME_TYPES[mimeType]) {
+      toast.error(`Unsupported file type "${file.name.split(".").pop()?.toUpperCase() ?? mimeType}". Supported formats: ${ALLOWED_LABELS}.`);
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File size cannot exceed 10MB.");
       return;
@@ -116,6 +140,7 @@ export default function FileUploader({ workspaceId, entityType, entityId, onUplo
       <input
         ref={inputRef}
         type="file"
+        accept={Object.keys(ALLOWED_MIME_TYPES).join(",")}
         className="hidden"
         onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
         disabled={uploading}
@@ -131,7 +156,7 @@ export default function FileUploader({ workspaceId, entityType, entityId, onUplo
           <p className="text-sm font-medium text-text-primary">
             Drag & drop your file here, or <span className="text-orbit-primary hover:underline">browse</span>
           </p>
-          <p className="text-xs text-text-muted">Maximum file size: 10MB (images, PDFs, documents)</p>
+          <p className="text-xs text-text-muted">Max 10MB · Supported: {ALLOWED_LABELS}</p>
         </div>
       )}
     </div>

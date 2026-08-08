@@ -17,10 +17,12 @@ interface NotesTimelineProps {
 
 export default function NotesTimeline({ workspaceId, entityType, entityId }: NotesTimelineProps) {
   const { userRole } = useWorkspace();
+  const NOTES_PER_PAGE = 5;
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [newNoteBody, setNewNoteBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     async function fetchNotes() {
@@ -111,7 +113,7 @@ export default function NotesTimeline({ workspaceId, entityType, entityId }: Not
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {notes.map((note) => (
+            {(showAll ? notes : notes.slice(0, NOTES_PER_PAGE)).map((note) => (
               <div key={note.id} className="relative rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 hover:bg-bg-secondary/60 transition group">
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex items-center gap-2">
@@ -145,6 +147,17 @@ export default function NotesTimeline({ workspaceId, entityType, entityId }: Not
                 </div>
               </div>
             ))}
+            {notes.length > NOTES_PER_PAGE && (
+              <button
+                type="button"
+                onClick={() => setShowAll((prev) => !prev)}
+                className="mt-1 self-center text-xs text-orbit-primary hover:underline focus:outline-none"
+              >
+                {showAll
+                  ? "Show less"
+                  : `Show ${notes.length - NOTES_PER_PAGE} more note${notes.length - NOTES_PER_PAGE > 1 ? "s" : ""}`}
+              </button>
+            )}
           </div>
         )}
       </div>

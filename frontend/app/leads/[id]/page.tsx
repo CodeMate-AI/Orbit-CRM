@@ -236,14 +236,30 @@ function LeadDetailPage() {
               <p className="mt-1 text-sm text-text-secondary">{lead.jobTitle || "No job title"}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs text-text-secondary">
                 {lead.email && <span className="rounded-full bg-bg-tertiary px-3 py-1">{lead.email}</span>}
-                {lead.phone && <span className="rounded-full bg-bg-tertiary px-3 py-1">{lead.phone}</span>}
+                {lead.phone && (
+                  <a
+                    href={`tel:${lead.phone}`}
+                    className="rounded-full bg-bg-tertiary px-3 py-1 text-orbit-primary hover:bg-bg-hover hover:underline"
+                  >
+                    {lead.phone}
+                  </a>
+                )}
               </div>
             </div>
           </div>
 
           <div className="space-y-3 text-sm text-text-secondary">
             <div className="flex items-center gap-2"><Mail className="h-4 w-4" /> {lead.email || "No email"}</div>
-            <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {lead.phone || "No phone"}</div>
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              {lead.phone ? (
+                <a href={`tel:${lead.phone}`} className="text-orbit-primary hover:underline">
+                  {lead.phone}
+                </a>
+              ) : (
+                "No phone"
+              )}
+            </div>
             <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Created {formatDateTime(lead.createdAt)}</div>
           </div>
         </aside>

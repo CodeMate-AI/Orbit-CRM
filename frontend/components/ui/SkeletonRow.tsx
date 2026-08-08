@@ -16,7 +16,7 @@ export function SkeletonRow({ count = 5, widths = ["45%", "25%", "20%", "10%"] }
         >
           {/* Leading avatar/icon placeholder */}
           <div
-            className="h-7 w-7 flex-shrink-0 animate-pulse rounded-full"
+            className="h-7 w-7 shrink-0 animate-pulse rounded-full"
             style={{ background: "var(--surface-hover, rgba(255,255,255,0.06))" }}
           />
           {widths.map((width, colIdx) => (

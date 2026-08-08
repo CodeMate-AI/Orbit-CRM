@@ -36,6 +36,10 @@ export class AttachmentsService {
 
   private getResourceType(mimeType: string): "image" | "video" | "raw" {
     const mime = mimeType.toLowerCase();
+    // SVGs must be treated as 'raw' — Cloudinary rejects them under the 'image' resource type
+    if (mime === "image/svg+xml") {
+      return "raw";
+    }
     if (mime.startsWith("image/") || mime === "application/pdf") {
       return "image";
     }

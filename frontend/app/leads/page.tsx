@@ -9,6 +9,7 @@ import {
   Download,
   Grip,
   Loader2,
+  Phone,
   Plus,
   Search,
   Trash2,
@@ -971,7 +972,20 @@ function LeadsContent() {
                           </div>
                         </td>
                         <td className="col-email">{Lead.email ?? "—"}</td>
-                        <td className="col-phone mono-data">{Lead.phone ?? "—"}</td>
+                        <td className="col-phone mono-data">
+                          {Lead.phone ? (
+                            <a
+                              href={`tel:${Lead.phone}`}
+                              className="inline-flex items-center gap-1 text-orbit-primary hover:text-orbit-primary-hover hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                              {Lead.phone}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="col-company">
                           <span className="company-chip">{Lead.company ?? "—"}</span>
                         </td>

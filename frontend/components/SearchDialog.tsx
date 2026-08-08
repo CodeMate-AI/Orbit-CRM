@@ -94,7 +94,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <CommandItem
                 key={person.id}
                 value={`person-${person.id}-${person.name}`}
-                onSelect={() => handleSelect(`/leads?id=${person.id}`)}
+                onSelect={() => handleSelect(`/leads/${person.id}`)}
                 className="flex cursor-pointer items-center gap-2"
               >
                 <Users className="h-4 w-4 text-text-secondary" />

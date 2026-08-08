@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Kanban Board / Deals Pipeline [Frontend] - Drag-and-drop opportunity board by stage
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";

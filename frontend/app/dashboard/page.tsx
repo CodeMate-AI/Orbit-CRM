@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Dashboard Stats [Frontend] - Workspace stats and summary overview
 import { useEffect, useState } from "react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { dashboardApi, DashboardStats } from "@/lib/dashboard-api";

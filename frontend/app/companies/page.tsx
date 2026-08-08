@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Companies Account Management [Frontend] - Manage organizations/companies in the CRM
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import EmptyState from "@/components/ui/EmptyState";

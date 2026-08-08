@@ -1,3 +1,4 @@
+// FEATURE: AI Copilot [Backend] - AI CRM querying logic, prompt generation, tool definition, and GPT integration
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { prisma as defaultPrisma } from "../../prisma";
 

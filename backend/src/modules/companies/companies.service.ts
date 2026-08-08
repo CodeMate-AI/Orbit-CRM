@@ -1,3 +1,4 @@
+// FEATURE: Companies Account Management [Backend] - Handles database CRUD for accounts/companies
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "../../prisma";
 import { CreateCompanyDto } from "./dto/create-company.dto";

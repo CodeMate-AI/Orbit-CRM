@@ -1,3 +1,4 @@
+// FEATURE: Workspace & Seeding [Backend] - Workspace creation and seeding default pipelines
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaClient, MemberRole } from "@prisma/client";
 import { prisma as defaultPrisma } from "../../prisma";
@@ -163,7 +164,7 @@ export class WorkspacesService {
         },
       });
 
-      // Seed a default Sales Pipeline with standard stages
+      // Seed a default Sales Pipeline with standard stages : backend for revenue forecast
       const DEFAULT_STAGES = [
         { name: "Lead",        color: "#8174f8", position: 0, probability: 10  },
         { name: "Qualified",   color: "#53b1fd", position: 1, probability: 25  },

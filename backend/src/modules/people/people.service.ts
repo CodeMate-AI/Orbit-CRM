@@ -1,3 +1,4 @@
+// FEATURE: Contacts / Lead Management [Backend] - Handles database CRUD for contacts/leads
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "../../prisma";

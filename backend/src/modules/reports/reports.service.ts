@@ -1,3 +1,4 @@
+// FEATURE: Revenue Forecast [Backend] - Formulates SQL query combining closeDate, stage probability, and deal amount
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 

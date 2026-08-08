@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Revenue Forecast [Frontend] - Renders line chart representing expected revenue over period
 import { useEffect, useMemo, useState } from "react";
 import AppLayout, { useWorkspace } from "@/components/AppLayout";
 import { reportsApi, type ReportsResponse } from "@/lib/reports-api";

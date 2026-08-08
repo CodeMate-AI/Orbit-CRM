@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Global Search [Frontend] - Dialog for searching across multiple CRM entities
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "./AppLayout";

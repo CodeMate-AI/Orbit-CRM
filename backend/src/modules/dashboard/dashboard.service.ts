@@ -1,3 +1,4 @@
+// FEATURE: Dashboard Stats [Backend] - Computes summary dashboard metrics for the current workspace
 import { Injectable, ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "../../prisma";

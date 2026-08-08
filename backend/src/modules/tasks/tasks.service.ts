@@ -1,3 +1,4 @@
+// FEATURE: Task Management [Backend] - Handles database CRUD for task assignment and lifecycle
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaClient, TaskStatus } from "@prisma/client";
 import { prisma as defaultPrisma } from "../../prisma";

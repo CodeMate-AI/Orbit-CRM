@@ -1,3 +1,4 @@
+// FEATURE: Authentication & Session [Backend] - Configures Better Auth with email/password and Google social sign-in
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "../../prisma";

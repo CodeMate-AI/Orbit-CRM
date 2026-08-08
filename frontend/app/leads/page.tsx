@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Contacts / Lead Management [Frontend] - View and manage contacts/leads list
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {

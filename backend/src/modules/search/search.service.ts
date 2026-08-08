@@ -1,3 +1,4 @@
+// FEATURE: Global Search [Backend] - Multi-entity database search spanning tasks, opportunities, contacts, and companies
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { prisma } from "../../prisma";
 

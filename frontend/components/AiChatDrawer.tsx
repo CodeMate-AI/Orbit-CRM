@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: AI Copilot [Frontend] - Renders floating chat drawer for asking AI CRM questions
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Loader2, Menu, Plus, Send, Sparkles, Trash2, X } from "lucide-react";

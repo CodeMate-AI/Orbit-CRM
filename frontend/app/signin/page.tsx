@@ -1,5 +1,6 @@
 "use client";
 
+// FEATURE: Authentication [Frontend] - Sign-In Page
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";

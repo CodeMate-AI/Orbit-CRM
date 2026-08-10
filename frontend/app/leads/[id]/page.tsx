@@ -17,7 +17,7 @@ import { peopleApi, PersonRow } from "@/lib/people-api";
 import { tasksApi, TaskRow } from "@/lib/tasks-api";
 
 import { toast } from "sonner";
-import { ArrowLeft, CalendarDays, Loader2, Mail, Phone, Plus, Pencil, Save } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Loader2, Mail, Pencil, Phone, Plus, Save, Trash2 } from "lucide-react";
 import { extractTextFromTiptapJson, isTiptapJsonEmpty } from "@/lib/utils";
 
 
@@ -63,7 +63,14 @@ function LeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
   const [error, setError] = useState("");
-  const [selectedNote, setSelectedNote] = useState<NoteRow | null>(null);
+  // Note management and collapse state
+  const [selectedNote, setSelectedNote] = useState<NoteRow | null>(null); // Note currently viewed in detail modal
+  const [notesCollapsed, setNotesCollapsed] = useState(false); // Toggle state for collapsible notes sidebar section
+  const [editingNote, setEditingNote] = useState<NoteRow | null>(null); // Note currently being edited in edit modal
+  const [editNoteBody, setEditNoteBody] = useState<any>(null); // Tiptap JSON content for note editor
+  const [savingEditNote, setSavingEditNote] = useState(false); // Loading state for note update API call
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null); // Tracks ID of note currently being deleted
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     firstName: "",
@@ -110,6 +117,7 @@ function LeadDetailPage() {
       .finally(() => setLoading(false));
   }, [workspaceId, leadId]);
 
+  // Creates a new note linked to this lead
   const handleSaveNote = async () => {
     if (!workspaceId || !lead) return;
     if (!newNoteBody || isTiptapJsonEmpty(newNoteBody)) {
@@ -127,6 +135,56 @@ function LeadDetailPage() {
       toast.error(err.message || "Failed to save note.");
     } finally {
       setSavingNote(false);
+    }
+  };
+
+  // Opens the edit dialog with current note body
+  const handleStartEditNote = (note: NoteRow) => {
+    setEditingNote(note);
+    setEditNoteBody(note.body);
+  };
+
+  // Saves modified note contents to backend
+  const handleUpdateNote = async () => {
+    if (!editingNote) return;
+    if (!editNoteBody || isTiptapJsonEmpty(editNoteBody)) {
+      toast.error("Note content cannot be empty.");
+      return;
+    }
+
+    setSavingEditNote(true);
+    try {
+      const updated = await notesApi.update(editingNote.id, { body: editNoteBody });
+      setNotes((current) => current.map((n) => (n.id === updated.id ? updated : n)));
+      if (selectedNote?.id === updated.id) {
+        setSelectedNote(updated);
+      }
+      setEditingNote(null);
+      setEditNoteBody(null);
+      toast.success("Note updated successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update note.");
+    } finally {
+      setSavingEditNote(false);
+    }
+  };
+
+  // Deletes note by ID after user confirmation
+  const handleDeleteNote = async (noteId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this note?")) return;
+    setDeletingNoteId(noteId);
+    try {
+      await notesApi.delete(noteId);
+      setNotes((current) => current.filter((n) => n.id !== noteId));
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
+      }
+      toast.success("Note deleted successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete note.");
+    } finally {
+      setDeletingNoteId(null);
     }
   };
 
@@ -271,32 +329,69 @@ function LeadDetailPage() {
 
           <div><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Tasks</h3><span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{relatedTasks.length}</span></div><div className="space-y-2">{relatedTasks.length === 0 ? <p className="text-sm text-text-tertiary">No tasks linked.</p> : relatedTasks.slice(0, 5).map((task) => <div key={task.id} className="rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm"><p className="font-medium text-text-primary">{task.title}</p><p className="mt-1 text-xs text-text-tertiary">{task.status}</p></div>)}</div></div>
 
+          {/* Collapsible & Scrollable Notes Sidebar Section */}
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary">Notes</h3>
+              {/* Toggle to collapse/expand notes list */}
+              <button
+                type="button"
+                onClick={() => setNotesCollapsed((value) => !value)}
+                className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.24em] text-text-tertiary transition hover:text-text-primary cursor-pointer"
+              >
+                <span>Notes</span>
+                {notesCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+              </button>
               <span className="rounded-full bg-bg-tertiary px-3 py-1 text-xs text-text-secondary">{notes.length}</span>
             </div>
-            <div className="space-y-2">
-              {notes.length === 0 ? (
-                <p className="text-sm text-text-tertiary">No notes yet.</p>
-              ) : (
-                notes.slice(0, 5).map((note) => (
-                  <article
-                    key={note.id}
-                    onClick={() => setSelectedNote(note)}
-                    className="cursor-pointer rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm transition hover:border-orbit-primary hover:bg-bg-tertiary"
-                  >
-                    <p className="font-medium text-text-primary">
-                      {note.title || (note.author?.name ? `Note by ${note.author.name}` : "Note")}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-text-tertiary">{formatDateTime(note.createdAt)}</p>
-                    <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">
-                      {extractTextFromTiptapJson(note.body) || "Empty note"}
-                    </p>
-                  </article>
-                ))
-              )}
-            </div>
+            {!notesCollapsed && (
+              /* Fixed height container with vertical scrollbar to prevent unbounded list expansion */
+              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                {notes.length === 0 ? (
+                  <p className="text-sm text-text-tertiary">No notes yet.</p>
+                ) : (
+                  notes.map((note) => (
+                    <article
+                      key={note.id}
+                      onClick={() => setSelectedNote(note)}
+                      className="group relative cursor-pointer rounded-2xl border border-border-subtle bg-bg-tertiary/70 p-3 text-sm transition hover:border-orbit-primary hover:bg-bg-tertiary"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-text-primary">
+                          {note.title || (note.author?.name ? `Note by ${note.author.name}` : "Note")}
+                        </p>
+                        {/* Hover action buttons for quick edit and delete */}
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditNote(note);
+                            }}
+                            className="rounded p-1 text-text-secondary transition hover:text-orbit-primary"
+                            title="Edit note"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteNote(note.id, e)}
+                            disabled={deletingNoteId === note.id}
+                            className="rounded p-1 text-text-secondary transition hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Delete note"
+                          >
+                            {deletingNoteId === note.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-text-tertiary">{formatDateTime(note.createdAt)}</p>
+                      <p className="mt-1 line-clamp-3 text-xs text-text-tertiary">
+                        {extractTextFromTiptapJson(note.body) || "Empty note"}
+                      </p>
+                    </article>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -307,17 +402,69 @@ function LeadDetailPage() {
           </div>
         </aside>
       </section>
+
+      {/* Note Detail Preview Modal with Edit and Delete Action Buttons */}
       <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedNote?.title || "Note Detail"}</DialogTitle>
-            <DialogDescription>
-              Logged on {selectedNote && formatDateTime(selectedNote.createdAt)}
-              {selectedNote?.author?.name ? ` by ${selectedNote.author.name}` : ""}
-            </DialogDescription>
+            <div className="flex items-start justify-between pr-6">
+              <div>
+                <DialogTitle>{selectedNote?.title || "Note Detail"}</DialogTitle>
+                <DialogDescription>
+                  Logged on {selectedNote && formatDateTime(selectedNote.createdAt)}
+                  {selectedNote?.author?.name ? ` by ${selectedNote.author.name}` : ""}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedNote) {
+                      handleStartEditNote(selectedNote);
+                      setSelectedNote(null);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs text-text-secondary transition hover:border-border-default hover:text-text-primary cursor-pointer"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedNote) {
+                      handleDeleteNote(selectedNote.id);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-bg-secondary px-3 py-1.5 text-xs text-red-400 transition hover:border-red-500/30 hover:text-red-300 cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </div>
+            </div>
           </DialogHeader>
           <div className="mt-4 max-h-[60vh] overflow-y-auto rounded-2xl border border-border-subtle bg-bg-secondary p-4">
             {selectedNote && <ReadOnlyNoteContent content={selectedNote.body} />}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dedicated Edit Note Modal with Rich Text NoteEditor */}
+      <Dialog open={!!editingNote} onOpenChange={(open) => !open && setEditingNote(null)}>
+        <DialogContent className="border border-border-default bg-bg-secondary sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl font-normal text-text-primary">Edit Note</DialogTitle>
+            <DialogDescription className="text-text-secondary">Modify the contents of this note.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <NoteEditor value={editNoteBody} onChange={setEditNoteBody} />
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary h-9 px-4 text-xs cursor-pointer" onClick={() => setEditingNote(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-primary h-9 px-4 text-xs cursor-pointer" disabled={savingEditNote} onClick={handleUpdateNote}>
+                {savingEditNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

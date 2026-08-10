@@ -345,7 +345,7 @@ function LeadDetailPage() {
             </div>
             {!notesCollapsed && (
               /* Fixed height container with vertical scrollbar to prevent unbounded list expansion */
-              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                 {notes.length === 0 ? (
                   <p className="text-sm text-text-tertiary">No notes yet.</p>
                 ) : (

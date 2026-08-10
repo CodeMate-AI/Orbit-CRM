@@ -971,15 +971,18 @@ function LeadsContent() {
                             <span className="record-name">{Lead.name}</span>
                           </div>
                         </td>
-                        <td className="col-email">{Lead.email ?? "—"}</td>
+                        <td className="col-email" title={Lead.email ?? undefined}>
+                          <span className="truncate block max-w-full">{Lead.email ?? "—"}</span>
+                        </td>
                         <td className="col-phone mono-data">
                           {Lead.phone ? (
                             <a
                               href={`tel:${Lead.phone}`}
-                              className="inline-flex items-center gap-1 text-orbit-primary hover:text-orbit-primary-hover hover:underline"
+                              className="inline-flex items-center gap-1.5 text-orbit-primary hover:text-orbit-primary-hover hover:underline whitespace-nowrap"
                               onClick={(e) => e.stopPropagation()}
+                              title={Lead.phone}
                             >
-                              <Phone className="h-3.5 w-3.5" />
+                              <Phone className="h-3.5 w-3.5 shrink-0" />
                               {Lead.phone}
                             </a>
                           ) : (
@@ -987,12 +990,18 @@ function LeadsContent() {
                           )}
                         </td>
                         <td className="col-company">
-                          <span className="company-chip">{Lead.company ?? "—"}</span>
+                          <span className="company-chip" title={Lead.company ?? undefined}>{Lead.company ?? "—"}</span>
                         </td>
-                        <td className="col-title">{Lead.jobTitle ?? "—"}</td>
+                        <td className="col-title" title={Lead.jobTitle ?? undefined}>
+                          <span className="truncate block max-w-full">{Lead.jobTitle ?? "—"}</span>
+                        </td>
                         <td className="col-activity mono-data">{Lead.lastActivity}</td>
-                        <td className="col-source mono-data">{Lead.leadSource}</td>
-                        <td className="col-industry">{Lead.industry}</td>
+                        <td className="col-source mono-data" title={Lead.leadSource}>
+                          <span className="truncate block max-w-full">{Lead.leadSource}</span>
+                        </td>
+                        <td className="col-industry" title={Lead.industry}>
+                          <span className="truncate block max-w-full">{Lead.industry}</span>
+                        </td>
                         <td className="col-actions">
                           <div className="row-actions">
                             <button

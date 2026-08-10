@@ -1998,6 +1998,8 @@
     white-space: nowrap;
     vertical-align: middle;
     background: var(--bg-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .data-table tbody tr:last-child td {
@@ -2005,32 +2007,32 @@
   }
 
   .col-checkbox {
-    width: 44px;
-    min-width: 44px;
+    width: 48px;
+    min-width: 48px;
     text-align: center;
     padding-left: 12px;
     padding-right: 4px;
   }
 
   .col-name {
-    width: 240px;
-    min-width: 240px;
+    width: 250px;
+    min-width: 250px;
     border-right: 1px solid rgba(245, 245, 245, 0.2);
   }
 
   .col-email {
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
   }
 
   .col-phone {
-    width: 136px;
-    min-width: 136px;
+    width: 170px;
+    min-width: 170px;
   }
 
   .col-company {
-    width: 150px;
-    min-width: 150px;
+    width: 210px;
+    min-width: 210px;
   }
 
   .col-title {
@@ -2044,23 +2046,23 @@
   }
 
   .col-activity {
-    width: 124px;
-    min-width: 124px;
+    width: 130px;
+    min-width: 130px;
   }
 
   .col-source {
-    width: 140px;
-    min-width: 140px;
+    width: 150px;
+    min-width: 150px;
   }
 
   .col-industry {
-    width: 120px;
-    min-width: 120px;
+    width: 150px;
+    min-width: 150px;
   }
 
   .col-actions {
-    width: 120px;
-    min-width: 120px;
+    width: 70px;
+    min-width: 70px;
     text-align: right;
     padding-right: 16px;
   }
@@ -2198,6 +2200,11 @@
     border-radius: var(--radius-full);
     border: 1px solid rgba(129, 116, 248, 0.15);
     display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
   }
 
   .tags-cell {

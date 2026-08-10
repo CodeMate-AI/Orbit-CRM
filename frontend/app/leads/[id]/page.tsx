@@ -234,17 +234,6 @@ function LeadDetailPage() {
             <div>
               <h2 className="text-xl font-semibold text-text-primary">{lead.name}</h2>
               <p className="mt-1 text-sm text-text-secondary">{lead.jobTitle || "No job title"}</p>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-text-secondary">
-                {lead.email && <span className="rounded-full bg-bg-tertiary px-3 py-1">{lead.email}</span>}
-                {lead.phone && (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="rounded-full bg-bg-tertiary px-3 py-1 text-orbit-primary hover:bg-bg-hover hover:underline"
-                  >
-                    {lead.phone}
-                  </a>
-                )}
-              </div>
             </div>
           </div>
 

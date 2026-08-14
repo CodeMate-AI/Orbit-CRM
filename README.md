@@ -100,7 +100,7 @@ Orbit CRM uses a two-app architecture:
 - **Database**: PostgreSQL for persistent CRM data.
 - **Storage**: Cloudinary for attachments and uploaded files.
 - **Email**: Brevo SMTP (via Nodemailer) for transactional email. Credentials are configured via environment variables.
-- **AI**: OpenRouter-backed integration hooks.
+- **AI**: OpenRouter-backed integration hooks for AI assistance, intelligent search support, workflow automation, and contextual CRM insights.
 
 ### Runtime flow
 

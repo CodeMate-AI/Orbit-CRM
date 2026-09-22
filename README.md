@@ -9,7 +9,6 @@ This document serves as the comprehensive, authoritative single source of truth 
 
 ---
 
-
 ## Table of Contents
 
 1. [System Architecture and Core Entrypoints](#system-architecture-and-core-entrypoints)

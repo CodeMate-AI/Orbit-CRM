@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { clearBearerToken, syncBearerToken } from "@/lib/api-client";
+import { getBearerToken, clearBearerToken } from "@/lib/api-client";
 import { workspacesApi, type WorkspaceMemberRole, type WorkspaceMembershipRow } from "@/lib/workspaces-api";
 import { ACTIVE_WORKSPACE_STORAGE_KEY, resolveActiveMembership } from "@/lib/workspace-context";
 import SearchDialog from "./SearchDialog";
@@ -101,6 +101,15 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
   const refreshSession = useCallback(async (redirectOnMissing = true) => {
     try {
+      // 1. Strictly enforce tab-isolation: Verify this tab has a local Bearer token
+      const token = getBearerToken();
+      if (!token) {
+        if (redirectOnMissing) {
+          router.push("/signin");
+        }
+        return null;
+      }
+
       const session = await authClient.getSession();
       if (!session || !session.data?.user) {
         clearBearerToken();
@@ -110,7 +119,6 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
         return null;
       }
 
-      await syncBearerToken();
       setCurrentUser(session.data.user);
       return session.data.user;
     } catch (err) {

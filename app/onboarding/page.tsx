@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { syncBearerToken } from "@/lib/api-client";
 import { workspacesApi } from "@/lib/workspaces-api";
 
 interface DiscoveredWorkspace {
@@ -44,6 +45,7 @@ export default function OnboardingPage() {
         }
 
         setCurrentUser(session.data.user);
+        await syncBearerToken();
 
         // Check if user already has workspaces
         const myWorkspaces = await workspacesApi.listMine();

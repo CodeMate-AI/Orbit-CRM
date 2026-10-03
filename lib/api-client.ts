@@ -103,12 +103,8 @@ export async function request(path: string, options: RequestInit = {}): Promise<
     headers.set("Content-Type", "application/json");
   }
 
-  // Inject tab-isolated Bearer token from sessionStorage
-  let token = getBearerToken();
-  if (!token && typeof window !== "undefined" && !path.startsWith("/auth/")) {
-    token = await syncBearerToken();
-  }
-
+  // Strictly inject tab-isolated Bearer token from sessionStorage
+  const token = getBearerToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -168,12 +164,8 @@ export async function longRequest(path: string, options: RequestInit = {}): Prom
     headers.set("Content-Type", "application/json");
   }
 
-  // Inject tab-isolated Bearer token from sessionStorage
-  let token = getBearerToken();
-  if (!token && typeof window !== "undefined" && !path.startsWith("/auth/")) {
-    token = await syncBearerToken();
-  }
-
+  // Strictly inject tab-isolated Bearer token from sessionStorage
+  const token = getBearerToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }

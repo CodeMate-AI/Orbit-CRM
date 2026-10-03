@@ -338,6 +338,42 @@ OPENROUTER_MODEL="openrouter/free"
 
 ---
 
+---
+
+## Tab-Isolated Authentication & Token Revocation
+
+Orbit CRM implements strict tab-isolated authentication using browser `sessionStorage` for client Bearer tokens with server-side HMAC-SHA256 JWT signature verification and database `tokenVersion` revocation checks:
+
+```
+[ Browser Tab (sessionStorage) ]
+      │
+      │ 1. Reads 'orbit_bearer_token' from sessionStorage
+      │ 2. Sends HTTP Request with "Authorization: Bearer <token>"
+      ▼
+[ Next.js Protected API Route Handler ]
+      │
+      │ 3. getAuthUser(req): Extracts Bearer token
+      │ 4. verifyAccessToken(token): Verifies HMAC-SHA256 signature using BETTER_AUTH_SECRET
+      │ 5. Decodes payload: { userId, email, tokenVersion, exp }
+      ▼
+[ MongoDB Atlas (User Collection) ]
+      │
+      │ 6. Fetches user by userId
+      │ 7. Checks user.tokenVersion === payload.tokenVersion
+      │    - If Match & Not Expired: Returns User object
+      │    - If Mismatch or Revoked: Returns 401 Unauthorized
+      ▼
+[ Authorized Handler Execution ]
+```
+
+### Key Security Modules:
+* **Token Utility**: [`lib/token.ts`](lib/token.ts) generates 24h HMAC-SHA256 signed JWTs and verifies signatures with timing-safe comparisons.
+* **Server Guard**: [`lib/server-auth.ts`](lib/server-auth.ts) validates tokens against MongoDB Atlas `user.tokenVersion`.
+* **Token API**: [`app/api/auth/token/route.ts`](app/api/auth/token/route.ts) handles token issuance (`POST`) and instant database-level token revocation (`DELETE`).
+* **Client Isolation**: [`lib/api-client.ts`](lib/api-client.ts) stores and attaches Bearer tokens strictly from `sessionStorage`, ensuring opening a new tab does not leak authenticated state.
+
+---
+
 ## Getting Started and Local Development
 
 ### Prerequisites
@@ -355,8 +391,8 @@ npm install
 ### 2. Configure Environment
 
 ```bash
-cp .env.example .env.local
-# Update DATABASE_URL and BETTER_AUTH_SECRET with your values
+cp .env.example .env
+# Update DATABASE_URL, BETTER_AUTH_SECRET, and OPENROUTER_API_KEY with your values
 ```
 
 ### 3. Generate Prisma Client & Sync Database
@@ -366,7 +402,13 @@ npx prisma generate
 npx prisma db push
 ```
 
-### 4. Run Development Server
+### 4. Run Automated Test Suite
+
+```bash
+npm test
+```
+
+### 5. Run Development Server
 
 ```bash
 npm run dev
@@ -374,6 +416,16 @@ npm run dev
 
 * Application & API: `http://localhost:3000`
 * Health Check: `http://localhost:3000/api/healthz`
+
+### 6. Production Build and Start
+
+```bash
+# Build production bundle
+npm run build
+
+# Start production server
+npm start
+```
 
 ---
 
@@ -386,5 +438,6 @@ Build and run the production standalone container image using [`Dockerfile`](Doc
 docker build -t orbit-crm .
 
 # Run container
-docker run -p 3000:3000 --env-file .env.local orbit-crm
+docker run -p 3000:3000 --env-file .env orbit-crm
 ```
+

@@ -67,8 +67,9 @@ export default function RootLayout({
       lang="en"
       className={`${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} dark`}
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
-      <body className="bg-primary text-primary font-sans antialiased">
+      <body className="bg-primary text-primary font-sans antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

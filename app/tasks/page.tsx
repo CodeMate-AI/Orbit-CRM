@@ -1,0 +1,1050 @@
+"use client";
+
+// FEATURE: Task Management [Frontend] - List, filter and assign CRM tasks
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  Link2,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import AppLayout, { useWorkspace } from "@/components/AppLayout";
+import EmptyState from "@/components/ui/EmptyState";
+import SkeletonRow from "@/components/ui/SkeletonRow";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { companiesApi, CompanyRow } from "@/lib/companies-api";
+import { opportunitiesApi } from "@/lib/opportunities-api";
+import { peopleApi, PersonRow } from "@/lib/people-api";
+import { CreateTaskInput, TaskPriority, TaskRow, TaskStatus, tasksApi } from "@/lib/tasks-api";
+import { workspacesApi, WorkspaceMemberRow } from "@/lib/workspaces-api";
+
+type DealOption = {
+  id: string;
+  name: string;
+};
+
+type StatusFilter = "ALL" | TaskStatus;
+type PriorityFilter = "ALL" | TaskPriority;
+type EditableTaskField = keyof CreateTaskInput;
+
+type TaskDrawerForm = {
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: string;
+  personId: string;
+  companyId: string;
+  opportunityId: string;
+  assigneeId: string;
+};
+
+const STATUS_OPTIONS: TaskStatus[] = ["TODO", "IN_PROGRESS", "DONE", "CANCELLED"];
+const PRIORITY_OPTIONS: TaskPriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+
+function formatStatus(status: TaskStatus) {
+  switch (status) {
+    case "TODO":
+      return "To do";
+    case "IN_PROGRESS":
+      return "In progress";
+    case "DONE":
+      return "Done";
+    case "CANCELLED":
+      return "Cancelled";
+  }
+}
+
+function formatPriority(priority: TaskPriority) {
+  return priority.charAt(0) + priority.slice(1).toLowerCase();
+}
+
+function priorityBadgeClass(priority: TaskPriority) {
+  switch (priority) {
+    case "LOW":
+      return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
+    case "MEDIUM":
+      return "border-sky-400/30 bg-sky-500/10 text-sky-200";
+    case "HIGH":
+      return "border-amber-400/30 bg-amber-500/10 text-amber-200";
+    case "URGENT":
+      return "border-rose-400/30 bg-rose-500/10 text-rose-200";
+  }
+}
+
+function statusBadgeClass(status: TaskStatus) {
+  switch (status) {
+    case "TODO":
+      return "border-slate-400/30 bg-slate-500/10 text-slate-200";
+    case "IN_PROGRESS":
+      return "border-violet-400/30 bg-violet-500/10 text-violet-200";
+    case "DONE":
+      return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
+    case "CANCELLED":
+      return "border-rose-400/30 bg-rose-500/10 text-rose-200";
+  }
+}
+
+function formatDate(date: string | null) {
+  if (!date) return "No due date";
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return "No due date";
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const parsed = new Date(year, month, day);
+  if (Number.isNaN(parsed.getTime())) return "No due date";
+  return parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function toDateInputValue(date: string | null) {
+  if (!date) return "";
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return "";
+  return `${parts[0]}-${parts[1]}-${parts[2]}`;
+}
+
+function isDueToday(date: string | null) {
+  if (!date) return false;
+  const parts = date.slice(0, 10).split("-");
+  if (parts.length !== 3) return false;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const due = new Date(year, month, day);
+  if (Number.isNaN(due.getTime())) return false;
+  const today = new Date();
+  return due.getFullYear() === today.getFullYear() && due.getMonth() === today.getMonth() && due.getDate() === today.getDate();
+}
+
+function buildDrawerForm(task: TaskRow): TaskDrawerForm {
+  return {
+    title: task.title,
+    description: task.description ?? "",
+    status: task.status,
+    priority: task.priority,
+    dueDate: toDateInputValue(task.dueDate),
+    personId: task.personId ?? "",
+    companyId: task.companyId ?? "",
+    opportunityId: task.opportunityId ?? "",
+    assigneeId: task.assigneeId ?? "",
+  };
+}
+
+function AddTaskModal({
+  workspaceId,
+  people,
+  companies,
+  deals,
+  members,
+  onClose,
+  onAddCompany,
+  onAddDeal,
+  onCreated,
+}: {
+  workspaceId: string;
+  people: PersonRow[];
+  companies: CompanyRow[];
+  deals: DealOption[];
+  members: WorkspaceMemberRow[];
+  onClose: () => void;
+  onAddCompany: (company: CompanyRow) => void;
+  onAddDeal: (deal: DealOption) => void;
+  onCreated: (task: TaskRow) => void;
+}) {
+  const [form, setForm] = useState<CreateTaskInput>({
+    title: "",
+    description: "",
+    status: "TODO",
+    priority: "MEDIUM",
+    dueDate: "",
+    personId: "",
+    companyId: "",
+    opportunityId: "",
+    assigneeId: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [showCompanyInput, setShowCompanyInput] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [showDealInput, setShowDealInput] = useState(false);
+  const [newDealName, setNewDealName] = useState("");
+  const [creatingDeal, setCreatingDeal] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleAddNewCompany = async () => {
+    const value = newCompanyName.trim();
+    if (!value) return;
+    setCreatingCompany(true);
+    setError("");
+    try {
+      const company = await companiesApi.create(workspaceId, { name: value });
+      onAddCompany(company);
+      setForm((current) => ({ ...current, companyId: company.id }));
+      setNewCompanyName("");
+      setShowCompanyInput(false);
+      toast.success("Company created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create company.");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
+
+  const handleAddNewDeal = async () => {
+    const value = newDealName.trim();
+    if (!value) return;
+    setCreatingDeal(true);
+    setError("");
+    try {
+      const deal = await opportunitiesApi.create(workspaceId, {
+        name: value,
+        companyId: form.companyId || undefined,
+      });
+      onAddDeal({ id: deal.id, name: deal.name });
+      setForm((current) => ({ ...current, opportunityId: deal.id }));
+      setNewDealName("");
+      setShowDealInput(false);
+      toast.success("Deal created successfully");
+    } catch (err: any) {
+      setError(err.message || "Failed to create deal.");
+    } finally {
+      setCreatingDeal(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title?.trim()) {
+      setError("Task title is required.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const task = await tasksApi.create(workspaceId, {
+        title: form.title.trim(),
+        description: form.description?.trim() || undefined,
+        status: form.status,
+        priority: form.priority,
+        dueDate: form.dueDate || undefined,
+        personId: form.personId || undefined,
+        companyId: form.companyId || undefined,
+        opportunityId: form.opportunityId || undefined,
+        assigneeId: form.assigneeId || undefined,
+      });
+      onCreated(task);
+    } catch (err: any) {
+      setError(err.message || "Failed to create task.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Create task</h2>
+          <button type="button" className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="form-field">
+            <label className="form-label">Title *</label>
+            <input
+              className="form-input"
+              placeholder="Call priority prospect"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Description</label>
+            <textarea
+              className="form-input min-h-28"
+              placeholder="Add context, next steps, or customer notes"
+              value={form.description ?? ""}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Status</label>
+              <select className="form-input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}>
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{formatStatus(status)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="form-label">Priority</label>
+              <select className="form-input" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}>
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <option key={priority} value={priority}>{formatPriority(priority)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Due date</label>
+              <input className="form-input" type="date" value={form.dueDate ?? ""} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Related lead</label>
+              <select className="form-input" value={form.personId ?? ""} onChange={(e) => setForm({ ...form, personId: e.target.value })}>
+                <option value="">No lead</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>{person.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label mb-0">Related company</label>
+                {!showCompanyInput && (
+                  <button
+                    type="button"
+                    className="text-xs text-orbit-primary hover:underline"
+                    onClick={() => setShowCompanyInput(true)}
+                  >
+                    + Add new
+                  </button>
+                )}
+              </div>
+              {showCompanyInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Biswajit Corp"
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleAddNewCompany();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewCompany} disabled={creatingCompany}>
+                      {creatingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowCompanyInput(false);
+                        setNewCompanyName("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.companyId ?? ""}
+                  onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+                >
+                  <option value="">No company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="form-field">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label mb-0">Related deal</label>
+                {!showDealInput && (
+                  <button
+                    type="button"
+                    className="text-xs text-orbit-primary hover:underline"
+                    onClick={() => setShowDealInput(true)}
+                  >
+                    + Add new
+                  </button>
+                )}
+              </div>
+              {showDealInput ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    className="form-input"
+                    placeholder="Acme Corp Expansion"
+                    value={newDealName}
+                    onChange={(e) => setNewDealName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleAddNewDeal();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="btn-primary" onClick={handleAddNewDeal} disabled={creatingDeal}>
+                      {creatingDeal ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setShowDealInput(false);
+                        setNewDealName("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  className="form-input"
+                  value={form.opportunityId ?? ""}
+                  onChange={(e) => setForm({ ...form, opportunityId: e.target.value })}
+                >
+                  <option value="">No deal</option>
+                  {deals.map((deal) => (
+                    <option key={deal.id} value={deal.id}>{deal.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Assignee</label>
+              <select className="form-input" value={form.assigneeId ?? ""} onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}>
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option key={member.userId} value={member.userId}>
+                    {member.user.name || member.user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field" />
+          </div>
+          {error ? <p className="form-error">{error}</p> : null}
+          <div className="modal-footer">
+            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create task"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function TaskDetailDrawer({
+  open,
+  task,
+  people,
+  companies,
+  deals,
+  members,
+  onClose,
+  onTaskUpdated,
+}: {
+  open: boolean;
+  task: TaskRow | null;
+  people: PersonRow[];
+  companies: CompanyRow[];
+  deals: DealOption[];
+  members: WorkspaceMemberRow[];
+  onClose: () => void;
+  onTaskUpdated: (task: TaskRow) => void;
+}) {
+  const [form, setForm] = useState<TaskDrawerForm | null>(null);
+  const [savingField, setSavingField] = useState<EditableTaskField | null>(null);
+  const [isSavingAll, setIsSavingAll] = useState(false);
+
+  useEffect(() => {
+    setForm(task ? buildDrawerForm(task) : null);
+  }, [task]);
+
+  const isFieldDirty = (field: EditableTaskField): boolean => {
+    if (!task || !form) return false;
+
+    switch (field) {
+      case "title":
+        return form.title !== task.title;
+      case "description":
+        return form.description !== (task.description ?? "");
+      case "status":
+        return form.status !== task.status;
+      case "priority":
+        return form.priority !== task.priority;
+      case "dueDate":
+        return form.dueDate !== toDateInputValue(task.dueDate);
+      case "personId":
+        return form.personId !== (task.personId ?? "");
+      case "companyId":
+        return form.companyId !== (task.companyId ?? "");
+      case "opportunityId":
+        return form.opportunityId !== (task.opportunityId ?? "");
+      case "assigneeId":
+        return form.assigneeId !== (task.assigneeId ?? "");
+      default:
+        return false;
+    }
+  };
+
+  if (!open || !task || !form) return null;
+
+  const saveField = async (field: EditableTaskField, valueOverride?: any) => {
+    if (!task || !form) return;
+
+    const currentValue = (() => {
+      switch (field) {
+        case "title":
+          return task.title;
+        case "description":
+          return task.description ?? "";
+        case "status":
+          return task.status;
+        case "priority":
+          return task.priority;
+        case "dueDate":
+          return toDateInputValue(task.dueDate);
+        case "personId":
+          return task.personId ?? "";
+        case "companyId":
+          return task.companyId ?? "";
+        case "opportunityId":
+          return task.opportunityId ?? "";
+        case "assigneeId":
+          return task.assigneeId ?? "";
+      }
+    })();
+
+    const nextValue = valueOverride !== undefined ? valueOverride : (form[field] ?? "");
+    if (nextValue === currentValue) return;
+    if (field === "title" && !String(nextValue).trim()) {
+      toast.error("Task title is required.");
+      setForm(buildDrawerForm(task));
+      return;
+    }
+
+    const payloadValue = (() => {
+      if (field === "title" || field === "description") {
+        return String(nextValue).trim();
+      }
+      return nextValue;
+    })();
+
+    setSavingField(field);
+    try {
+      const updated = await tasksApi.update(task.id, {
+        [field]: payloadValue,
+      });
+      onTaskUpdated(updated);
+      setForm(buildDrawerForm(updated));
+      toast.success("Task updated successfully");
+    } catch (err: any) {
+      setForm(buildDrawerForm(task));
+      toast.error(err.message || "Failed to update task.");
+    } finally {
+      setSavingField(null);
+    }
+  };
+
+  const handleSaveAndClose = async () => {
+    if (!task || !form) return;
+    setIsSavingAll(true);
+    const fields: EditableTaskField[] = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "dueDate",
+      "personId",
+      "companyId",
+      "opportunityId",
+      "assigneeId",
+    ];
+
+    let hasErrors = false;
+    for (const field of fields) {
+      if (isFieldDirty(field)) {
+        try {
+          await saveField(field);
+        } catch (e) {
+          hasErrors = true;
+        }
+      }
+    }
+    setIsSavingAll(false);
+    if (!hasErrors) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm" onClick={onClose}>
+      <aside className="flex h-full w-full max-w-190 flex-col overflow-hidden border-l border-border-subtle bg-bg-tertiary shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4 md:px-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-text-tertiary">Task detail</p>
+            <h2 className="mt-1 text-lg font-semibold text-text-primary">Editable execution card</h2>
+          </div>
+          <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:bg-surface-hover hover:text-text-primary" onClick={onClose} aria-label="Close task drawer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+          <div className="rounded-[28px] border border-border-subtle bg-[radial-gradient(circle_at_top_right,rgba(129,116,248,0.12),transparent_35%),linear-gradient(180deg,var(--bg-secondary),var(--bg-primary))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-2xl font-semibold text-white">{form.title}</p>
+                <p className="mt-2 text-sm text-slate-300">Created {new Date(task.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className={`inline-flex rounded-full border px-3 py-2 text-sm ${priorityBadgeClass(form.priority)}`}>{formatPriority(form.priority)}</span>
+                <span className={`inline-flex rounded-full border px-3 py-2 text-sm ${statusBadgeClass(form.status)}`}>{formatStatus(form.status)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Title</label>
+              </div>
+              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.title} onChange={(e) => setForm((current) => current ? { ...current, title: e.target.value } : current)} />
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Description</label>
+              </div>
+              <textarea className="min-h-32 w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.description || ""} onChange={(e) => setForm((current) => current ? { ...current, description: e.target.value } : current)} />
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Status</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.status} onChange={(e) => {
+                const val = e.target.value as TaskStatus;
+                setForm((current) => current ? { ...current, status: val } : current);
+              }}>
+                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Priority</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.priority} onChange={(e) => {
+                const val = e.target.value as TaskPriority;
+                setForm((current) => current ? { ...current, priority: val } : current);
+              }}>
+                {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Due date</label>
+              </div>
+              <input className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" type="date" value={form.dueDate} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, dueDate: val } : current);
+              }} />
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related lead</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.personId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, personId: val } : current);
+              }}>
+                <option value="">No lead</option>
+                {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related company</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.companyId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, companyId: val } : current);
+              }}>
+                <option value="">No company</option>
+                {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Related deal</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.opportunityId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, opportunityId: val } : current);
+              }}>
+                <option value="">No deal</option>
+                {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.name}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-subtle bg-bg-secondary/40 p-4 md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary">Assignee</label>
+              </div>
+              <select className="w-full rounded-xl border border-border-subtle bg-bg-tertiary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={form.assigneeId} onChange={(e) => {
+                const val = e.target.value;
+                setForm((current) => current ? { ...current, assigneeId: val } : current);
+              }}>
+                <option value="">Unassigned</option>
+                {members.map((member) => <option key={member.userId} value={member.userId}>{member.user.name || member.user.email}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="mt-8 flex items-center justify-end gap-3 border-t border-border-subtle p-5 md:p-6 bg-bg-secondary/20">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isSavingAll}
+              className="border-border-subtle text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+            >
+              Cancel
+            </Button>
+            <Button
+              id="task-drawer-save-btn"
+              onClick={handleSaveAndClose}
+              disabled={isSavingAll}
+              className="bg-orbit-primary hover:bg-orbit-primary-hover text-white font-medium px-6"
+            >
+              {isSavingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save changes
+            </Button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function TasksContent() {
+  const { workspaceId, userRole } = useWorkspace();
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [people, setPeople] = useState<PersonRow[]>([]);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [deals, setDeals] = useState<DealOption[]>([]);
+  const [members, setMembers] = useState<WorkspaceMemberRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("ALL");
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.event?.startsWith("task.")) setRefreshTrigger((v) => v + 1);
+    };
+    window.addEventListener("crm:update", handler);
+    return () => window.removeEventListener("crm:update", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    setLoading(true);
+    setError("");
+
+    Promise.all([
+      tasksApi.list(workspaceId),
+      peopleApi.list(workspaceId),
+      companiesApi.list(workspaceId),
+      opportunitiesApi.list(workspaceId),
+      workspacesApi.listMembers(workspaceId),
+    ])
+      .then(([taskRows, peopleResponse, companyRows, opportunitiesResponse, membersData]) => {
+        setTasks(taskRows);
+        setPeople(peopleResponse.data);
+        setCompanies(companyRows);
+        setDeals(opportunitiesResponse.stages.flatMap((stage) => stage.deals.map((deal) => ({ id: deal.id, name: deal.name }))));
+        setMembers(membersData);
+      })
+      .catch((err: any) => setError(err.message || "Failed to load tasks."))
+      .finally(() => setLoading(false));
+  }, [workspaceId, refreshTrigger]);
+
+  const selectedTask = useMemo(() => tasks.find((task) => task.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
+
+  const filteredTasks = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return tasks.filter((task) => {
+      if (statusFilter !== "ALL" && task.status !== statusFilter) return false;
+      if (priorityFilter !== "ALL" && task.priority !== priorityFilter) return false;
+      if (!search) return true;
+
+      const haystack = [
+        task.title,
+        task.description ?? "",
+        task.person?.name ?? "",
+        task.company?.name ?? "",
+        task.opportunity?.name ?? "",
+      ].join(" ").toLowerCase();
+
+      return haystack.includes(search);
+    });
+  }, [tasks, query, statusFilter, priorityFilter]);
+
+  const totalTasks = tasks.length;
+  const pendingTasks = tasks.filter((task) => task.status !== "DONE" && task.status !== "CANCELLED").length;
+  const dueTodayCount = tasks.filter((task) => isDueToday(task.dueDate)).length;
+  const completedCount = tasks.filter((task) => task.status === "DONE").length;
+
+  const applyTaskUpdate = (updated: TaskRow) => {
+    setTasks((current) => current.map((task) => (task.id === updated.id ? updated : task)));
+  };
+
+  const handleCreated = (task: TaskRow) => {
+    setTasks((current) => {
+      if (current.some((t) => t.id === task.id)) return current;
+      return [task, ...current];
+    });
+    setShowModal(false);
+    toast.success("Task created successfully");
+  };
+
+  const handleToggleStatus = async (task: TaskRow) => {
+    const nextStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
+    setTogglingTaskId(task.id);
+    try {
+      const updated = await tasksApi.update(task.id, { status: nextStatus });
+      applyTaskUpdate(updated);
+      toast.success(nextStatus === "DONE" ? "Task marked done" : "Task moved back to to-do");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update task status.");
+    } finally {
+      setTogglingTaskId(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (userRole !== "OWNER") {
+      toast.error("You are a member, you are not allowed to delete any data. You can perform create, read, and update operations only. Deleting the data is restricted only to the workspace owner.");
+      return;
+    }
+    setDeletingTaskId(taskId);
+    try {
+      await tasksApi.delete(taskId);
+      setTasks((current) => current.filter((task) => task.id !== taskId));
+      if (selectedTaskId === taskId) {
+        setSelectedTaskId(null);
+      }
+      toast.success("Task deleted successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete task.");
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 md:gap-8 md:p-8">
+      <div className="leads-topbar">
+        <div className="leads-stats">
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Total Tasks</span>
+            <span className="leads-stat-val">{loading ? "—" : totalTasks}</span>
+          </div>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Pending</span>
+            <span className="leads-stat-val">{loading ? "—" : pendingTasks}</span>
+          </div>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Due Today</span>
+            <span className="leads-stat-val">{loading ? "—" : dueTodayCount}</span>
+          </div>
+          <div className="leads-stat-chip">
+            <span className="leads-stat-label">Completed</span>
+            <span className="leads-stat-val">{loading ? "—" : completedCount}</span>
+          </div>
+        </div>
+
+        <div className="leads-actions">
+          <div className="search-wrap">
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <input
+              className="search-input"
+              placeholder="Search tasks..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search tasks"
+            />
+          </div>
+
+          <button
+            id="tasks-add-btn"
+            className="btn-primary"
+            onClick={() => setShowModal(true)}
+            disabled={!workspaceId || loading}
+          >
+            <Plus className="h-4 w-4" />
+            New task
+          </button>
+        </div>
+      </div>
+
+      <section className="rounded-2xl border border-border-subtle bg-surface-default p-5 shadow-sm md:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}>
+            <option value="ALL">All priorities</option>
+            {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{formatPriority(priority)}</option>)}
+          </select>
+          <select className="rounded-xl border border-border-subtle bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none transition focus:border-orbit-primary" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+            <option value="ALL">All statuses</option>
+            {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatStatus(status)}</option>)}
+          </select>
+        </div>
+
+        {loading ? (
+          <SkeletonRow count={6} widths={["30%", "20%", "15%", "15%", "10%", "10%"]} />
+        ) : error ? (
+          <div className="py-16 text-center text-sm text-error">{error}</div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="py-16">
+            <EmptyState
+              icon={<AlertCircle className="h-8 w-8" />}
+              title={tasks.length === 0 ? "No tasks yet" : "No matching tasks found"}
+              description={tasks.length === 0 ? "Create a task to track follow-ups and link back to leads." : `Try refining search or filters for "${query}".`}
+              action={tasks.length === 0 ? {
+                label: "New task",
+                onClick: () => setShowModal(true),
+              } : undefined}
+            />
+          </div>
+        ) : (
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border-subtle">
+            <div className="hidden grid-cols-[48px_minmax(220px,1.6fr)_110px_120px_120px_1fr_120px] gap-4 border-b border-border-subtle bg-bg-secondary/50 px-4 py-3 text-xs font-medium uppercase tracking-[0.24em] text-text-tertiary md:grid">
+              <span>Status</span>
+              <span>Task</span>
+              <span>Priority</span>
+              <span>Due date</span>
+              <span>Lead</span>
+              <span>Relations</span>
+              <span className="md:text-right">Actions</span>
+            </div>
+            <div className="divide-y divide-border-subtle">
+              {filteredTasks.map((task) => {
+                const quickToggleBusy = togglingTaskId === task.id;
+                const deleteBusy = deletingTaskId === task.id;
+                return (
+                  <div
+                    key={task.id}
+                    className="group grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-bg-secondary/30 md:grid-cols-[48px_minmax(220px,1.6fr)_110px_120px_120px_1fr_120px] md:items-center"
+                    onClick={() => setSelectedTaskId(task.id)}
+                  >
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-orbit-primary hover:text-orbit-primary"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleToggleStatus(task);
+                      }}
+                      disabled={quickToggleBusy}
+                      aria-label={task.status === "DONE" ? `Mark ${task.title} as to do` : `Mark ${task.title} as done`}
+                    >
+                      {quickToggleBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : task.status === "DONE" ? <CheckCircle2 className="h-5 w-5 text-emerald-300" /> : task.status === "IN_PROGRESS" ? <Clock3 className="h-5 w-5 text-violet-300" /> : <Circle className="h-5 w-5" />}
+                    </button>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-text-primary transition-colors group-hover:text-orbit-primary">{task.title}</span>
+                        <Pencil className="h-3.5 w-3.5 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-sm text-text-secondary">{task.description || "No description added"}</div>
+                    </div>
+                    <div><span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${priorityBadgeClass(task.priority)}`}>{formatPriority(task.priority)}</span></div>
+                    <div className="text-sm text-text-secondary">{formatDate(task.dueDate)}</div>
+                    <div className="text-sm text-text-secondary">{task.person?.name ?? "—"}</div>
+                    <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
+                      {task.company ? <span className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-bg-secondary px-2.5 py-1.5"><Link2 className="h-3 w-3" />{task.company.name}</span> : null}
+                      {task.opportunity ? <span className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-bg-secondary px-2.5 py-1.5"><Link2 className="h-3 w-3" />{task.opportunity.name}</span> : null}
+                      {!task.company && !task.opportunity ? <span>—</span> : null}
+                    </div>
+                    <div className="flex items-center gap-2 md:justify-end">
+                      <span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${statusBadgeClass(task.status)}`}>{formatStatus(task.status)}</span>
+                      <button
+                        type="button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-secondary transition hover:border-rose-400/40 hover:text-rose-300"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteTask(task.id);
+                        }}
+                        disabled={deleteBusy}
+                        aria-label={`Delete ${task.title}`}
+                      >
+                        {deleteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {showModal && workspaceId ? (
+        <AddTaskModal
+          workspaceId={workspaceId}
+          people={people}
+          companies={companies}
+          deals={deals}
+          members={members}
+          onAddCompany={(newCompany) => {
+            setCompanies((prev) => [...prev, newCompany]);
+          }}
+          onAddDeal={(newDeal) => {
+            setDeals((prev) => [...prev, newDeal]);
+          }}
+          onClose={() => setShowModal(false)}
+          onCreated={handleCreated}
+        />
+      ) : null}
+      <TaskDetailDrawer open={Boolean(selectedTask)} task={selectedTask} people={people} companies={companies} deals={deals} members={members} onClose={() => setSelectedTaskId(null)} onTaskUpdated={applyTaskUpdate} />
+    </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <AppLayout pageTitle="Tasks">
+      <TasksContent />
+    </AppLayout>
+  );
+}

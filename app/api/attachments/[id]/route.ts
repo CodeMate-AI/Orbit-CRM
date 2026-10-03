@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/server-auth";
+import { attachmentsService } from "@/lib/services/attachments.service";
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const user = await getAuthUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const result = await attachmentsService.delete(user.id, id);
+    return NextResponse.json(result);
+  } catch (error: any) {
+    if (error.message?.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    console.error("Error deleting attachment:", error);
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 400 });
+  }
+}

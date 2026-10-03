@@ -1,0 +1,452 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & Workspace ───
+model User {
+  id            String    @id @default(cuid()) @map("_id")
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  locale        String    @default("en-IN")
+  timezone      String    @default("Asia/Kolkata")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Better Auth Fields
+  emailVerified Boolean   @default(false)
+  image         String?
+
+  workspaces    WorkspaceMember[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  attachments   Attachment[]
+  ownedLeads    Person[]  @relation("LeadOwner")
+  createdLeads  Person[]  @relation("LeadCreatedBy")
+  modifiedLeads Person[]  @relation("LeadModifiedBy")
+
+  sessions      Session[]
+  accounts      Account[]
+  chatSessions  ChatSession[]
+}
+
+model Workspace {
+  id                  String    @id @default(cuid()) @map("_id")
+  name                String
+  logo                String?
+  domain              String?
+  createdAt           DateTime  @default(now())
+
+  members             WorkspaceMember[]
+  people              Person[]
+  companies           Company[]
+  opportunities       Opportunity[]
+  pipelines           Pipeline[]
+  pipelineStages      PipelineStage[]
+  tasks               Task[]
+  notes               Note[]
+  attachments         Attachment[]
+  opportunityContacts OpportunityContact[]
+
+  activities          Activity[]
+  invitations         Invitation[]
+  chatSessions        ChatSession[]
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid()) @map("_id")
+  role        MemberRole @default(MEMBER)
+  userId      String
+  workspaceId String
+  joinedAt    DateTime   @default(now())
+
+  user        User       @relation(fields: [userId], references: [id])
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId])
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+model ChatSession {
+  id          String        @id @default(cuid()) @map("_id")
+  title       String        @default("New Chat")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    ChatMessage[]
+
+  @@index([workspaceId, userId])
+}
+
+model ChatMessage {
+  id          String      @id @default(cuid()) @map("_id")
+  role        String
+  content     String
+  createdAt   DateTime    @default(now())
+  sessionId   String
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+// ─── CRM Core Entities ───
+model Person {
+  id             String             @id @default(cuid()) @map("_id")
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  mobile         String?
+  jobTitle       String?
+  city           String?
+  avatarUrl      String?
+  linkedInUrl    String?
+  leadSource     String?
+  industry       String?
+  annualRevenue  Float?
+  fax            String?
+  website        String?
+  leadStatus     String?
+  employeeCount  Int?
+  skypeId        String?
+  secondaryEmail String?
+  twitter        String?
+  address        String?
+  description    String?
+  version        Int                @default(1)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+
+  workspaceId    String
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id])
+  companyId      String?
+  company        Company?           @relation(fields: [companyId], references: [id])
+  leadOwnerId    String?
+  leadOwner      User?              @relation("LeadOwner", fields: [leadOwnerId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User?              @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  modifiedById   String?
+  modifiedBy     User?              @relation("LeadModifiedBy", fields: [modifiedById], references: [id], onDelete: SetNull)
+
+  activities     Activity[]
+  tasks          Task[]
+  notes          Note[]
+  opportunities  OpportunityContact[]
+  attachments    Attachment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([companyId])
+}
+
+model Company {
+  id            String        @id @default(cuid()) @map("_id")
+  name          String
+  domain        String?
+  address       String?
+  city          String?
+  industry      String?
+  employeeCount Int?
+  annualRevenue Float?
+  linkedInUrl   String?
+  logoUrl       String?
+  version       Int           @default(1)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  workspaceId   String
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+
+  people        Person[]
+  opportunities Opportunity[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  attachments   Attachment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+}
+
+model Opportunity {
+  id          String               @id @default(cuid()) @map("_id")
+  name        String
+  amount      Float?
+  closeDate   DateTime?
+  probability Int?
+  stageId     String
+  stage       PipelineStage        @relation(fields: [stageId], references: [id])
+  source      String?
+  version     Int                  @default(1)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  deletedAt   DateTime?
+
+  workspaceId String
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id])
+  companyId   String?
+  company     Company?             @relation(fields: [companyId], references: [id])
+
+  contacts    OpportunityContact[]
+  activities  Activity[]
+  tasks       Task[]
+  notes       Note[]
+  attachments Attachment[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([stageId])
+  @@index([companyId])
+}
+
+model OpportunityContact {
+  id            String      @id @default(cuid()) @map("_id")
+  role          String?
+  workspaceId   String
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id])
+  opportunityId String
+  personId      String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+  person        Person      @relation(fields: [personId], references: [id])
+
+  @@unique([opportunityId, personId])
+}
+
+model Pipeline {
+  id          String          @id @default(cuid()) @map("_id")
+  name        String
+  stages      PipelineStage[]
+  isDefault   Boolean         @default(false)
+
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id])
+}
+
+model PipelineStage {
+  id            String        @id @default(cuid()) @map("_id")
+  name          String
+  color         String        @default("#6366f1")
+  position      Int           @default(0)
+  probability   Int           @default(100)
+  version       Int           @default(1)
+
+  workspaceId   String
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  pipelineId    String
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id])
+  opportunities Opportunity[]
+}
+
+// ─── Activities ───
+model Task {
+  id            String       @id @default(cuid()) @map("_id")
+  title         String
+  description   String?
+  status        TaskStatus   @default(TODO)
+  priority      Priority     @default(MEDIUM)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  version       Int          @default(1)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  assigneeId    String?
+  assignee      User?        @relation(fields: [assigneeId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Note {
+  id            String       @id @default(cuid()) @map("_id")
+  title         String?
+  body          Json
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  authorId      String?
+  author        User?        @relation(fields: [authorId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+model Activity {
+  id            String       @id @default(cuid()) @map("_id")
+  type          ActivityType
+  title         String
+  body          String?
+  metadata      Json?
+  occurredAt    DateTime     @default(now())
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  authorId      String?
+  author        User?        @relation(fields: [authorId], references: [id])
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([occurredAt])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+enum ActivityType {
+  NOTE
+  EMAIL
+  CALL
+  MEETING
+  TASK_COMPLETED
+  DEAL_STAGE_CHANGED
+  RECORD_CREATED
+  RECORD_UPDATED
+}
+
+// ─── Attachments ───
+model Attachment {
+  id            String       @id @default(cuid()) @map("_id")
+  name          String
+  mimeType      String
+  sizeBytes     Int
+  url           String
+  createdAt     DateTime     @default(now())
+
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  uploadedById  String?
+  uploadedBy    User?        @relation(fields: [uploadedById], references: [id])
+  checksum      String?
+  storageKey    String
+  isPublic      Boolean      @default(false)
+
+  personId      String?
+  person        Person?      @relation(fields: [personId], references: [id])
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([workspaceId])
+  @@index([personId])
+  @@index([companyId])
+  @@index([opportunityId])
+}
+
+// ─── Auth-related models managed by Better Auth ───
+model Session {
+  id                   String    @id @map("_id")
+  expiresAt            DateTime
+  token                String    @unique
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                   String    @id @map("_id")
+  accountId            String
+  providerId           String
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken          String?
+  refreshToken         String?
+  idToken              String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                String?
+  password             String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model Invitation {
+  id          String     @id @default(cuid()) @map("_id")
+  email       String
+  role        MemberRole @default(MEMBER)
+  token       String     @unique
+  expiresAt   DateTime
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+}
+
+model PasswordResetOtp {
+  id        String   @id @default(cuid()) @map("_id")
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Verification {
+  id         String    @id @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}

@@ -126,7 +126,7 @@ function normalizeType(type?: string | null): string | null {
 @Injectable()
 export class AiService {
   private readonly openRouterBaseUrl = "https://openrouter.ai/api/v1";
-  private readonly fallbackModel = "openrouter/free";
+  private readonly fallbackModel = "deepseek/deepseek-flash-latest";
 
   async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -443,7 +443,7 @@ export class AiService {
 
         if (!response.ok) {
           const body = await response.text();
-          return `OpenRouter request failed: ${response.status} ${response.statusText}${body ? ` — ${body}` : ""}`;
+          return `OpenRouter request failed: ${response.status} ${response.statusText}${body ? ` - ${body}` : ""}`;
         }
 
         const data = (await response.json()) as any;

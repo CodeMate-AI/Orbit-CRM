@@ -115,7 +115,8 @@ export class AuthController {
     return { success: true, message: "Your password has been successfully reset." };
   }
 
-  @All("*")
+  // Catch-all route for Better Auth endpoints with NestJS 11 path-to-regexp syntax
+  @All("{*path}")
   handleAuth(@Req() req: Request, @Res() res: Response) {
     return toNodeHandler(auth)(req, res);
   }

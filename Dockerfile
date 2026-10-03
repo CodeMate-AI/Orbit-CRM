@@ -14,6 +14,7 @@ COPY . .
 # Set build-time defaults for Next.js standalone bundle
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV BUILD_STANDALONE=1
 
 RUN npx prisma generate
 RUN npm run build

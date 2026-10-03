@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, requireWorkspaceMember } from "@/lib/server-auth";
-import { aiService } from "@/lib/services/ai.service";
+import { aiService } from "@/lib/services/ai";
 
 export async function GET(req: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, requireWorkspaceMember } from "@/lib/server-auth";
-import { dashboardService } from "@/lib/services/dashboard.service";
+import { dashboardService } from "@/lib/services/dashboard";
 
 export async function GET(req: NextRequest) {
   try {

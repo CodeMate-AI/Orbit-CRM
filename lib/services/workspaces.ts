@@ -1,6 +1,6 @@
 import { MemberRole } from "@prisma/client";
 import { prisma } from "../prisma";
-import { emailService } from "./email.service";
+import { emailService } from "./email";
 import * as crypto from "node:crypto";
 
 export interface CreateWorkspaceDto {

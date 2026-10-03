@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, requireWorkspaceMember } from "@/lib/server-auth";
-import { searchService } from "@/lib/services/search.service";
+import { searchService } from "@/lib/services/search";
 
 export async function GET(req: NextRequest) {
   try {

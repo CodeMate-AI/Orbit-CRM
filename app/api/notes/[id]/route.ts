@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/server-auth";
-import { notesService } from "@/lib/services/notes.service";
+import { notesService } from "@/lib/services/notes";
 
 export async function PATCH(
   req: NextRequest,

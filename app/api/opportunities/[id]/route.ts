@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/server-auth";
-import { opportunitiesService } from "@/lib/services/opportunities.service";
+import { opportunitiesService } from "@/lib/services/opportunities";
 
 export async function GET(
   req: NextRequest,

@@ -47,12 +47,12 @@ Orbit CRM operates as a unified full-stack application with client and server co
         ├── Better Auth Engine: lib/auth.ts & app/api/auth/[...all]/route.ts
         ├── Feature Services: lib/services/*
         ├── Server Session & Workspace Guards: lib/server-auth.ts
-        └── AI Copilot Multi-tool Execution: lib/services/ai.service.ts
+        └── AI Copilot Multi-tool Execution: lib/services/ai.ts
         │
         ├── MongoDB Atlas Database: prisma/schema.prisma & lib/prisma.ts
-        ├── Cloudinary Media Storage: lib/services/attachments.service.ts
-        ├── SMTP / Nodemailer: lib/services/email.service.ts
-        └── OpenRouter LLM Gateway: lib/services/ai.service.ts
+        ├── Cloudinary Media Storage: lib/services/attachments.ts
+        ├── SMTP / Nodemailer: lib/services/email.ts
+        └── OpenRouter LLM Gateway: lib/services/ai.ts
 ```
 
 ### Core Architecture Implementation Files
@@ -164,18 +164,18 @@ Orbit CRM/
 │   ├── api-client.ts                           # Resilient HTTP request client
 │   ├── auth-client.ts                          # Better Auth React client
 │   └── services/                               # Core backend domain services
-│       ├── activities.service.ts               # Activity timeline service
-│       ├── ai.service.ts                       # AI Copilot engine
-│       ├── attachments.service.ts              # Media management service
-│       ├── companies.service.ts                # Company domain service
-│       ├── dashboard.service.ts                # Dashboard metrics service
-│       ├── email.service.ts                    # Nodemailer delivery service
-│       ├── notes.service.ts                    # Rich text notes service
-│       ├── opportunities.service.ts            # Deals and stages service
-│       ├── people.service.ts                   # Contacts and CSV import service
-│       ├── reports.service.ts                  # Forecasting service
-│       ├── search.service.ts                   # Global search service
-│       └── workspaces.service.ts               # Workspaces and invitations service
+│       ├── activities.ts                       # Activity timeline service
+│       ├── ai.ts                               # AI Copilot engine
+│       ├── attachments.ts                      # Media management service
+│       ├── companies.ts                        # Company domain service
+│       ├── dashboard.ts                        # Dashboard metrics service
+│       ├── email.ts                            # Nodemailer delivery service
+│       ├── notes.ts                            # Rich text notes service
+│       ├── opportunities.ts                    # Deals and stages service
+│       ├── people.ts                           # Contacts and CSV import service
+│       ├── reports.ts                          # Forecasting service
+│       ├── search.ts                           # Global search service
+│       └── workspaces.ts                       # Workspaces and invitations service
 ├── prisma/
 │   └── schema.prisma                           # MongoDB Prisma schema
 ├── public/                                     # Static assets and icons
@@ -271,7 +271,7 @@ All API endpoints are implemented as Next.js 16 App Router Route Handlers under 
 
 ## AI Copilot Engine and Function Calling
 
-The AI Copilot engine is implemented in [`lib/services/ai.service.ts`](lib/services/ai.service.ts).
+The AI Copilot engine is implemented in [`lib/services/ai.ts`](lib/services/ai.ts).
 
 ### Capabilities & Tools
 
@@ -287,7 +287,7 @@ The AI Copilot engine is implemented in [`lib/services/ai.service.ts`](lib/servi
 
 ## Weighted Revenue Forecast Model
 
-Implemented in [`lib/services/reports.service.ts`](lib/services/reports.service.ts), the forecasting engine calculates monthly expected revenue:
+Implemented in [`lib/services/reports.ts`](lib/services/reports.ts), the forecasting engine calculates monthly expected revenue:
 
 $$\text{Expected Value} = \sum (\text{Deal Amount} \times \frac{\text{Stage Probability}}{100})$$
 

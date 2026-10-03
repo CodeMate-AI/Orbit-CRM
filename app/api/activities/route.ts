@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ActivityType } from "@prisma/client";
 import { getAuthUser, requireWorkspaceMember } from "@/lib/server-auth";
-import { activitiesService } from "@/lib/services/activities.service";
+import { activitiesService } from "@/lib/services/activities";
 
 const VALID_ACTIVITY_TYPES = new Set(Object.values(ActivityType));
 

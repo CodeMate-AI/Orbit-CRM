@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/server-auth";
-import { workspacesService } from "@/lib/services/workspaces.service";
+import { workspacesService } from "@/lib/services/workspaces";
 
 export async function DELETE(
   req: NextRequest,

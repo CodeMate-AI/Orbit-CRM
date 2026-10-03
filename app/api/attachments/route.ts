@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, requireWorkspaceMember } from "@/lib/server-auth";
-import { attachmentsService } from "@/lib/services/attachments.service";
+import { attachmentsService } from "@/lib/services/attachments";
 
 export async function GET(req: NextRequest) {
   try {

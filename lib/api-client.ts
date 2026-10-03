@@ -99,7 +99,7 @@ export async function longRequest(path: string, options: RequestInit = {}): Prom
     signal: controller.signal,
   };
 
-  const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
   try {
     const res = await fetch(`${API_URL_BASE}${path}`, fetchOptions);

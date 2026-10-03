@@ -86,7 +86,7 @@ export const peopleApi = {
 
   exportCsv: async (workspaceId: string): Promise<string> => {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"}/people/export?workspaceId=${encodeURIComponent(workspaceId)}`,
+      `${process.env.NEXT_PUBLIC_API_URL || "/api"}/people/export?workspaceId=${encodeURIComponent(workspaceId)}`,
       { credentials: "include" },
     );
     if (!response.ok) {

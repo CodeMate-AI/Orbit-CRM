@@ -1,14 +1,9 @@
-Steps to run the server :
+# Orbit CRM - Run Locally
 
-1. 
+To start the unified Next.js full-stack development server:
 
-cd frontend
+```bash
 npm run dev
+```
 
-
-
-2. 
-
-cd backend
-npm run start:dev
-
+The application will be accessible at: `http://localhost:3000`

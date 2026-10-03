@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { syncBearerToken } from "@/lib/api-client";
 
 function SignUpForm() {
   const router = useRouter();
@@ -64,6 +65,7 @@ function SignUpForm() {
       setName("");
       setEmail("");
       setPassword("");
+      await syncBearerToken();
       toast.success("Account created successfully!");
       const nextUrl = tokenParam
         ? `/invite/accept?token=${tokenParam}`

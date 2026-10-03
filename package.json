@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "test": "npx tsx tests/auth-bearer.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,20 +1,7 @@
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-import { auth } from "./auth";
 import { prisma } from "./prisma";
-
-export async function getServerSession() {
-  try {
-    const reqHeaders = await headers();
-    const session = await auth.api.getSession({
-      headers: reqHeaders,
-    });
-    return session;
-  } catch (err) {
-    console.error("Error resolving server session:", err);
-    return null;
-  }
-}
+import { verifyAccessToken } from "./token";
 
 export async function getAuthUser(req?: NextRequest) {
   try {
@@ -24,13 +11,63 @@ export async function getAuthUser(req?: NextRequest) {
     } else {
       reqHeaders = await headers();
     }
-    const session = await auth.api.getSession({
-      headers: reqHeaders,
+
+    const authHeader = reqHeaders.get("authorization") || reqHeaders.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return null;
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token) {
+      return null;
+    }
+
+    // Verify cryptographic JWT signature and expiration
+    const payload = verifyAccessToken(token);
+    if (!payload || !payload.userId) {
+      return null;
+    }
+
+    // Enforce database-level tokenVersion revocation check
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
     });
-    return session?.user || null;
+
+    if (!user) {
+      return null;
+    }
+
+    const dbTokenVersion = (user as any).tokenVersion ?? 1;
+
+    // Validate active tokenVersion against database
+    if (dbTokenVersion !== payload.tokenVersion) {
+      console.warn(`Revoked token rejected for user ${user.id}: tokenVersion mismatch (db: ${dbTokenVersion}, token: ${payload.tokenVersion})`);
+      return null;
+    }
+
+    return user;
   } catch (err) {
-    console.error("Error getting auth user:", err);
+    console.error("Error authenticating Bearer request:", err);
     return null;
+  }
+}
+
+/**
+ * Revokes all active Bearer tokens for a user across all browser tabs and devices
+ * by incrementing the database tokenVersion.
+ */
+export async function revokeUserTokens(userId: string) {
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        tokenVersion: { increment: 1 },
+      } as any,
+    });
+    return updated;
+  } catch (err) {
+    console.error("Error revoking user tokens:", err);
+    throw err;
   }
 }
 

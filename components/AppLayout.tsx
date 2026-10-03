@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { clearBearerToken, syncBearerToken } from "@/lib/api-client";
 import { workspacesApi, type WorkspaceMemberRole, type WorkspaceMembershipRow } from "@/lib/workspaces-api";
 import { ACTIVE_WORKSPACE_STORAGE_KEY, resolveActiveMembership } from "@/lib/workspace-context";
 import SearchDialog from "./SearchDialog";
@@ -102,12 +103,14 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
     try {
       const session = await authClient.getSession();
       if (!session || !session.data?.user) {
+        clearBearerToken();
         if (redirectOnMissing) {
           router.push("/signin");
         }
         return null;
       }
 
+      await syncBearerToken();
       setCurrentUser(session.data.user);
       return session.data.user;
     } catch (err) {
@@ -264,10 +267,17 @@ export default function AppLayout({ children, pageTitle }: AppLayoutProps) {
 
   const handleSignOut = async () => {
     try {
+      try {
+        await fetch("/api/auth/token", { method: "DELETE" });
+      } catch (err) {
+        console.error("Error revoking tokens on server:", err);
+      }
+      clearBearerToken();
       await authClient.signOut();
       toast.success("Signed out successfully");
       router.push("/signin");
     } catch (err: any) {
+      console.error("Error during sign out:", err);
       toast.error(err.message || "Failed to sign out");
     }
   };

@@ -21,6 +21,7 @@ model User {
   // Better Auth Fields
   emailVerified Boolean   @default(false)
   image         String?
+  tokenVersion  Int       @default(1)
 
   workspaces    WorkspaceMember[]
   activities    Activity[]

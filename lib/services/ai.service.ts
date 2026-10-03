@@ -105,7 +105,6 @@ function normalizeType(type?: string | null): string | null {
 
 export class AiService {
   private readonly openRouterBaseUrl = "https://openrouter.ai/api/v1";
-  private readonly fallbackModel = "deepseek/deepseek-flash-latest";
 
   async assertMembership(userId: string, workspaceId: string) {
     const member = await prisma.workspaceMember.findUnique({
@@ -231,7 +230,12 @@ export class AiService {
   async generateAssistantReply(options: GenerateChatStreamOptions) {
     const apiKey = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
     if (!apiKey) {
-      return "OpenRouter is not configured in the backend environment.";
+      return "OpenRouter API key is not configured in the backend environment. Please set OPENROUTER_API_KEY in .env.";
+    }
+
+    const model = process.env.OPENROUTER_MODEL?.trim();
+    if (!model) {
+      return "OpenRouter model is not configured in the backend environment. Please set OPENROUTER_MODEL in .env.";
     }
 
     const chatMessages = await prisma.chatMessage.findMany({
@@ -414,7 +418,7 @@ export class AiService {
             "X-Title": "Orbit CRM",
           },
           body: JSON.stringify({
-            model: process.env.OPENROUTER_MODEL || this.fallbackModel,
+            model,
             messages: apiMessages,
             ...(isLastLoop ? {} : { tools, tool_choice: "auto" }),
             stream: false,

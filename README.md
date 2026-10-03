@@ -21,9 +21,10 @@ This document serves as the comprehensive, authoritative single source of truth 
 6. [Frontend Routing and Component Architecture](#frontend-routing-and-component-architecture)
 7. [AI Copilot Engine and Function Calling](#ai-copilot-engine-and-function-calling)
 8. [Weighted Revenue Forecast Model](#weighted-revenue-forecast-model)
-9. [Environment Variables and Configuration](#environment-variables-and-configuration)
-10. [Getting Started and Local Development](#getting-started-and-local-development)
-11. [Docker Container Deployment](#docker-container-deployment)
+9. [Tab-Isolated Authentication & Token Revocation](#tab-isolated-authentication--token-revocation)
+10. [Environment Variables and Configuration](#environment-variables-and-configuration)
+11. [Getting Started and Local Development](#getting-started-and-local-development)
+12. [Docker Container Deployment](#docker-container-deployment)
 
 ---
 
@@ -232,6 +233,8 @@ All API endpoints are implemented as Next.js 16 App Router Route Handlers under 
 | `/api/auth/[...all]` | `ALL` | [`app/api/auth/[...all]/route.ts`](app/api/auth/[...all]/route.ts) | Better Auth session & auth flows |
 | `/api/auth/forgot-password` | `POST` | [`app/api/auth/forgot-password/route.ts`](app/api/auth/forgot-password/route.ts) | Sends 6-digit OTP verification code |
 | `/api/auth/reset-password` | `POST` | [`app/api/auth/reset-password/route.ts`](app/api/auth/reset-password/route.ts) | Verifies OTP and updates password |
+| `/api/auth/token` | `POST`, `DELETE` | [`app/api/auth/token/route.ts`](app/api/auth/token/route.ts) | Issue tab-isolated Bearer token (`POST`) or revoke all tokens (`DELETE`) |
+| `/api/events/stream` | `GET` | [`app/api/events/stream/route.ts`](app/api/events/stream/route.ts) | Workspace real-time Server-Sent Events (SSE) stream |
 | `/api/workspaces` | `GET`, `POST` | [`app/api/workspaces/route.ts`](app/api/workspaces/route.ts) | List user workspaces or create workspace |
 | `/api/workspaces/mine` | `GET` | [`app/api/workspaces/mine/route.ts`](app/api/workspaces/mine/route.ts) | List current user workspaces |
 | `/api/workspaces/[id]` | `PATCH` | [`app/api/workspaces/[id]/route.ts`](app/api/workspaces/[id]/route.ts) | Update workspace details |

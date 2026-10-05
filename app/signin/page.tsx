@@ -5,26 +5,13 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { syncBearerToken } from "@/lib/api-client";
-
-const demoCredentials = {
-  owner: {
-    label: "Workspace Owner",
-    email: "demo@orbitcrm.com",
-    password: "DemoPassword123!",
-  },
-  member: {
-    label: "Workspace Member",
-    email: "jayh31572@gmail.com",
-    password: "DemoPassword123!",
-  },
-} as const;
 
 type ViewState = "signin" | "forgot_password" | "reset_password";
 
@@ -47,22 +34,6 @@ function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [demoRole, setDemoRole] = useState<"owner" | "member">("owner");
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
-
-  const handleCopy = (text: string, type: "email" | "password") => {
-    navigator.clipboard.writeText(text);
-    if (type === "email") {
-      setCopiedEmail(true);
-      setTimeout(() => setCopiedEmail(false), 2000);
-      toast.success("Email copied to clipboard!");
-    } else {
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-      toast.success("Password copied to clipboard!");
-    }
-  };
 
   useEffect(() => {
     if (emailParam) {
@@ -604,104 +575,6 @@ function SignInForm() {
           {resetPasswordView}
         </>
       )}
-
-      <div className="mt-8 rounded-xl border border-border-default bg-bg-primary p-4 text-sm text-text-secondary shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="font-medium text-text-primary">Demo credentials</p>
-            <p className="text-xs text-text-secondary">Quick access for workspace previews.</p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <div className="flex rounded-full border border-border-default bg-bg-secondary p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setDemoRole("owner")}
-                className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                  demoRole === "owner"
-                    ? "bg-orbit-primary text-white"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-                disabled={isLoading}
-              >
-                Owner
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoRole("member")}
-                className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                  demoRole === "member"
-                    ? "bg-orbit-primary text-white"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-                disabled={isLoading}
-              >
-                Member
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const activeCredentials = demoCredentials[demoRole];
-                setEmail(activeCredentials.email);
-                setPassword(activeCredentials.password);
-                toast.success(`${demoRole === "owner" ? "Owner" : "Member"} credentials autofilled!`);
-              }}
-              className="text-xs text-orbit-primary hover:text-orbit-primary-hover font-medium underline cursor-pointer"
-              disabled={isLoading}
-            >
-              Autofill
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          <div className="rounded-lg border border-border-default bg-bg-secondary p-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-secondary">
-                  {demoCredentials[demoRole].label}
-                </p>
-                <p className="font-medium text-text-primary">{demoCredentials[demoRole].email}</p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-text-secondary hover:text-text-primary"
-                onClick={() => handleCopy(demoCredentials[demoRole].email, "email")}
-                disabled={isLoading}
-                aria-label="Copy demo email"
-              >
-                {copiedEmail ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border-default bg-bg-secondary p-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-secondary">Password</p>
-                <p className="font-medium text-text-primary">{demoCredentials[demoRole].password}</p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-text-secondary hover:text-text-primary"
-                onClick={() => handleCopy(demoCredentials[demoRole].password, "password")}
-                disabled={isLoading}
-                aria-label="Copy demo password"
-              >
-                {copiedPassword ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          <p className="text-xs text-text-secondary">
-            Use these credentials to explore the app without creating a new account.
-          </p>
-        </div>
-      </div>
     </motion.div>
   );
 }

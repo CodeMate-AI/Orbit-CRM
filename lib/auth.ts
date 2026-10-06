@@ -3,7 +3,12 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
 function parseTrustedOrigins(value: string | undefined) {
-  const defaults = ["http://localhost:3000", "http://localhost:3001", "https://orbit-crm-og.codemate.build"];
+  const defaults = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://orbito-crm.vercel.app",
+    "https://orbit-crm-og.codemate.build"
+  ];
 
   if (!value) {
     return defaults;

@@ -443,6 +443,16 @@ model PasswordResetOtp {
   @@index([email])
 }
 
+model SignupOtp {
+  id        String   @id @default(cuid()) @map("_id")
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model Verification {
   id         String    @id @map("_id")
   identifier String

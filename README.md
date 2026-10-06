@@ -233,6 +233,8 @@ All API endpoints are implemented as Next.js 16 App Router Route Handlers under 
 | `/api/auth/[...all]` | `ALL` | [`app/api/auth/[...all]/route.ts`](app/api/auth/[...all]/route.ts) | Better Auth session & auth flows |
 | `/api/auth/forgot-password` | `POST` | [`app/api/auth/forgot-password/route.ts`](app/api/auth/forgot-password/route.ts) | Sends 6-digit OTP verification code |
 | `/api/auth/reset-password` | `POST` | [`app/api/auth/reset-password/route.ts`](app/api/auth/reset-password/route.ts) | Verifies OTP and updates password |
+| `/api/auth/signup/send-otp` | `POST` | [`app/api/auth/signup/send-otp/route.ts`](app/api/auth/signup/send-otp/route.ts) | Sends 6-digit email sign-up verification code |
+| `/api/auth/signup/verify-otp` | `POST` | [`app/api/auth/signup/verify-otp/route.ts`](app/api/auth/signup/verify-otp/route.ts) | Verifies sign-up code, activates user account & issues token |
 | `/api/auth/token` | `POST`, `DELETE` | [`app/api/auth/token/route.ts`](app/api/auth/token/route.ts) | Issue tab-isolated Bearer token (`POST`) or revoke all tokens (`DELETE`) |
 | `/api/events/stream` | `GET` | [`app/api/events/stream/route.ts`](app/api/events/stream/route.ts) | Workspace real-time Server-Sent Events (SSE) stream |
 | `/api/workspaces` | `GET`, `POST` | [`app/api/workspaces/route.ts`](app/api/workspaces/route.ts) | List user workspaces or create workspace |

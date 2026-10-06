@@ -41,9 +41,10 @@ async function cleanDatabase() {
     console.log("Cleaning companies...");
     await prisma.company.deleteMany({});
 
-    console.log("Cleaning invitations & password reset OTPs...");
+    console.log("Cleaning invitations & password reset / signup OTPs...");
     await prisma.invitation.deleteMany({});
     await prisma.passwordResetOtp.deleteMany({});
+    await prisma.signupOtp.deleteMany({});
 
     // 2. Delete workspace associations and workspaces
     console.log("Cleaning workspace members & workspaces...");

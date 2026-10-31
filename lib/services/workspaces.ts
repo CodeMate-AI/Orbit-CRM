@@ -356,7 +356,12 @@ export class WorkspacesService {
       },
     });
 
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || "http://localhost:3000";
+    const appUrl =
+      process.env.APP_URL ||
+      process.env.FRONTEND_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+      "https://crmly.codemate.build";
     const inviteUrl = `${appUrl.replace(/\/$/, "")}/invite/accept?token=${token}`;
 
     emailService

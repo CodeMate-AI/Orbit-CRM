@@ -6,6 +6,7 @@ function parseTrustedOrigins(value: string | undefined) {
   const defaults = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "https://crmly.codemate.build",
     "https://orbito-crm.vercel.app",
     "https://orbit-crm-og.codemate.build"
   ];

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     "Orbit CRM",
   ],
   authors: [{ name: "Orbit CRM" }],
-  metadataBase: new URL("https://orbit-crm-og.codemate.build"),
+  metadataBase: new URL("https://crmly.codemate.build"),
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title: "Orbit CRM - AI-Native Customer Relationship Management",
     description:
       "The AI-native customer relationship management platform built for modern startups and small teams.",
-    url: "https://orbit-crm-og.codemate.build",
+    url: "https://crmly.codemate.build",
     siteName: "Orbit CRM",
     locale: "en_US",
     type: "website",

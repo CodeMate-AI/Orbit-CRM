@@ -8,6 +8,7 @@
     "start": "next start",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
+    "db:seed": "npx tsx scripts/seed-demo-data.ts",
     "test": "npx tsx tests/auth-bearer.test.ts"
   },
   "dependencies": {

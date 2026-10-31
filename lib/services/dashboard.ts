@@ -13,7 +13,7 @@ function getRangeStart(now: Date, range: DashboardRange) {
 
 function getRangeEnd(now: Date, range: DashboardRange) {
   return {
-    week: now,
+    week: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
     month: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
     quarter: new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 + 3, 0, 23, 59, 59, 999),
     year: new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999),

@@ -51,6 +51,7 @@ next-env.d.ts
 # Project Specific
 .cora/
 .agents/
+.playwright-mcp/
 problemStatement.md
 Backend.md
 Frontend.md
